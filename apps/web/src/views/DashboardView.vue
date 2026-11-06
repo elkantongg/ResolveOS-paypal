@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ArrowRight, Inbox, Plus, RotateCcw, Search, ShoppingCart } from 'lucide-vue-next';
+import { ArrowRight, Inbox, Plus, RotateCcw, Search, ShoppingCart, Timer } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
@@ -10,7 +10,7 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import Skeleton from '@/components/Skeleton.vue';
 import SourceBadge from '@/components/SourceBadge.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
-import { describeEvent, money, STATUS_LABEL, timeAgo } from '@/lib/format';
+import { describeEvent, duration, money, STATUS_LABEL, timeAgo } from '@/lib/format';
 import { useSession } from '@/stores/session';
 
 /** Every number here is computed by the API from stored records; nothing is hard-coded. */
@@ -83,7 +83,7 @@ const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merch
         <h1 class="mt-1 text-2xl font-semibold tracking-tight">Welcome back, {{ greeting }}</h1>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class="btn btn-ghost btn-sm" :disabled="resetting" @click="resetDemo"><RotateCcw class="size-3.5" /> Reset demo</button>
+        <button v-if="session.role === 'OPERATOR'" type="button" class="btn btn-ghost btn-sm" :disabled="resetting" @click="resetDemo"><RotateCcw class="size-3.5" /> Reset demo</button>
         <template v-if="session.role === 'BUYER'">
           <RouterLink to="/purchase" class="btn btn-secondary"><ShoppingCart class="size-4" /> Create sandbox transaction</RouterLink>
           <RouterLink to="/cases/new" class="btn btn-primary"><Plus class="size-4" /> Report a problem</RouterLink>
@@ -114,6 +114,14 @@ const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merch
       </template>
       <div v-for="i in 5" v-else :key="i" class="card px-5 py-4"><Skeleton :lines="2" /></div>
     </div>
+
+    <section v-if="summary" class="card flex flex-wrap items-center gap-x-8 gap-y-3 px-5 py-4" aria-label="Measured impact">
+      <p class="flex items-center gap-2 text-sm font-semibold"><Timer class="size-4 text-accent" /> Measured from the audit log</p>
+      <p class="text-sm"><span class="text-muted">Median complaint → resolution </span><span class="font-semibold tabular">{{ duration(summary.measured.medianResolutionSeconds) }}</span><span class="text-xs text-muted"> ({{ summary.measured.resolvedCasesMeasured }} resolved)</span></p>
+      <p class="text-sm"><span class="text-muted">Median agent negotiation </span><span class="font-semibold tabular">{{ duration(summary.measured.medianNegotiationSeconds) }}</span></p>
+      <p class="text-sm"><span class="text-muted">Agent turns </span><span class="font-semibold tabular">{{ summary.measured.agentTurns }}</span><span class="text-muted"> · guardrail rejections </span><span class="font-semibold tabular">{{ summary.measured.guardrailRejections }}</span></p>
+      <p class="text-xs text-muted">PayPal’s dispute inquiry stage allows up to {{ summary.measured.paypalInquiryWindowDays }} days.</p>
+    </section>
 
     <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
       <section class="card overflow-hidden">

@@ -2,7 +2,7 @@ import { PAYPAL_SANDBOX_API, config, paypalConfigured } from '../config.js';
 import { fromPayPalValue, toPayPalValue } from '../money.js';
 
 /**
- * A thin, typed client for the PayPal REST endpoints Resolve AI uses (sandbox only):
+ * A thin, typed client for the PayPal REST endpoints ResolveOS uses (sandbox only):
  *
  *   POST /v1/oauth2/token                          client-credentials access token
  *   POST /v2/checkout/orders                       create an order (intent CAPTURE)
@@ -241,7 +241,7 @@ export class HttpPayPalGateway implements PayPalGateway {
                 cancel_url: input.cancelUrl,
                 user_action: 'PAY_NOW',
                 shipping_preference: 'NO_SHIPPING',
-                brand_name: 'Resolve AI demo store',
+                brand_name: 'ResolveOS demo store',
               },
             },
           },

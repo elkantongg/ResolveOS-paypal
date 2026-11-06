@@ -222,6 +222,18 @@ describe('approved refund', () => {
     expect(kaseAfter?.currentStatus).not.toBe('RESOLVED');
   });
 
+  it('after PayPal refuses a refund, the case reopens for a new agreement instead of getting stuck', async () => {
+    const { kase } = await approvedRefundCase(people);
+    paypal.refundMode = 'rejected';
+    const { app } = makeApp(paypal);
+    const merchant = await signIn(app, people.merchantUser.id);
+    await merchant.post('/api/paypal/refunds/execute', { caseId: kase.id }).expect(200);
+    const kaseAfter = await db().query.cases.findFirst({ where: eq(cases.id, kase.id) });
+    expect(kaseAfter?.currentStatus).toBe('IN_NEGOTIATION');
+    expect(kaseAfter?.revisionNotes.join(' ')).toContain('REFUND_AMOUNT_EXCEEDED');
+    expect(kaseAfter?.outcomeSummary).toContain('No money moved');
+  });
+
   it('a pending refund leaves the case unresolved until PayPal confirms it', async () => {
     const { kase } = await approvedRefundCase(people);
     paypal.refundMode = 'pending';
@@ -314,8 +326,10 @@ describe('webhooks', () => {
     const { raw, headers } = signed(event, 'WH-TEST', forger.privateKey);
     const res = await request(app).post('/api/paypal/webhooks').set(headers).send(raw.toString('utf8')).expect(400);
     expect(res.body.result).toBe('unverified');
-    const stored = await db().query.webhookEvents.findFirst({ where: eq(webhookEvents.paypalEventId, 'WH-EVT-2') });
-    expect(stored?.processingStatus).toBe('QUARANTINED');
+    // Not stored under the id it claimed (so it cannot block the real event), but kept for inspection.
+    expect(await db().query.webhookEvents.findFirst({ where: eq(webhookEvents.paypalEventId, 'WH-EVT-2') })).toBeUndefined();
+    const quarantined = (await db().select().from(webhookEvents)).filter((e) => e.processingStatus === 'QUARANTINED');
+    expect(quarantined.map((e) => (e.payload as { claimedEventId?: string }).claimedEventId)).toContain('WH-EVT-2');
     const kaseAfter = await db().query.cases.findFirst({ where: eq(cases.id, kase.id) });
     expect(kaseAfter?.currentStatus).toBe('PAYMENT_PROCESSING');
     delete process.env.PAYPAL_WEBHOOK_ID;
@@ -329,6 +343,36 @@ describe('webhooks', () => {
     headers['paypal-cert-url'] = 'https://evil.example.com/cert.pem';
     const res = await request(app).post('/api/paypal/webhooks').set(headers).send(raw.toString('utf8')).expect(400);
     expect(res.body.result).toBe('unverified');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('a forged event cannot squat a real event id and block the genuine delivery', async () => {
+    process.env.PAYPAL_WEBHOOK_ID = 'WH-TEST';
+    resetConfig();
+    const { app, kase, refundId } = await pendingRefund();
+    const event = { id: 'WH-EVT-SQUAT', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId, status: 'COMPLETED' } };
+    const forged = signed(event, 'WH-TEST', signingKeys().privateKey);
+    await request(app).post('/api/paypal/webhooks').set(forged.headers).send(forged.raw.toString('utf8')).expect(400);
+    const real = signed(event, 'WH-TEST');
+    const res = await request(app).post('/api/paypal/webhooks').set(real.headers).send(real.raw.toString('utf8')).expect(200);
+    expect(res.body.result).toBe('processed');
+    const kaseAfter = await db().query.cases.findFirst({ where: eq(cases.id, kase.id) });
+    expect(kaseAfter?.currentStatus).toBe('RESOLVED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('a verified event whose processing never finished is processed on redelivery', async () => {
+    process.env.PAYPAL_WEBHOOK_ID = 'WH-TEST';
+    resetConfig();
+    const { app, kase, refundId } = await pendingRefund();
+    const event = { id: 'WH-EVT-CRASH', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId, status: 'COMPLETED' } };
+    // As if the server crashed after recording the event but before applying it.
+    await db().insert(webhookEvents).values({ paypalEventId: event.id, eventType: event.event_type, resourceId: refundId, verificationStatus: 'VERIFIED', processingStatus: 'RECEIVED', payload: event });
+    const { raw, headers } = signed(event, 'WH-TEST');
+    const res = await request(app).post('/api/paypal/webhooks').set(headers).send(raw.toString('utf8')).expect(200);
+    expect(res.body.result).toBe('processed');
+    const kaseAfter = await db().query.cases.findFirst({ where: eq(cases.id, kase.id) });
+    expect(kaseAfter?.currentStatus).toBe('RESOLVED');
     delete process.env.PAYPAL_WEBHOOK_ID;
   });
 });

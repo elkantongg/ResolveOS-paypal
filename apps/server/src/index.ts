@@ -31,7 +31,7 @@ const { app } = createApp({
 });
 
 app.listen(c.BACKEND_PORT, () => {
-  console.log(`Resolve AI API on http://localhost:${c.BACKEND_PORT}`);
+  console.log(`ResolveOS API on http://localhost:${c.BACKEND_PORT}`);
   console.log(c.PAYPAL_ADAPTER === 'mock' ? 'PayPal: MOCK adapter (automated tests only, no real PayPal calls).' : paypalConfigured() ? 'PayPal: sandbox credentials found.' : 'PayPal: NOT configured (payments disabled).');
   console.log(aiConfigured() ? `AI: live model ${c.AI_MODEL}.` : 'AI: not configured (only the labelled demo negotiator is available).');
 });

@@ -21,6 +21,7 @@ import {
 import { seedDemo } from '../db/seed.js';
 import { conflict, forbidden, notFound } from '../errors.js';
 import { formatMoney } from '../money.js';
+import { PAYPAL_INQUIRY_WINDOW_DAYS, caseMetrics, median } from '../metrics.js';
 import { type Orchestrator } from '../negotiation/orchestrator.js';
 import { type PayPalGateway } from '../paypal/client.js';
 import { type Actor, type PaymentService, assertParty } from '../payments/service.js';
@@ -162,12 +163,18 @@ export function registerCaseRoutes(
         }
       }
 
-      const [{ value: total } = { value: 0 }] = await database.select({ value: count() }).from(cases);
-      const created = await database.transaction(async (tx) => {
+      // References are "RA-<next number>". Two cases opened at once can pick the same number; the
+      // unique index refuses the second, which then retries with the next one instead of failing.
+      const insertCase = async (attempt: number) => {
+        const [{ value: highest } = { value: null }] = await database
+          .select({ value: sql<number | null>`max(cast(substring(${cases.reference} from 4) as integer))` })
+          .from(cases)
+          .where(sql`${cases.reference} ~ '^RA-[0-9]+$'`);
+        return database.transaction(async (tx) => {
         const [kase] = await tx
           .insert(cases)
           .values({
-            reference: `RA-${1100 + Number(total)}`,
+            reference: `RA-${Math.max(1099, Number(highest ?? 0)) + 1 + attempt}`,
             transactionId: txn.id,
             buyerId: user.id,
             merchantId: merchant.id,
@@ -191,7 +198,18 @@ export function registerCaseRoutes(
         await tx.insert(evidence).values(items.map((item, i) => ({ ...item, caseId: kase.id, code: `EV-${i + 1}` })));
         const record = await audit(tx, { caseId: kase.id, actorType: 'USER', actorUserId: user.id, action: 'case.opened', details: { reference: kase.reference } });
         return { kase, record };
-      });
+        });
+      };
+      let created: Awaited<ReturnType<typeof insertCase>> | null = null;
+      for (let attempt = 0; attempt < 5 && !created; attempt += 1) {
+        try {
+          created = await insertCase(attempt);
+        } catch (error) {
+          const code = (error as { cause?: { code?: string }; code?: string }).cause?.code ?? (error as { code?: string }).code;
+          if (code !== '23505' || attempt === 4) throw error; // only a reference clash is retried
+        }
+      }
+      if (!created) throw new Error('case insert failed');
       publish([created.record]);
       res.status(201).json({ case: created.kase });
     }),
@@ -407,12 +425,42 @@ export function registerCaseRoutes(
             }
           : null,
         parties: { buyer: buyer?.name ?? null, merchant: merchant?.businessName ?? null },
+        metrics: caseMetrics(timeline),
+        comparison: { paypalInquiryWindowDays: PAYPAL_INQUIRY_WINDOW_DAYS, source: 'https://developer.paypal.com/disputes/disputes-lifecycle' },
         timeline,
       });
     }),
   );
 
   // ── Dashboard ────────────────────────────────────────────────────────────
+
+  /** Resolution times and guardrail activity across the cases this person can see, from the audit log. */
+  async function measured(scope: Awaited<ReturnType<typeof visibleCases>>) {
+    const rows = await database
+      .select({ caseId: auditEvents.caseId, action: auditEvents.action, createdAt: auditEvents.createdAt })
+      .from(auditEvents)
+      .innerJoin(cases, eq(cases.id, auditEvents.caseId))
+      .where(scope)
+      .orderBy(asc(auditEvents.createdAt));
+    const byCase = new Map<string, { action: string; createdAt: Date }[]>();
+    for (const row of rows) {
+      if (!row.caseId) continue;
+      const list = byCase.get(row.caseId) ?? [];
+      list.push(row);
+      byCase.set(row.caseId, list);
+    }
+    const all = [...byCase.values()].map((events) => caseMetrics(events));
+    const resolved = all.map((m) => m.totalSeconds).filter((s): s is number => s !== null);
+    const negotiations = all.map((m) => m.negotiationSeconds).filter((s): s is number => s !== null);
+    return {
+      resolvedCasesMeasured: resolved.length,
+      medianResolutionSeconds: median(resolved),
+      medianNegotiationSeconds: median(negotiations),
+      agentTurns: all.reduce((a, m) => a + m.agentTurns, 0),
+      guardrailRejections: all.reduce((a, m) => a + m.guardrailRejections, 0),
+      paypalInquiryWindowDays: PAYPAL_INQUIRY_WINDOW_DAYS,
+    };
+  }
 
   app.get(
     '/api/dashboard/summary',
@@ -451,6 +499,7 @@ export function registerCaseRoutes(
         notAgreed: n(['NO_AGREEMENT', 'ESCALATED']),
         refundedTotals: refunded.map((r) => ({ currency: r.currency, totalMinor: Number(r.total ?? 0) })),
         activity: days.map((d) => ({ day: d.day, resolved: Number(d.resolved), opened: Number(d.opened) })),
+        measured: await measured(scope),
       });
     }),
   );
@@ -476,8 +525,9 @@ export function registerCaseRoutes(
   app.post(
     '/api/demo/reset',
     route(async (req, res) => {
+      // Wipes every case and transaction record (PayPal itself is untouched): the operator only.
       const user = requireUser(req);
-      if (user.role !== 'OPERATOR' && config().NODE_ENV === 'production') throw forbidden();
+      if (user.role !== 'OPERATOR') throw forbidden('Only the demo operator can reset the demo.');
       await seedDemo(database);
       res.clearCookie('resolve_session', { path: '/' });
       res.json({ ok: true, note: 'Demo data reset. Everyone has been signed out.' });

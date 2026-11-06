@@ -16,7 +16,7 @@ import { PayPalError, type PayPalGateway, type RefundResult } from '../paypal/cl
 import { movesMoney, termsHash } from '../settlement/terms.js';
 
 /**
- * The payment side of Resolve AI, and the only code that moves money.
+ * The payment side of ResolveOS, and the only code that moves money.
  *
  * Sandbox purchase:  createSandboxOrder → (buyer approves in PayPal) → captureSandboxOrder.
  *   The capture ID and amount stored are the ones PayPal returned, never ones the browser sent.
@@ -358,7 +358,7 @@ export class PaymentService {
         currency: attempt.currency,
         requestId: attempt.paypalRequestId,
         invoiceId: `${kase.reference}-v${attempt.proposalId.slice(0, 8)}`,
-        noteToPayer: `Resolve AI settlement for case ${kase.reference}`,
+        noteToPayer: `ResolveOS settlement for case ${kase.reference}`,
       });
     } catch (error) {
       const unknown =
@@ -372,7 +372,7 @@ export class PaymentService {
             updatedAt: new Date(),
           })
           .where(eq(refundAttempts.id, attempt.id));
-        return [
+        const out = [
           await audit(tx, {
             caseId,
             actorType: 'PAYPAL',
@@ -384,6 +384,10 @@ export class PaymentService {
             },
           }),
         ];
+        if (!unknown) {
+          out.push(...(await reopenAfterRefusal(tx, caseId, error instanceof Error ? error.message : 'refund failed')));
+        }
+        return out;
       });
       publish(records);
       return;
@@ -480,6 +484,9 @@ export class PaymentService {
           }),
         );
       }
+      if (status === 'FAILED') {
+        out.push(...(await reopenAfterRefusal(tx, caseId, `PayPal reported the refund as ${result.status}`)));
+      }
       return out;
     });
     publish(records);
@@ -511,6 +518,35 @@ export class PaymentService {
       updatedAt: attempt.updatedAt.toISOString(),
     };
   }
+}
+
+/**
+ * After PayPal definitively refuses an approved refund, no money moved and the approved terms
+ * cannot be carried out. Rather than leave the case stuck in "payment processing", it goes back to
+ * negotiation with PayPal's reason as context; any new terms need both approvals again (a new
+ * proposal version, so the old approvals cannot be reused).
+ */
+async function reopenAfterRefusal(tx: Tx, caseId: string, reason: string): Promise<AuditRecord[]> {
+  const [kase] = await tx.select().from(cases).where(eq(cases.id, caseId)).for('update');
+  if (!kase || kase.currentStatus === 'RESOLVED') return [];
+  await tx
+    .update(cases)
+    .set({
+      currentStatus: 'IN_NEGOTIATION',
+      maxTurns: Math.min(12, kase.maxTurns + 4),
+      revisionNotes: [...kase.revisionNotes, `system: PayPal refused the approved refund (${reason})`],
+      outcomeSummary: `PayPal refused the approved refund (${reason}). No money moved. The agents can negotiate new terms, which both of you must approve again.`,
+      updatedAt: new Date(),
+    })
+    .where(eq(cases.id, caseId));
+  return [
+    await audit(tx, {
+      caseId,
+      actorType: 'SYSTEM',
+      action: 'negotiation.resumed',
+      details: { reason: 'PayPal refused the approved refund', detail: reason },
+    }),
+  ];
 }
 
 /** Buyer of the case, the case's merchant owner, or (read-only callers check this) the operator. */

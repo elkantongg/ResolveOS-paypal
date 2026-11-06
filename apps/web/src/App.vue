@@ -24,7 +24,7 @@ onMounted(() => {
   <template v-else>
     <header class="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur-md">
       <div class="mx-auto flex h-16 max-w-[1440px] items-center gap-6 px-4 sm:px-6">
-        <RouterLink to="/dashboard" aria-label="Resolve AI dashboard"><Logo /></RouterLink>
+        <RouterLink to="/dashboard" aria-label="ResolveOS dashboard"><Logo /></RouterLink>
         <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
           <RouterLink to="/dashboard" class="btn btn-sm btn-ghost" active-class="!bg-sunken !text-ink">
             <LayoutDashboard class="size-4" /> Dashboard
@@ -49,6 +49,11 @@ onMounted(() => {
         </div>
       </div>
     </header>
+    <nav class="sticky top-16 z-20 flex gap-1 overflow-x-auto border-b border-line bg-surface/90 px-3 py-2 backdrop-blur-md md:hidden" aria-label="Main (mobile)">
+      <RouterLink to="/dashboard" class="btn btn-sm btn-ghost" active-class="!bg-sunken !text-ink"><LayoutDashboard class="size-4" /> Dashboard</RouterLink>
+      <RouterLink v-if="session.role === 'BUYER'" to="/purchase" class="btn btn-sm btn-ghost" active-class="!bg-sunken !text-ink"><ShoppingCart class="size-4" /> Purchase</RouterLink>
+      <RouterLink to="/settings" class="btn btn-sm btn-ghost" active-class="!bg-sunken !text-ink"><Settings class="size-4" /> Settings</RouterLink>
+    </nav>
     <main id="main" class="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
       <RouterView :key="route.fullPath" />
     </main>

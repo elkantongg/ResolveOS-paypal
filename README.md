@@ -1,11 +1,11 @@
-# Resolve AI
+# ResolveOS
 
 **Two sides. One resolution.**
 
-Resolve AI is a pre-dispute payment resolution app. When a completed PayPal payment goes wrong, a
+ResolveOS is a pre-dispute payment resolution app. When a completed PayPal payment goes wrong, a
 **buyer agent** and a **merchant agent** look at the evidence and negotiate a fair settlement. Each
 agent stays within its own side's private limits. A **deterministic orchestrator** checks every move
-the agents make. **Both people approve** the exact terms. Only then does Resolve AI run the **refund
+the agents make. **Both people approve** the exact terms. Only then does ResolveOS run the **refund
 through PayPal's real sandbox API** and show a receipt with PayPal's refund ID.
 
 > Independent hackathon project for the PayPal AI Hackathon 2026. It is not affiliated with or
@@ -20,12 +20,13 @@ A customer buys a $180 jacket. The carrier says it was delivered; the customer s
 arrived. There is no signature and no photo. Both sides are acting in good faith, but the evidence
 is incomplete, and a formal dispute costs both of them time, fees and the relationship.
 
-Payment products work hard to make paying easy. Resolve AI focuses on what happens **after** a
-payment goes wrong: before anyone opens a formal dispute.
+PayPal's Resolution Center already lets the two sides message and make offers **once a dispute is
+open**. ResolveOS works one step earlier, **before** a dispute: each side gets its own AI advocate
+with private limits, and a compromise both people approve is settled as a real PayPal refund.
 
 ## What happens in the demo
 
-1. **Buyer reports a problem** on a real PayPal sandbox payment. Resolve AI reads the capture from
+1. **Buyer reports a problem** on a real PayPal sandbox payment. ResolveOS reads the capture from
    PayPal and marks it *Verified from PayPal*.
 2. **The merchant adds evidence**, such as a tracking record or a refund policy, and sets a private
    refund ceiling.
@@ -147,7 +148,7 @@ Open **http://localhost:5180** and click **Launch demo**.
 1. Sign in as **Alex Morgan** (buyer). Go to **Sandbox purchase** → **Pay with PayPal sandbox**.
 2. On PayPal's sandbox page, log in with your **sandbox personal account**: developer.paypal.com →
    Testing Tools → Sandbox Accounts → the *Personal* account → View/Edit for its email and password.
-   Then pay. You return to Resolve AI with the capture ID.
+   Then pay. You return to ResolveOS with the capture ID.
 3. **Report a problem with this order** → *Fill in the "missing jacket" scenario* → **Open case**.
 4. Use the header menu to switch to **Jordan Ellis** (merchant). Click **Add evidence** → *Demo
    tracking record* → Add. Set *Most we would refund* (e.g. 120.00).
@@ -183,7 +184,7 @@ Without webhooks, refunds are still confirmed from PayPal's API responses, and p
 ## Tests
 
 ```bash
-pnpm --filter server test   # 44 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 47 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
@@ -244,13 +245,18 @@ e2e/            Playwright specs
   though, and roles are enforced on the server.
 - **Evidence is text,** entered by the parties or seeded; there is no file upload. Shipping data is
   not fetched from carriers.
-- **Replacement** can be agreed, but Resolve AI does not ship anything; it is flagged as a manual
+- **Replacement** can be agreed, but ResolveOS does not ship anything; it is flagged as a manual
   action for the merchant.
 - **AI rate limits:** Groq's free tier allows about 8,000 tokens a minute. The app waits and retries
   automatically, so a long negotiation may pause briefly.
 - **Refund status:** without a webhook URL, a `PENDING` refund is updated only when someone clicks
   **Check with PayPal**.
 - **Postgres tests:** server tests need a local Postgres test database.
+
+## Submission material
+
+- `docs/DEVPOST.md`: the submission text (problem, solution, measured impact, USP).
+- `docs/VIDEO_SCRIPT.md`: the timed script for the 3-minute demo video.
 
 ## License
 

@@ -33,7 +33,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, 'network', 'Cannot reach the Resolve AI server. Is it running?');
+    throw new ApiError(0, 'network', 'Cannot reach the ResolveOS server. Is it running?');
   }
   if (response.status === 204) return undefined as T;
   const data = (await response.json().catch(() => ({}))) as {

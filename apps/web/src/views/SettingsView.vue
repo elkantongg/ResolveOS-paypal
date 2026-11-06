@@ -75,7 +75,7 @@ onMounted(check);
         <li>A refund runs only after the buyer and the merchant each approve the exact same terms.</li>
         <li>Amounts, currency and limits are checked by the server, never trusted from the model.</li>
         <li>Only a PayPal-confirmed refund is ever shown as successful.</li>
-        <li>Resolve AI is independent of PayPal and does not replace PayPal’s Resolution Center.</li>
+        <li>ResolveOS is independent of PayPal and does not replace PayPal’s Resolution Center.</li>
       </ul>
     </section>
   </div>

@@ -21,7 +21,7 @@ async function main() {
       amountMinor: 18000,
       currency: 'USD',
       referenceId: `prove-${Date.now()}`,
-      description: 'Everyday Jacket (Resolve AI proof)',
+      description: 'Everyday Jacket (ResolveOS proof)',
       requestId: `resolve-prove-order-${randomUUID()}`,
       returnUrl: `${c.FRONTEND_URL}/checkout/return`,
       cancelUrl: `${c.FRONTEND_URL}/checkout/cancel`,
@@ -29,7 +29,7 @@ async function main() {
     console.log(`Order ${order.orderId} created for ${formatMoney(18000, 'USD')} (${order.status}).`);
     console.log('\n1. Open this link and log in with your SANDBOX PERSONAL account, then click Pay:');
     console.log(`   ${order.approveUrl}`);
-    console.log('2. PayPal then redirects to localhost:5173, which is not running yet. That error page is fine.');
+    console.log('2. PayPal then redirects to the web app at /checkout/return. If the web app is not running, that error page is fine.');
     console.log(`3. Run:  pnpm paypal:prove finish ${order.orderId}`);
     return;
   }
@@ -46,7 +46,7 @@ async function main() {
       currency: capture.currency,
       requestId,
       invoiceId: `PROVE-${capture.captureId}`,
-      noteToPayer: 'Resolve AI proof: partial settlement refund',
+      noteToPayer: 'ResolveOS proof: partial settlement refund',
     });
     console.log(
       `✓ Refunded ${refund.amountMinor === null ? '?' : formatMoney(refund.amountMinor, capture.currency)}: refund ${refund.refundId} (${refund.status})`,
@@ -57,7 +57,7 @@ async function main() {
       currency: capture.currency,
       requestId,
       invoiceId: `PROVE-${capture.captureId}`,
-      noteToPayer: 'Resolve AI proof: partial settlement refund',
+      noteToPayer: 'ResolveOS proof: partial settlement refund',
     });
     console.log(
       `✓ Same PayPal-Request-Id sent again → PayPal returned refund ${again.refundId} ${again.refundId === refund.refundId ? '(the SAME refund: no double refund)' : '(DIFFERENT: idempotency did not hold!)'}`,

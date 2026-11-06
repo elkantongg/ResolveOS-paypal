@@ -1,5 +1,5 @@
 /**
- * Money is integers of the currency's minor unit everywhere inside Resolve AI ($180.00 = 18000).
+ * Money is integers of the currency's minor unit everywhere inside ResolveOS ($180.00 = 18000).
  * Only the PayPal boundary converts to and from PayPal's decimal strings, and it does so with
  * string arithmetic, never floating point.
  */

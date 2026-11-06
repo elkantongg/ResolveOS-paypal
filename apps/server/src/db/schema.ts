@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
- * Resolve AI's schema. Money columns are integers of minor units (`*_minor`). Every table that can
+ * ResolveOS's schema. Money columns are integers of minor units (`*_minor`). Every table that can
  * hold seeded demonstration data has a `source_type`, so a seeded record is never mistaken for a
  * verified PayPal sandbox record.
  */

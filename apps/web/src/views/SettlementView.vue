@@ -154,7 +154,7 @@ const refundCopy = computed(() => {
             </div>
           </dl>
           <div v-if="proposal.requiresManualAction" class="border-t border-line bg-warn-soft px-6 py-3 text-sm text-warn">
-            A replacement must be shipped by the merchant manually. Resolve AI does not ship anything.
+            A replacement must be shipped by the merchant manually. ResolveOS does not ship anything.
           </div>
           <div v-if="movesMoney && !isReal" class="flex gap-3 border-t border-line bg-sunken px-6 py-3 text-sm text-ink-soft">
             <FlaskConical class="mt-0.5 size-4 shrink-0 text-muted" />
@@ -243,7 +243,7 @@ const refundCopy = computed(() => {
       </section>
 
       <RouterLink v-if="view.caseStatus === 'RESOLVED' && (!movesMoney || !isReal)" :to="`/cases/${caseId}/receipt`" class="btn btn-primary">View receipt <ArrowRight class="size-4" /></RouterLink>
-      <p class="text-xs text-muted">Resolve AI is an independent pre-dispute tool. It does not guarantee PayPal Buyer or Seller Protection outcomes and does not replace PayPal’s Resolution Center.</p>
+      <p class="text-xs text-muted">ResolveOS is an independent pre-dispute tool. It does not guarantee PayPal Buyer or Seller Protection outcomes and does not replace PayPal’s Resolution Center.</p>
     </template>
   </div>
 </template>

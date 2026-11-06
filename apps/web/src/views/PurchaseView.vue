@@ -10,7 +10,7 @@ import { useSession } from '@/stores/session';
 /**
  * A real PayPal sandbox purchase: the server creates the order, PayPal's own page takes the
  * (sandbox) buyer's approval, and the server captures it on return. No card details ever pass
- * through Resolve AI.
+ * through ResolveOS.
  */
 const session = useSession();
 const merchants = ref<{ id: string; businessName: string; currency: string }[]>([]);

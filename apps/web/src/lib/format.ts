@@ -174,3 +174,13 @@ export function describeEvent(event: Pick<AuditEvent, 'action' | 'details'>): st
       return event.action.replace(/[._]/g, ' ');
   }
 }
+
+/** 57 → "57 s", 134 → "2 min 14 s", 7300 → "2 h 1 min". */
+export function duration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return '—';
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return seconds % 60 ? `${minutes} min ${seconds % 60} s` : `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+}

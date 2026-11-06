@@ -19,7 +19,7 @@ async function main() {
     amountMinor: 100,
     currency: 'USD',
     referenceId: 'paypal-check',
-    description: 'Resolve AI credentials check',
+    description: 'ResolveOS credentials check',
     requestId: `resolve-check-${Date.now()}`,
     returnUrl: `${c.FRONTEND_URL}/checkout/return`,
     cancelUrl: `${c.FRONTEND_URL}/checkout/cancel`,

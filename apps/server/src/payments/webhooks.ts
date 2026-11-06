@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { eq } from 'drizzle-orm';
 
 import { audit, publish } from '../audit.js';
@@ -9,10 +11,11 @@ import { type PaymentService } from './service.js';
 
 /**
  * PayPal webhook handling. Order of operations:
- *   1. Verify the signature against the raw bytes. Unverified events are stored as `rejected` for
- *      inspection and never change any payment state.
- *   2. Deduplicate on PayPal's event id (unique column): a redelivery is acknowledged, not re-run.
- *   3. Apply only events that match a payment Resolve AI knows about.
+ *   1. Verify the signature against the raw bytes. Unverified events are quarantined under a random
+ *      id (never the id they claim) for inspection, and never change any payment state.
+ *   2. Deduplicate on PayPal's event id (unique column): a redelivery of a processed event is
+ *      acknowledged, not re-run; one that was recorded but never finished is applied.
+ *   3. Apply only events that match a payment ResolveOS knows about.
  */
 
 interface WebhookEnvelope {
@@ -52,20 +55,39 @@ export async function handleWebhook(
   if (!event.id || !event.event_type) return { status: 400, result: 'malformed' };
 
   const verdict = await verifyWebhook(rawBody, headers, webhookId, getCert);
+  if (!verdict.ok) {
+    // Kept for inspection under its own id. An unverified request must never occupy (squat) the
+    // event id it claims, or the genuine delivery with that id would later be dropped as a duplicate.
+    await database.insert(webhookEvents).values({
+      paypalEventId: `unverified:${randomUUID()}`,
+      eventType: event.event_type,
+      resourceId: event.resource?.id ?? null,
+      verificationStatus: `REJECTED:${verdict.reason}`,
+      processingStatus: 'QUARANTINED',
+      payload: { claimedEventId: event.id, event },
+    });
+    return { status: 400, result: 'unverified' };
+  }
   const inserted = await database
     .insert(webhookEvents)
     .values({
       paypalEventId: event.id,
       eventType: event.event_type,
       resourceId: event.resource?.id ?? null,
-      verificationStatus: verdict.ok ? 'VERIFIED' : `REJECTED:${verdict.reason}`,
-      processingStatus: verdict.ok ? 'RECEIVED' : 'QUARANTINED',
+      verificationStatus: 'VERIFIED',
+      processingStatus: 'RECEIVED',
       payload: event,
     })
     .onConflictDoNothing({ target: webhookEvents.paypalEventId })
     .returning();
-  if (!verdict.ok) return { status: 400, result: 'unverified' };
-  if (inserted.length === 0) return { status: 200, result: 'duplicate' };
+  if (inserted.length === 0) {
+    // Seen before. Only a delivery whose processing finished is a duplicate; one still RECEIVED
+    // (the server stopped part-way) is applied now. Applying is idempotent, so a race is harmless.
+    const seen = await database.query.webhookEvents.findFirst({
+      where: eq(webhookEvents.paypalEventId, event.id),
+    });
+    if (seen && seen.processingStatus !== 'RECEIVED') return { status: 200, result: 'duplicate' };
+  }
 
   const markProcessed = (processingStatus: string) =>
     database

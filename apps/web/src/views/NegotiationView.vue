@@ -91,7 +91,6 @@ const buyerTurn = computed(() => latestOf('BUYER'));
 const merchantTurn = computed(() => latestOf('MERCHANT'));
 const status = computed(() => state.value?.status ?? detail.value?.case.currentStatus ?? 'OPEN');
 const txn = computed(() => detail.value?.transaction);
-const refundable = computed(() => (txn.value ? txn.value.originalAmountMinor - txn.value.amountRefundedMinor : 0));
 const agreed = computed(() =>
   state.value?.proposal && ['AWAITING_APPROVAL', 'PAYMENT_PROCESSING', 'RESOLVED'].includes(status.value)
     ? state.value.proposal.refundAmountMinor
@@ -176,7 +175,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
       <!-- Timeline -->
       <section class="order-1 flex min-w-0 flex-col gap-4 xl:order-2" aria-label="Negotiation timeline">
         <GapMeter
-          :total-minor="refundable"
+          :total-minor="txn!.originalAmountMinor"
           :currency="txn!.currency"
           :buyer-minor="buyerTurn?.proposedRefundMinorUnits ?? null"
           :merchant-minor="merchantTurn?.proposedRefundMinorUnits ?? null"
@@ -236,7 +235,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
               <p class="font-semibold text-danger">{{ status === 'ESCALATED' ? 'Escalated to a person' : 'No agreement reached' }}</p>
               <p class="mt-1 text-sm text-ink-soft text-pretty">{{ state.outcomeSummary }}</p>
               <p class="mt-2 text-xs text-muted">
-                No money moved. Resolve AI is independent of PayPal and does not replace PayPal’s Resolution Center: either party can still open a dispute there within PayPal’s time limits.
+                No money moved. ResolveOS is independent of PayPal and does not replace PayPal’s Resolution Center: either party can still open a dispute there within PayPal’s time limits.
               </p>
             </div>
           </div>

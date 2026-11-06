@@ -49,7 +49,7 @@ const preview = [
             When payments go wrong, resolution shouldn’t be another problem.
           </h1>
           <p class="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft text-pretty">
-            Resolve AI brings buyers and merchants together through intelligent negotiation, transparent decisions, and PayPal-powered settlements.
+            ResolveOS brings buyers and merchants together through intelligent negotiation, transparent decisions, and PayPal-powered settlements.
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
             <RouterLink to="/signin" class="btn btn-primary btn-lg">Launch demo <ArrowRight class="size-4" /></RouterLink>
@@ -91,7 +91,7 @@ const preview = [
           <h2 class="text-3xl font-semibold tracking-tight text-balance">A payment is easy to make. Resolving a disagreement over it is much harder.</h2>
           <div class="space-y-4 text-ink-soft">
             <p class="text-pretty">A customer buys a $180 jacket. The carrier says it was delivered; the customer says it never arrived. Both are acting in good faith, the evidence is incomplete, and a formal dispute costs both of them time, fees and the relationship.</p>
-            <p class="text-pretty">Most payment products stop when the payment succeeds. Resolve AI starts when it goes wrong: before a formal dispute, it gives each side an advocate, puts the evidence on the table, and turns a fair compromise into a real, approved PayPal refund.</p>
+            <p class="text-pretty">PayPal’s Resolution Center already lets buyer and seller message and make offers once a dispute is open. ResolveOS works one step earlier, before any dispute: it gives each side its own AI advocate with private limits, puts the labelled evidence on the table, and turns a compromise both people approve into a real PayPal refund.</p>
           </div>
         </div>
       </section>
@@ -128,7 +128,7 @@ const preview = [
             <div class="rounded-2xl border border-line p-6"><UserCheck class="size-6 text-primary" /><p class="mt-4 font-semibold">Two explicit approvals</p><p class="mt-1 text-sm text-muted">Each party approves from their own signed-in session. Change one term and every earlier approval stops counting.</p></div>
             <div class="rounded-2xl border border-line p-6"><ShieldCheck class="size-6 text-primary" /><p class="mt-4 font-semibold">Nothing invented</p><p class="mt-1 text-sm text-muted">No fabricated evidence, no fake refunds. A refund is “successful” only when PayPal says so; duplicates are blocked with PayPal’s request IDs.</p></div>
           </div>
-          <p class="mt-8 max-w-3xl text-sm text-muted text-pretty">Resolve AI is an independent pre-dispute tool. It does not replace PayPal’s Resolution Center or guarantee PayPal Buyer or Seller Protection outcomes, and either party can still use PayPal’s own dispute process within its time limits.</p>
+          <p class="mt-8 max-w-3xl text-sm text-muted text-pretty">ResolveOS is an independent pre-dispute tool. It does not replace PayPal’s Resolution Center or guarantee PayPal Buyer or Seller Protection outcomes, and either party can still use PayPal’s own dispute process within its time limits.</p>
         </div>
       </section>
 

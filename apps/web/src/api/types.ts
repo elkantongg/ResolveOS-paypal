@@ -1,4 +1,4 @@
-/** Shapes returned by the Resolve AI API (kept in step with apps/server). Money is in minor units. */
+/** Shapes returned by the ResolveOS API (kept in step with apps/server). Money is in minor units. */
 
 export type Role = 'BUYER' | 'MERCHANT' | 'OPERATOR';
 export type SourceType = 'PAYPAL_SANDBOX' | 'DEMO_SEED';
@@ -185,6 +185,8 @@ export interface Receipt {
   transaction: SettlementView['transaction'];
   refund: (RefundView & { createdAt: string; verifiedByPayPal: boolean }) | null;
   parties: { buyer: string | null; merchant: string | null };
+  metrics: CaseMetrics;
+  comparison: { paypalInquiryWindowDays: number; source: string };
   timeline: AuditEvent[];
 }
 
@@ -207,4 +209,21 @@ export interface DashboardSummary {
   notAgreed: number;
   refundedTotals: { currency: string; totalMinor: number }[];
   activity: { day: string; resolved: number; opened: number }[];
+  measured: {
+    resolvedCasesMeasured: number;
+    medianResolutionSeconds: number | null;
+    medianNegotiationSeconds: number | null;
+    agentTurns: number;
+    guardrailRejections: number;
+    paypalInquiryWindowDays: number;
+  };
+}
+
+export interface CaseMetrics {
+  totalSeconds: number | null;
+  negotiationSeconds: number | null;
+  approvalSeconds: number | null;
+  paymentSeconds: number | null;
+  agentTurns: number;
+  guardrailRejections: number;
 }

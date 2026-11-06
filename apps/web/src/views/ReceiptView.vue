@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ArrowLeft, BadgeCheck, CircleAlert, Printer } from 'lucide-vue-next';
+import { ArrowLeft, BadgeCheck, CircleAlert, Printer, Timer } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
@@ -9,7 +9,7 @@ import type { Receipt } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import Logo from '@/components/Logo.vue';
 import Skeleton from '@/components/Skeleton.vue';
-import { ACTION_LABEL, dateTime, describeEvent, money } from '@/lib/format';
+import { ACTION_LABEL, dateTime, describeEvent, duration, money } from '@/lib/format';
 
 /** The settlement receipt. A refund is called successful only if PayPal confirmed it. */
 const route = useRoute();
@@ -78,6 +78,35 @@ const timeline = computed(() => receipt.value?.timeline.filter((e) => e.action !
         <div class="bg-surface px-8 py-3"><dt class="text-xs text-muted">Merchant</dt><dd class="mt-0.5">{{ receipt.parties.merchant }} · {{ receipt.approvals.find((a) => a.role === 'MERCHANT')?.decision === 'APPROVE' ? 'approved' : 'not approved' }}</dd></div>
       </dl>
 
+      <section v-if="receipt.metrics.totalSeconds !== null" class="border-b border-line px-8 py-6">
+        <p class="eyebrow mb-3 flex items-center gap-1.5"><Timer class="size-3.5" /> Measured from this case’s audit log</p>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-xl bg-ok-soft px-4 py-3">
+            <p class="text-xs text-ok">Complaint to resolution</p>
+            <p class="text-xl font-semibold tabular text-ok">{{ duration(receipt.metrics.totalSeconds) }}</p>
+          </div>
+          <div class="rounded-xl bg-sunken px-4 py-3">
+            <p class="text-xs text-muted">Agents negotiated</p>
+            <p class="text-xl font-semibold tabular">{{ duration(receipt.metrics.negotiationSeconds) }}</p>
+            <p class="text-[11px] text-muted">{{ receipt.metrics.agentTurns }} turns</p>
+          </div>
+          <div class="rounded-xl bg-sunken px-4 py-3">
+            <p class="text-xs text-muted">People approved</p>
+            <p class="text-xl font-semibold tabular">{{ duration(receipt.metrics.approvalSeconds) }}</p>
+          </div>
+          <div class="rounded-xl bg-sunken px-4 py-3">
+            <p class="text-xs text-muted">PayPal confirmed</p>
+            <p class="text-xl font-semibold tabular">{{ duration(receipt.metrics.paymentSeconds) }}</p>
+          </div>
+        </div>
+        <p class="mt-3 text-xs text-muted text-pretty">
+          For comparison, PayPal’s dispute process gives buyer and merchant up to
+          <a :href="receipt.comparison.source" target="_blank" rel="noopener" class="underline">{{ receipt.comparison.paypalInquiryWindowDays }} days</a>
+          in the inquiry stage to resolve a dispute before it can be escalated.
+          <template v-if="receipt.metrics.guardrailRejections">The server rejected {{ receipt.metrics.guardrailRejections }} invalid agent answer{{ receipt.metrics.guardrailRejections > 1 ? 's' : '' }} along the way.</template>
+        </p>
+      </section>
+
       <section class="px-8 py-6">
         <p class="eyebrow mb-3">Audit trail</p>
         <ol class="relative space-y-3 border-l border-line pl-5">
@@ -89,7 +118,7 @@ const timeline = computed(() => receipt.value?.timeline.filter((e) => e.action !
         </ol>
       </section>
       <footer class="border-t border-line bg-sunken px-8 py-4 text-xs text-muted">
-        PayPal sandbox environment: test money only. Resolve AI is an independent pre-dispute tool, not affiliated with or endorsed by PayPal.
+        PayPal sandbox environment: test money only. ResolveOS is an independent pre-dispute tool, not affiliated with or endorsed by PayPal.
       </footer>
     </article>
   </div>

@@ -274,6 +274,35 @@ describe('human approval', () => {
   });
 });
 
+describe('demo reset', () => {
+  it('only the demo operator can wipe the demo data', async () => {
+    const { app } = makeFullApp(paypal);
+    const alex = await signIn(app, ids.alex);
+    await alex.post('/api/demo/reset').expect(403);
+    const jordan = await signIn(app, ids.jordan);
+    await jordan.post('/api/demo/reset').expect(403);
+    expect(await db().query.cases.findFirst({ where: eq(cases.reference, 'RA-1042') })).toBeTruthy();
+    const operator = await signIn(app, ids.operator);
+    await operator.post('/api/demo/reset').expect(200);
+  });
+});
+
+describe('case references', () => {
+  it('two cases opened at the same moment both get a unique reference', async () => {
+    const { app } = makeFullApp(paypal);
+    const alex = await signIn(app, ids.alex);
+    const merchant = await db().query.merchants.findFirst();
+    const made = await db()
+      .insert(transactions)
+      .values([0, 1].map((i) => ({ merchantId: merchant!.id, buyerId: ids.alex, description: `Item ${i}`, originalAmountMinor: 5000, currency: 'USD', paymentStatus: 'CAPTURED' as const, sourceType: 'DEMO_SEED' as const })))
+      .returning();
+    const body = (transactionId: string) => ({ transactionId, category: 'OTHER', title: 'Two at once', description: 'Opened at the same time.', desiredOutcome: 'A refund', floorMinor: 1000 });
+    const [a, b] = await Promise.all(made.map((t) => alex.post('/api/cases', body(t.id))));
+    expect([a!.status, b!.status]).toEqual([201, 201]);
+    expect(a!.body.case.reference).not.toBe(b!.body.case.reference);
+  });
+});
+
 describe('dashboard', () => {
   it('counts are computed from stored cases, scoped to the viewer', async () => {
     const { app } = makeFullApp(paypal);
