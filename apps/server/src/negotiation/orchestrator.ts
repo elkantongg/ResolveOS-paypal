@@ -17,6 +17,7 @@ import { formatMoney } from '../money.js';
 import { type Actor, assertParty } from '../payments/service.js';
 import { type SettlementType, termsHash } from '../settlement/terms.js';
 import type { AgentInput, SharedFacts } from './context.js';
+import { screenCase } from './eligibility.js';
 import type { TurnEngine } from './engines.js';
 import { type AgentTurn, agentTurnSchema } from './turn.js';
 
@@ -72,6 +73,29 @@ export class Orchestrator {
       if (kase.currentStatus === 'NO_AGREEMENT') {
         // A fresh attempt after a deadlock: clear the old turns, keep the audit history.
         await tx.delete(negotiationTurns).where(eq(negotiationTurns.caseId, caseId));
+      }
+      // Deterministic eligibility screen: some cases must never be negotiated, whatever the limits.
+      const txn = await tx.query.transactions.findFirst({ where: eq(transactions.id, kase.transactionId) });
+      const items = await tx.select().from(evidence).where(eq(evidence.caseId, caseId));
+      const screen = screenCase({
+        description: kase.description,
+        evidence: items,
+        refundableMinor: txn ? txn.originalAmountMinor - txn.amountRefundedMinor : 0,
+      });
+      if (!screen.eligible) {
+        await tx
+          .update(cases)
+          .set({ currentStatus: 'ESCALATED', outcomeSummary: screen.reason, updatedAt: new Date() })
+          .where(eq(cases.id, caseId));
+        return [
+          await audit(tx, {
+            caseId,
+            actorType: 'SYSTEM',
+            actorUserId: actor.userId,
+            action: 'negotiation.ineligible',
+            details: { code: screen.code, reason: screen.reason },
+          }),
+        ];
       }
       await tx
         .update(cases)

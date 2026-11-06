@@ -83,14 +83,15 @@ Server-Sent Events for the live negotiation.
 
 **Tests:** 47 API tests, 10 web unit tests and 4 Playwright end-to-end tests.
 
-## Impact (measured)
+## Impact (what we measured, and what we did not)
 
 | | |
 | --- | --- |
-| **Measured, in the app** | Complaint to PayPal-confirmed refund in **1 min 31 s** in our demo run (case RA-1102). The agents negotiated in **14 s** over 5 turns, the two approvals took 30 s, and PayPal confirmed the refund in 2 s. These figures come from the case's own audit log and show on every receipt; the dashboard reports the median across resolved cases. |
-| **Compared with** | PayPal's dispute inquiry stage of up to **20 days** ([source](https://developer.paypal.com/disputes/disputes-lifecycle)). |
-| **What it changes** | A fair compromise reached and paid in minutes, instead of an adversarial claim. Both sides keep the relationship, and no one gives up their right to PayPal's formal process. |
-| **Who it's for** | Small online sellers and their customers on PayPal, who can't afford a chargeback-management service and lose disputes they could have settled. |
+| **One observed demo run** | In a single demo run (case RA-1102), the time from complaint to PayPal-confirmed refund was **1 min 31 s**: the agents negotiated for 14 s over 5 turns, the two approvals took 30 s, and PayPal confirmed the refund in 2 s. This is one run, driven by us, with both "people" approving straight away. It is **not** evidence of typical speed. Real buyers and merchants take longer to respond. The app records these timings from every case's audit log, so they can be measured on real use. |
+| **PayPal's process, for context only** | PayPal's dispute inquiry stage can last **up to 20 days** before a dispute can be escalated to a claim ([source](https://developer.paypal.com/disputes/disputes-lifecycle)). That is a **maximum window, not an average resolution time**, and we have no data on how long PayPal disputes take on average. We do not claim ResolveOS is faster than PayPal's process. |
+| **Negotiation evaluation** | We compared the AI agents with a simple rules-based negotiator on 5 scripted scenarios. See `docs/EVALUATION.md` for the method, the raw results and the limits. It is a small, scripted set, not a statistical result. |
+| **What it could change (hypothesis)** | Before a dispute is opened, both sides get an advocate and a structured, approved settlement, which may avoid an adversarial claim. We have not validated this with real users yet. |
+| **Who it's for** | Small online sellers and their customers on PayPal. |
 
 *(If you interview sellers before submitting, add their quotes here.)*
 

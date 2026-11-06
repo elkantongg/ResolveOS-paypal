@@ -64,6 +64,7 @@ export async function signIn(app: Parameters<typeof request.agent>[0], userId: s
     csrf,
     post: (path: string, body?: object) => agent.post(path).set('X-CSRF-Token', csrf).send(body ?? {}),
     get: (path: string) => agent.get(path),
+    patch: (path: string) => agent.patch(path),
   };
 }
 

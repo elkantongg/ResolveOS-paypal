@@ -18,8 +18,8 @@ import {
   transactions,
   users,
 } from '../db/schema.js';
-import { seedDemo } from '../db/seed.js';
-import { conflict, forbidden, notFound } from '../errors.js';
+import { resetDemoData } from '../db/seed.js';
+import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { formatMoney } from '../money.js';
 import { PAYPAL_INQUIRY_WINDOW_DAYS, caseMetrics, median } from '../metrics.js';
 import { type Orchestrator } from '../negotiation/orchestrator.js';
@@ -525,12 +525,18 @@ export function registerCaseRoutes(
   app.post(
     '/api/demo/reset',
     route(async (req, res) => {
-      // Wipes every case and transaction record (PayPal itself is untouched): the operator only.
+      // Wipes every case and transaction record in this app (PayPal itself is untouched). Explicit
+      // on purpose: the demo operator only, never in production, and only with { confirm: 'RESET' }.
       const user = requireUser(req);
       if (user.role !== 'OPERATOR') throw forbidden('Only the demo operator can reset the demo.');
-      await seedDemo(database);
+      if (config().NODE_ENV === 'production') throw forbidden('The demo cannot be reset in production.');
+      const { confirm } = parse(z.object({ confirm: z.string().optional() }), req.body ?? {});
+      if (confirm !== 'RESET') {
+        throw badRequest('confirmation_required', 'Resetting deletes every case and payment record in this app. Send { "confirm": "RESET" } to go ahead.');
+      }
+      const deleted = await resetDemoData(database);
       res.clearCookie('resolve_session', { path: '/' });
-      res.json({ ok: true, note: 'Demo data reset. Everyone has been signed out.' });
+      res.json({ ok: true, deleted, note: 'Demo data reset. Everyone has been signed out. PayPal sandbox records were not touched.' });
     }),
   );
 }

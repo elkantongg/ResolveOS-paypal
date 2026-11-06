@@ -53,11 +53,73 @@ export const JACKET_EVIDENCE = {
   },
 };
 
-export async function seedDemo(database: Db): Promise<void> {
+/**
+ * Safety rules for demo data:
+ *   - `pnpm db:seed` (seedIfEmpty) only ever fills an EMPTY database. If any person exists, it
+ *     changes nothing, so it can never destroy a real sandbox payment or its refund history.
+ *   - Wiping is a separate, explicit act: `pnpm db:reset --yes`, or the demo operator's reset in
+ *     the app with an explicit confirmation. Both are refused when NODE_ENV=production.
+ */
+
+export interface RowCounts {
+  users: number;
+  cases: number;
+  transactions: number;
+  sandboxTransactions: number;
+  refundAttempts: number;
+}
+
+export async function rowCounts(database: Db): Promise<RowCounts> {
+  const result = await database.execute<{
+    users: string;
+    cases: string;
+    transactions: string;
+    sandbox: string;
+    refunds: string;
+  }>(sql`
+    SELECT (SELECT count(*) FROM users) AS users,
+           (SELECT count(*) FROM cases) AS cases,
+           (SELECT count(*) FROM transactions) AS transactions,
+           (SELECT count(*) FROM transactions WHERE source_type = 'PAYPAL_SANDBOX') AS sandbox,
+           (SELECT count(*) FROM refund_attempts) AS refunds`);
+  const row = result.rows[0];
+  return {
+    users: Number(row?.users ?? 0),
+    cases: Number(row?.cases ?? 0),
+    transactions: Number(row?.transactions ?? 0),
+    sandboxTransactions: Number(row?.sandbox ?? 0),
+    refundAttempts: Number(row?.refunds ?? 0),
+  };
+}
+
+/** Deletes every row in every table. Callers must have an explicit confirmation from a person. */
+async function wipeEverything(database: Db): Promise<RowCounts> {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to wipe the database when NODE_ENV=production.');
+  }
+  const before = await rowCounts(database);
   await database.execute(sql`
     TRUNCATE audit_events, webhook_events, refund_attempts, approvals, settlement_proposals,
       negotiation_turns, evidence, cases, transactions, merchants, sessions, users CASCADE`);
+  return before;
+}
 
+/** Fills an empty database with the demo data; changes nothing if anyone already exists. */
+export async function seedIfEmpty(database: Db): Promise<{ seeded: boolean; existing: RowCounts }> {
+  const existing = await rowCounts(database);
+  if (existing.users > 0) return { seeded: false, existing };
+  await insertDemoData(database);
+  return { seeded: true, existing };
+}
+
+/** Explicit, destructive: wipe everything, then insert the demo data. Returns what was deleted. */
+export async function resetDemoData(database: Db): Promise<RowCounts> {
+  const deleted = await wipeEverything(database);
+  await insertDemoData(database);
+  return deleted;
+}
+
+async function insertDemoData(database: Db): Promise<void> {
   const [alex, priya, jordan] = await database
     .insert(users)
     .values([
@@ -184,8 +246,14 @@ export async function demoUsers(database: Db) {
 
 if (isMain(import.meta.url)) {
   runMigrations()
-    .then(() => seedDemo(db()))
-    .then(() => console.log('Seeded demo people and 2 demo cases (RA-1042, RA-1043).'))
+    .then(() => seedIfEmpty(db()))
+    .then(({ seeded, existing }) =>
+      console.log(
+        seeded
+          ? 'Seeded demo people and 2 demo cases (RA-1042, RA-1043).'
+          : `Not seeding: the database already has data (${existing.users} people, ${existing.cases} cases, ${existing.sandboxTransactions} real sandbox payments). Nothing was changed. To wipe it and start again, run: pnpm db:reset --yes`,
+      ),
+    )
     .catch((error: unknown) => {
       console.error('Seed failed:', error instanceof Error ? error.message : error);
       process.exitCode = 1;
