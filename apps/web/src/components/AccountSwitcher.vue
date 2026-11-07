@@ -21,7 +21,6 @@ const root = ref<HTMLElement | null>(null);
 const switchingName = ref('');
 const showingLaunch = ref(false);
 const launchLeaving = ref(false);
-let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -77,7 +76,6 @@ onMounted(() => {
   document.addEventListener('keydown', onKey);
 });
 onBeforeUnmount(() => {
-  if (leaveTimer) clearTimeout(leaveTimer);
   document.removeEventListener('click', onDocClick);
   document.removeEventListener('keydown', onKey);
 });
