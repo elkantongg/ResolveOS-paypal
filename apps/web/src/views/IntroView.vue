@@ -3,7 +3,6 @@ import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhol
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
-import RoundedResolveCube from '@/components/RoundedResolveCube.vue';
 import { useThemePreference } from '@/lib/useThemePreference';
 
 const { currentTheme, toggleTheme } = useThemePreference();
@@ -128,7 +127,14 @@ onBeforeUnmount(() => {
             <div class="luminous-orbit orbit-alpha"><span /><span /><span /></div>
             <div class="luminous-orbit orbit-beta"><span /><span /></div>
             <div class="luminous-orbit orbit-gamma"><span /><span /></div>
-            <div class="luminous-core"><RoundedResolveCube /></div>
+            <div class="luminous-core">
+              <div class="core-face core-front"><svg viewBox="0 0 32 32" class="core-emblem-logo" aria-hidden="true"><path d="M8.5 11.5h7.5a3.5 3.5 0 0 1 0 7H11" stroke="white" stroke-width="2.4" fill="none" stroke-linecap="round" /><path d="M23.5 20.5H16a3.5 3.5 0 0 1 0-7H21" stroke="var(--color-accent-bright)" stroke-width="2.4" fill="none" stroke-linecap="round" /></svg></div>
+              <div class="core-face core-back" />
+              <div class="core-face core-left" />
+              <div class="core-face core-right" />
+              <div class="core-face core-top" />
+              <div class="core-face core-bottom" />
+            </div>
             <div class="luminous-beam beam-one" />
             <div class="luminous-beam beam-two" />
             <div class="luminous-particle particle-one" />
@@ -662,6 +668,4 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
-/* A single continuous rounded 3D mesh, rather than separate CSS faces. */
-.luminous-core{width:clamp(88px,9vw,134px);height:clamp(88px,9vw,134px)}
 </style>
