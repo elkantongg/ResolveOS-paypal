@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="premium-intro min-h-screen" :class="{ 'theme-dark': currentTheme === 'dark', 'cinematic-paused': cinematicPaused || reduceMotion }" :style="{ '--scroll': progress }">
+  <div class="premium-intro min-h-screen" :class="{ 'theme-dark': currentTheme === 'dark' }" :style="{ '--scroll': progress }">
     <div class="studio-lines" aria-hidden="true" />
     <div class="studio-light studio-light-left" aria-hidden="true" />
     <div class="studio-light studio-light-right" aria-hidden="true" />
