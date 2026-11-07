@@ -248,3 +248,23 @@ html[data-theme='dark'] .btn-primary { color: #081323; }
 html[data-theme='dark'] .bg-white { background-color: var(--color-surface); }
 html { transition: background-color .22s ease, color .22s ease; }
 @media (prefers-reduced-motion: reduce) { html { transition: none; } }
+
+/* The new theme is revealed from the theme toggle as a circular wave.
+   Remove the browser's default crossfade so it cannot obscure the reveal. */
+html.theme-wave-active::view-transition-old(root),
+html.theme-wave-active::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-wave-active::view-transition-old(root) {
+  z-index: 1;
+}
+html.theme-wave-active::view-transition-new(root) {
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-wave-active::view-transition-old(root),
+  html.theme-wave-active::view-transition-new(root) {
+    animation: none !important;
+  }
+}
