@@ -78,7 +78,7 @@ function handleTouchEnd(event: TouchEvent) {
 function handleKeydown(event: KeyboardEvent) {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   const el = event.target;
-  if (el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+  if (el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(el.tagName))) return;
   if (['ArrowDown','PageDown'].includes(event.key) || (event.key === ' ' && !event.shiftKey)) {
     event.preventDefault(); jumpTo(chapter.value + 1);
   } else if (['ArrowUp','PageUp'].includes(event.key) || (event.key === ' ' && event.shiftKey)) {
