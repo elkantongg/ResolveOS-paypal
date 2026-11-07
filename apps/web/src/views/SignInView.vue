@@ -50,6 +50,7 @@ async function choose(id: string) {
         resolve();
       }, reducedMotion() ? 120 : 1500);
     });
+    if (next === '/dashboard') sessionStorage.setItem('resolveos-dashboard-entrance', '1');
     await router.push(next);
   } catch (e) {
     error.value = errorMessage(e);
