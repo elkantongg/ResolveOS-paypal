@@ -271,4 +271,28 @@ onBeforeUnmount(() => {
 @media(max-width:900px){.luminous-world,.morph-scene{left:60%;top:41%;width:75vw}.cinema-caption{top:auto;bottom:10%;left:26px;transform:none;width:80vw;height:220px}.cinema-caption h1{font-size:clamp(35px,5vw,59px)}.cinema-caption p{font-size:14px}.final-proceed{bottom:10%;left:26px}}
 @media(max-width:600px){.cinema-scroll{height:470vh}.luminous-world,.morph-scene{left:50%;top:35%;width:100vw}.cinema-caption{left:22px;bottom:105px;width:calc(100% - 44px);height:185px}.cinema-caption h1{font-size:clamp(33px,9vw,49px);margin:9px 0}.cinema-caption p{font-size:12px;line-height:1.43}.cinema-eyebrow{font-size:10px}.final-proceed{left:22px;bottom:65px;font-size:13px;padding:13px 19px}}
 @media(prefers-reduced-motion:reduce){.morph-scene *,.luminous-world *{animation:none!important}.cinema-caption-inner{transition:none}}
+
+/* Theme-specific cinematic palettes. The scene must actually respond to theme changes:
+   fixed dark backgrounds previously made the toggle appear broken. */
+:global(html[data-theme='light']) .cinematic-intro{background:#f7faff}
+:global(html[data-theme='light']) .cinema-sticky{
+ background:radial-gradient(ellipse at 65% 47%,#dce9ff 0%,#edf4ff 40%,#fafcff 82%);
+ color:#12254a
+}
+:global(html[data-theme='light']) .cinema-sticky:after{
+ background:linear-gradient(90deg,#f8fbffb5,transparent 58%,#e7f0ff26)
+}
+:global(html[data-theme='light']) .cinema-caption{text-shadow:none}
+:global(html[data-theme='light']) .cinema-caption h1{color:#102141}
+:global(html[data-theme='light']) .cinema-caption p{color:#415678}
+:global(html[data-theme='light']) .cinema-eyebrow{color:#2458a9}
+:global(html[data-theme='light']) .cinema-scroll-label{color:#4b5e7e}
+:global(html[data-theme='light']) .cinema-progress{background:#9cb3d859}
+:global(html[data-theme='light']) .cinema-progress>div{background:#2d66c8}
+:global(html[data-theme='light']) .cinema-next{background:#ffffffb8;border-color:#99add0;color:#13326a}
+:global(html[data-theme='light']) .luminous-world{filter:drop-shadow(0 0 32px #397efb40)}
+:global(html[data-theme='light']) .morph-scene{filter:drop-shadow(0 0 27px #397efb55)}
+:global(html[data-theme='light']) .final-proceed{background:#173c85;color:#fff;box-shadow:0 12px 35px #2d62ad40}
+:global(html[data-theme='dark']) .cinema-header .cinema-icon{background:#131d31;border-color:#4d6387;color:#eaf3ff}
+:global(html[data-theme='dark']) .cinema-header .cinema-enter{background:#e8f2ff;color:#0e1930}
 </style>
