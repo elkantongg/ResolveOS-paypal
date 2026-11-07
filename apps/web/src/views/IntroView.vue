@@ -167,7 +167,7 @@ onBeforeUnmount(() => {
               <circle cx="468" cy="304" r="251" class="intelligence-field" />
               <circle cx="468" cy="304" r="202" class="intelligence-field intelligence-field-alt" />
 
-              <g transform="translate(390 331)">
+              <g class="intelligence-drift intelligence-drift-large">
                 <g class="intelligence-sphere intelligence-sphere-large">
                   <circle r="118" class="intelligence-sphere-shell" />
                   <circle r="104" class="intelligence-sphere-inner" />
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
                   <path d="M-70 -79 C-32 -111 23 -112 74 -74" class="intelligence-sphere-sheen" />
                 </g>
               </g>
-              <g transform="translate(585 271)">
+              <g class="intelligence-drift intelligence-drift-medium">
                 <g class="intelligence-sphere intelligence-sphere-medium">
                   <circle r="73" class="intelligence-sphere-shell" />
                   <circle r="63" class="intelligence-sphere-inner" />
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
                   <path d="M-43 -49 C-12 -68 17 -67 44 -43" class="intelligence-sphere-sheen" />
                 </g>
               </g>
-              <g transform="translate(688 431)">
+              <g class="intelligence-drift intelligence-drift-small">
                 <g class="intelligence-sphere intelligence-sphere-small">
                   <circle r="56" class="intelligence-sphere-shell" />
                   <circle r="47" class="intelligence-sphere-inner" />
@@ -596,35 +596,65 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Page 02 only: polished spheres with two deliberate orbital bands each.
-   Slow, independently phased motion; no text or diagram elements. */
+/* Page 02: three glass orbs visibly drifting in a slow, continuous choreography.
+   Separate SVG wrappers carry the positional motion while each sphere/orbit
+   rotates independently. Keep Chapter 03 and all page transitions untouched. */
 .negotiation-scene{aspect-ratio:860/620;isolation:isolate}
 .intelligence-art{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 24px #295bfb30)}
-.intelligence-field{fill:none;stroke:#376bdb22;stroke-width:1;stroke-dasharray:2 11;transform-box:view-box;transform-origin:468px 304px;animation:intelligence-field-spin 68s linear infinite}
-.intelligence-field-alt{stroke:#5585e719;stroke-dasharray:none;animation-direction:reverse;animation-duration:52s}
+.intelligence-field{fill:none;stroke:#376bdb22;stroke-width:1;stroke-dasharray:2 11;transform-box:view-box;transform-origin:468px 304px;animation:intelligence-field-spin 49s linear infinite}
+.intelligence-field-alt{stroke:#5585e719;stroke-dasharray:none;animation-direction:reverse;animation-duration:43s}
+/* Outer wrappers use absolute SVG translations in every keyframe; this avoids
+   transform-origin inconsistencies and makes the travel visible on Chrome. */
+.intelligence-drift{transform-origin:0 0;will-change:transform}
+.intelligence-drift-large{animation:intelligence-large-travel 14s ease-in-out infinite}
+.intelligence-drift-medium{animation:intelligence-medium-travel 16s ease-in-out infinite}
+.intelligence-drift-small{animation:intelligence-small-travel 13s ease-in-out infinite}
 .intelligence-sphere{transform-box:fill-box;transform-origin:center;will-change:transform}
 .intelligence-sphere-shell{fill:url(#intelligence-sphere-fill);stroke:#7ab1ff70;stroke-width:1.4;filter:drop-shadow(0 0 17px #4d8fff64)}
 .intelligence-sphere-inner{fill:none;stroke:#a0ceff24;stroke-width:1}
-.intelligence-sphere-axis{transform-box:fill-box;transform-origin:center}
-.intelligence-axis-a{animation:intelligence-axis-a 19s ease-in-out infinite alternate}
-.intelligence-axis-b{animation:intelligence-axis-b 23s ease-in-out infinite alternate}
+.intelligence-sphere-axis{transform-box:fill-box;transform-origin:center;will-change:transform}
+.intelligence-axis-a{animation:intelligence-axis-a 13s linear infinite}
+.intelligence-axis-b{animation:intelligence-axis-b 16s linear infinite reverse}
 .intelligence-orbit-stroke{fill:none;stroke:url(#intelligence-orbital-stroke);stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 5px #80b7ff80)}
 .intelligence-orbit-secondary{stroke-width:1.7;opacity:.8}
 .intelligence-sphere-sheen{fill:none;stroke:#d9efff9e;stroke-width:1.8;stroke-linecap:round;filter:drop-shadow(0 0 7px #c5e7ff88)}
-.intelligence-sphere-large{animation:intelligence-large 19s ease-in-out infinite}
-.intelligence-sphere-medium{animation:intelligence-medium 22s ease-in-out infinite}
-.intelligence-sphere-small{animation:intelligence-small 20s ease-in-out infinite}
-.intelligence-sphere-medium .intelligence-axis-a{animation-duration:22s;animation-direction:alternate-reverse}
-.intelligence-sphere-small .intelligence-axis-b{animation-duration:20s}
-.intelligence-star{fill:#d6efff;filter:drop-shadow(0 0 7px #7fbcff);animation:intelligence-star-glow 7s ease-in-out infinite}
+.intelligence-sphere-large{animation:intelligence-large-tilt 15s ease-in-out infinite}
+.intelligence-sphere-medium{animation:intelligence-medium-tilt 17s ease-in-out infinite}
+.intelligence-sphere-small{animation:intelligence-small-tilt 14s ease-in-out infinite}
+.intelligence-sphere-medium .intelligence-axis-a{animation-duration:15s;animation-direction:reverse}
+.intelligence-sphere-small .intelligence-axis-b{animation-duration:13s}
+.intelligence-star{fill:#d6efff;filter:drop-shadow(0 0 7px #7fbcff);animation:intelligence-star-glow 6s ease-in-out infinite}
 .intelligence-star-second{animation-delay:-3s}
 @keyframes intelligence-field-spin{to{transform:rotate(360deg)}}
-@keyframes intelligence-axis-a{0%{transform:rotate(-16deg) scaleY(.9)}100%{transform:rotate(24deg) scaleY(1.08)}}
-@keyframes intelligence-axis-b{0%{transform:rotate(29deg) scaleX(.94)}100%{transform:rotate(-27deg) scaleX(1.06)}}
-@keyframes intelligence-large{0%,100%{transform:translate(0,0) rotate(-7deg)}50%{transform:translate(12px,-10px) rotate(9deg)}}
-@keyframes intelligence-medium{0%,100%{transform:translate(0,0) rotate(9deg)}50%{transform:translate(-9px,11px) rotate(-8deg)}}
-@keyframes intelligence-small{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(9px,-12px) rotate(11deg)}}
+@keyframes intelligence-axis-a{from{transform:rotate(-32deg) scaleY(.7)}to{transform:rotate(328deg) scaleY(.7)}}
+@keyframes intelligence-axis-b{from{transform:rotate(38deg) scaleX(.81)}to{transform:rotate(398deg) scaleX(.81)}}
+@keyframes intelligence-large-travel{
+  0%,100%{transform:translate(390px,331px)}
+  25%{transform:translate(417px,291px)}
+  50%{transform:translate(442px,340px)}
+  75%{transform:translate(390px,375px)}
+}
+@keyframes intelligence-medium-travel{
+  0%,100%{transform:translate(585px,271px)}
+  25%{transform:translate(628px,299px)}
+  50%{transform:translate(600px,343px)}
+  75%{transform:translate(557px,304px)}
+}
+@keyframes intelligence-small-travel{
+  0%,100%{transform:translate(688px,431px)}
+  25%{transform:translate(632px,405px)}
+  50%{transform:translate(650px,354px)}
+  75%{transform:translate(715px,376px)}
+}
+@keyframes intelligence-large-tilt{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(24deg)}}
+@keyframes intelligence-medium-tilt{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-25deg)}}
+@keyframes intelligence-small-tilt{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(28deg)}}
 @keyframes intelligence-star-glow{0%,100%{opacity:.25}50%{opacity:1}}
 @media(max-width:600px){.negotiation-scene{width:112vw}}
-@media(prefers-reduced-motion:reduce){.negotiation-scene *{animation:none!important}}
+@media(prefers-reduced-motion:reduce){
+  .negotiation-scene *{animation:none!important}
+  .intelligence-drift-large{transform:translate(390px,331px)}
+  .intelligence-drift-medium{transform:translate(585px,271px)}
+  .intelligence-drift-small{transform:translate(688px,431px)}
+}
 </style>
