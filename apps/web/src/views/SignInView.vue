@@ -39,20 +39,23 @@ onBeforeUnmount(() => {
 async function choose(id: string) {
   busy.value = id;
   error.value = null;
+  chosenName.value = session.accounts.find((account) => account.id === id)?.name ?? '';
+  welcomeMode.value = 'launch';
+  // Start the animation immediately on click while sign-in runs underneath.
+  const animation = new Promise<void>((resolve) => {
+    launchTimeout = setTimeout(() => {
+      launchTimeout = null;
+      resolve();
+    }, reducedMotion() ? 120 : 1500);
+  });
   try {
     await session.signIn(id);
     const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/dashboard';
-    chosenName.value = session.accounts.find((account) => account.id === id)?.name ?? session.user?.name ?? '';
-    welcomeMode.value = 'launch';
-    await new Promise<void>((resolve) => {
-      launchTimeout = setTimeout(() => {
-        launchTimeout = null;
-        resolve();
-      }, reducedMotion() ? 120 : 1500);
-    });
+    await animation;
     if (next === '/dashboard') sessionStorage.setItem('resolveos-dashboard-entrance', '1');
     await router.push(next);
   } catch (e) {
+    welcomeMode.value = null;
     error.value = errorMessage(e);
   } finally {
     busy.value = null;
