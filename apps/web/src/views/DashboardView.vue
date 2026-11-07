@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
-import { Activity, AlertTriangle, ArrowRight, BarChart3, CheckCircle2, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShieldCheck, ShoppingCart, Sparkles, Timer, Wallet } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { Activity, AlertTriangle, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShieldCheck, ShoppingCart, Sparkles, Timer, Wallet } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
 import { api, errorMessage } from '@/api/client';
@@ -20,6 +20,41 @@ const summary = ref<DashboardSummary | null>(null);
 const cases = ref<CaseSummary[] | null>(null);
 const activity = ref<(AuditEvent & { reference: string; title: string })[]>([]);
 const error = ref<string | null>(null);
+const historyOpen = ref(false);
+const historySearch = ref('');
+const historyLoading = ref(false);
+const historyError = ref<string | null>(null);
+const allActivity = ref<(AuditEvent & { reference: string; title: string })[]>([]);
+const filteredHistory = computed(() => allActivity.value.filter((event) =>
+  `${event.reference} ${event.title} ${describeEvent(event)}`.toLowerCase().includes(historySearch.value.toLowerCase().trim())
+));
+async function openHistory() {
+  historyOpen.value = true;
+  historyLoading.value = true;
+  historyError.value = null;
+  document.body.style.overflow = 'hidden';
+  try {
+    const result = await api.get<{ activity: (AuditEvent & { reference: string; title: string })[] }>('/dashboard/activity');
+    allActivity.value = result.activity;
+  } catch (e) {
+    historyError.value = errorMessage(e);
+  } finally {
+    historyLoading.value = false;
+  }
+}
+function closeHistory() {
+  historyOpen.value = false;
+  document.body.style.overflow = '';
+}
+function handleHistoryKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && historyOpen.value) closeHistory();
+}
+onMounted(() => window.addEventListener('keydown', handleHistoryKeydown));
+onBeforeUnmount(() => {
+  document.body.style.overflow = '';
+  window.removeEventListener('keydown', handleHistoryKeydown);
+  if (debounce) clearTimeout(debounce);
+});
 const query = ref('');
 const status = ref<'ALL' | CaseStatus>('ALL');
 const resetting = ref(false);
@@ -126,6 +161,7 @@ const graphPlot = computed(() => {
 
 <template>
   <div class="resolve-dashboard space-y-5" :class="{ 'dashboard-arrival': arrivingFromDemo }">
+    <div class="dashboard-ambient" aria-hidden="true"><span /><span /><span /></div>
     <header class="dashboard-greeting flex flex-wrap items-center justify-between gap-4">
       <h1 class="text-2xl font-bold tracking-tight sm:text-[29px]">Welcome back, {{ greeting }}</h1>
       <div class="flex flex-wrap gap-2.5">
@@ -226,7 +262,7 @@ const graphPlot = computed(() => {
           <h2 class="flex items-center gap-2 font-bold"><BarChart3 class="size-5 text-primary" /> Last 14 days</h2>
           <p class="mt-1 text-xs text-muted">Cases opened and resolved, from the audit log</p>
           <div v-if="chart.days.length" class="mt-4">
-            <svg class="dashboard-chart w-full" viewBox="0 0 560 138" role="img" :aria-label="`Cases opened and resolved across ${chart.days.length} days`">
+            <svg class="dashboard-chart w-full" preserveAspectRatio="xMidYMid meet" viewBox="0 0 560 138" role="img" :aria-label="`Cases opened and resolved across ${chart.days.length} days`">
               <g v-for="tick in graphPlot.ticks" :key="tick.y">
                 <line x1="26" :y1="tick.y" x2="534" :y2="tick.y" stroke="var(--color-line)" stroke-width="1" />
               </g>
@@ -248,7 +284,10 @@ const graphPlot = computed(() => {
           </p>
         </section>
         <section class="card dashboard-sidebar-card">
-          <h2 class="mb-4 flex items-center gap-2 font-bold"><Activity class="size-5 text-primary" /> Latest activity</h2>
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <h2 class="flex items-center gap-2 font-bold"><Activity class="size-5 text-primary" /> Latest activity</h2>
+            <button type="button" class="dashboard-history-trigger" @click="openHistory"><History class="size-4" /> View history <ArrowRight class="size-3.5" /></button>
+          </div>
           <p v-if="!activity.length" class="text-sm text-muted">Nothing yet.</p>
           <ol class="dashboard-timeline space-y-4">
             <li v-for="event in activity.slice(0, 8)" :key="event.id" class="relative pl-7 text-sm">
@@ -260,6 +299,36 @@ const graphPlot = computed(() => {
         </section>
       </aside>
     </div>
+    <Teleport to="body">
+      <div v-if="historyOpen" class="dashboard-history-backdrop" @click.self="closeHistory">
+        <section class="dashboard-history-dialog" role="dialog" aria-modal="true" aria-label="Activity history">
+          <div class="dashboard-history-header">
+            <div><p class="dashboard-history-eyebrow">AUDIT LOG</p><h2>Activity history</h2><p class="text-sm text-muted">Recorded events visible to your demo account.</p></div>
+            <button type="button" class="dashboard-history-close" aria-label="Close activity history" @click="closeHistory"><X class="size-5" /></button>
+          </div>
+          <label class="dashboard-history-search">
+            <Search class="size-4 text-muted" />
+            <input v-model="historySearch" type="search" placeholder="Search events or cases…" aria-label="Search activity history" />
+          </label>
+          <div class="dashboard-history-list">
+            <div v-if="historyLoading" class="p-5"><Skeleton :lines="5" /></div>
+            <ErrorNotice v-else-if="historyError" :message="historyError" @retry="openHistory" />
+            <p v-else-if="!filteredHistory.length" class="px-5 py-10 text-center text-sm text-muted">{{ historySearch ? 'No matching activity.' : 'No activity recorded yet.' }}</p>
+            <ol v-else class="dashboard-history-events">
+              <li v-for="event in filteredHistory" :key="event.id">
+                <span class="dashboard-history-event-dot" />
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2"><span class="mono font-semibold text-primary">{{ event.reference }}</span><span class="text-xs text-muted">{{ event.actorType }}</span></div>
+                  <p class="mt-1 text-sm text-ink-soft">{{ describeEvent(event) }}</p>
+                  <p class="mt-1 text-xs text-muted">{{ timeAgo(event.createdAt) }} · {{ new Date(event.createdAt).toLocaleString() }}</p>
+                </div>
+              </li>
+            </ol>
+          </div>
+          <footer class="dashboard-history-footer"><span>{{ filteredHistory.length }} events shown</span><button type="button" class="btn btn-secondary btn-sm" @click="closeHistory">Close</button></footer>
+        </section>
+      </div>
+    </Teleport>
     <section v-if="summary" class="dashboard-measured mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted" aria-label="Measured impact">
       <p class="inline-flex items-center gap-1.5"><Timer class="size-3.5" /> Measured from the audit log</p>
       <p>Median complaint → resolution <strong class="text-ink">{{ duration(summary.measured.medianResolutionSeconds) }}</strong> ({{ summary.measured.resolvedCasesMeasured }} resolved)</p>
@@ -298,7 +367,10 @@ const graphPlot = computed(() => {
 .dashboard-case-table td{padding:16px 15px;border-bottom:1px solid var(--color-line);vertical-align:middle}
 .dashboard-case-table tbody tr:hover{background:color-mix(in srgb,var(--color-primary) 5%,transparent)}
 .dashboard-sidebar-card{padding:17px 19px}
-.dashboard-chart{height:120px;overflow:visible}
+.dashboard-chart{display:block;height:auto;max-height:150px;overflow:hidden;contain:paint}
+.dashboard-sidebar-card{overflow:hidden}
+.dashboard-chart polyline{vector-effect:non-scaling-stroke}
+.dashboard-chart-labels{overflow:hidden}
 .dashboard-timeline{margin-left:7px;border-left:1px solid var(--color-line)}
 .dashboard-timeline-dot{position:absolute;left:-6px;top:5px;width:11px;height:11px;border-radius:50%;background:#6293fa;box-shadow:0 0 0 4px #4286ff19}
 .dashboard-timeline li:nth-child(3n) .dashboard-timeline-dot{background:#42d7b6}
@@ -306,4 +378,42 @@ const graphPlot = computed(() => {
 @media(max-width:1100px){.dashboard-feature-grid{grid-template-columns:1fr}.dashboard-attention{flex-wrap:wrap}.dashboard-content-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.dashboard-greeting{padding-block:17px}.dashboard-attention,.dashboard-ai-card{padding:16px}.dashboard-alert-icon{width:48px;height:48px}.dashboard-review-btn{width:100%}.dashboard-stats{gap:8px}.dashboard-stat{gap:8px;padding:10px;min-height:66px}.dashboard-stat-icon{width:32px;height:32px}.dashboard-stat-icon svg{width:17px;height:17px}.dashboard-stat p:last-child{font-size:17px}.dashboard-ai-metrics>div{padding-inline:6px}}
 @media(prefers-reduced-motion:reduce){.dashboard-arrival{animation:none}}
+
+/* Ambient lighting is deliberately behind the cards, not the controls. */
+.resolve-dashboard{position:relative;isolation:isolate}
+.resolve-dashboard> :not(.dashboard-ambient){position:relative;z-index:1}
+.dashboard-ambient{position:absolute!important;inset:-35px -30px 0;z-index:0!important;overflow:hidden;pointer-events:none;border-radius:22px}
+.dashboard-ambient span{position:absolute;width:45%;aspect-ratio:1;border-radius:50%;filter:blur(90px);opacity:.12;animation:dashboard-drift 21s ease-in-out infinite alternate}
+.dashboard-ambient span:nth-child(1){top:-15%;left:4%;background:#317ff1}
+.dashboard-ambient span:nth-child(2){top:24%;right:-17%;background:#20abc5;animation-duration:27s;animation-delay:-9s}
+.dashboard-ambient span:nth-child(3){top:65%;left:18%;background:#4369db;animation-duration:31s;animation-delay:-14s}
+@keyframes dashboard-drift{0%{transform:translate3d(-5%,0,0) scale(.8)}50%{transform:translate3d(9%,10%,0) scale(1.1)}100%{transform:translate3d(-2%,-7%,0) scale(.95)}}
+.resolve-dashboard .card{transition:border-color .26s ease,box-shadow .3s ease,transform .3s cubic-bezier(.2,.7,.25,1)}
+@media(hover:hover){
+ .resolve-dashboard .card:hover{border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-line));box-shadow:0 9px 28px #317ff11a,0 0 0 1px #317ff112;transform:translateY(-2px)}
+ .resolve-dashboard .btn:hover:not(:disabled),.resolve-dashboard .dashboard-history-trigger:hover{transform:translateY(-2px);box-shadow:0 6px 22px #4c9afb28}
+ .resolve-dashboard .dashboard-stat:hover .dashboard-stat-icon{transform:rotate(-7deg) scale(1.1)}
+ .resolve-dashboard .dashboard-case-table tbody tr{transition:background-color .22s}
+}
+.resolve-dashboard .dashboard-stat-icon{transition:transform .3s ease}
+.resolve-dashboard .btn{transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease}
+.dashboard-history-trigger{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid var(--color-line);border-radius:9px;font-size:11px;font-weight:650;color:var(--color-primary);transition:transform .22s,box-shadow .22s,border-color .22s}
+.dashboard-history-trigger:hover{border-color:var(--color-primary)}
+.dashboard-history-backdrop{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:18px;background:#020816b8;backdrop-filter:blur(8px)}
+.dashboard-history-dialog{display:flex;flex-direction:column;width:min(100%,730px);max-height:min(85vh,850px);overflow:hidden;color:var(--color-ink);background:var(--color-surface);border:1px solid var(--color-line-strong);border-radius:20px;box-shadow:0 25px 90px #0007;animation:dashboard-history-enter .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes dashboard-history-enter{from{opacity:0;transform:translateY(15px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.dashboard-history-header{display:flex;align-items:start;justify-content:space-between;gap:20px;padding:23px 25px 16px}
+.dashboard-history-eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--color-primary);margin-bottom:6px}
+.dashboard-history-header h2{font-size:24px;font-weight:750;letter-spacing:-.04em;margin-bottom:4px}
+.dashboard-history-close{display:grid;place-items:center;width:34px;height:34px;flex:none;border:1px solid var(--color-line);border-radius:10px;color:var(--color-muted)}
+.dashboard-history-close:hover{color:var(--color-ink);background:var(--color-sunken)}
+.dashboard-history-search{display:flex;align-items:center;gap:10px;margin:0 25px 14px;padding:10px 12px;background:var(--color-sunken);border:1px solid var(--color-line);border-radius:10px}
+.dashboard-history-search input{width:100%;outline:0;background:transparent;color:var(--color-ink);font-size:13px}
+.dashboard-history-list{min-height:120px;overflow-y:auto;overscroll-behavior:contain;padding:4px 25px}
+.dashboard-history-events{margin-left:7px;border-left:1px solid var(--color-line)}
+.dashboard-history-events li{position:relative;padding:8px 0 17px 22px}
+.dashboard-history-event-dot{position:absolute;left:-5px;top:13px;width:9px;height:9px;border-radius:50%;background:#69a4ff;box-shadow:0 0 0 4px #69a4ff24}
+.dashboard-history-events li:nth-child(3n) .dashboard-history-event-dot{background:#49d9b8}
+.dashboard-history-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 25px;border-top:1px solid var(--color-line);color:var(--color-muted);font-size:12px}
+@media(prefers-reduced-motion:reduce){.dashboard-ambient span,.dashboard-history-dialog{animation:none!important}.resolve-dashboard .card,.resolve-dashboard .btn,.resolve-dashboard .dashboard-stat-icon{transition:none!important}}
 </style>
