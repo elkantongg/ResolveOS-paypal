@@ -142,56 +142,72 @@ onBeforeUnmount(() => {
             <div class="luminous-particle particle-three" />
           </div>
 
-          <!-- Abstract intelligence sculpture: luminous fluid ribbons, no letters or labels. -->
+          <!-- Page 02: three restrained glass orbs, rotating smoothly with no text. -->
           <div class="morph-scene negotiation-scene" :style="{ opacity: opacityAt(1) }" aria-hidden="true">
-            <svg class="intelligence-art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" focusable="false">
+            <svg class="intelligence-art" viewBox="0 0 860 620" preserveAspectRatio="xMidYMid meet" focusable="false">
               <defs>
-                <radialGradient id="intelligence-nebula"><stop offset="0" stop-color="#1649c5" stop-opacity=".36"/><stop offset=".56" stop-color="#143892" stop-opacity=".11"/><stop offset="1" stop-color="#143892" stop-opacity="0"/></radialGradient>
-                <linearGradient id="intelligence-ribbon" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#2b59fc" stop-opacity=".24"/>
-                  <stop offset=".32" stop-color="#437fff"/>
-                  <stop offset=".58" stop-color="#c4ebff"/>
-                  <stop offset=".78" stop-color="#3873ff"/>
-                  <stop offset="1" stop-color="#194ee3" stop-opacity=".34"/>
+                <radialGradient id="intelligence-sphere-fill" cx="32%" cy="25%" r="82%">
+                  <stop offset="0%" stop-color="#8bc9ff" stop-opacity=".28" />
+                  <stop offset="34%" stop-color="#3676db" stop-opacity=".18" />
+                  <stop offset="75%" stop-color="#0c2e75" stop-opacity=".12" />
+                  <stop offset="100%" stop-color="#081638" stop-opacity=".32" />
+                </radialGradient>
+                <linearGradient id="intelligence-orbital-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#4481f5" stop-opacity=".18" />
+                  <stop offset="35%" stop-color="#8dc8ff" stop-opacity=".77" />
+                  <stop offset="60%" stop-color="#ecfaff" stop-opacity=".96" />
+                  <stop offset="100%" stop-color="#407cff" stop-opacity=".27" />
                 </linearGradient>
-                <filter id="intelligence-glow" x="-100%" y="-100%" width="300%" height="300%">
-                  <feGaussianBlur stdDeviation="7" result="blur"/>
-                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
+                <radialGradient id="intelligence-scene-glow">
+                  <stop offset="0%" stop-color="#2869de" stop-opacity=".19" />
+                  <stop offset="100%" stop-color="#2869de" stop-opacity="0" />
+                </radialGradient>
               </defs>
-              <circle cx="405" cy="304" r="290" fill="url(#intelligence-nebula)" />
-              <circle cx="406" cy="302" r="260" class="intelligence-field"/>
-              <circle cx="406" cy="302" r="210" class="intelligence-field intelligence-field-alt"/>
-              <g class="intelligence-orb intelligence-orb-main" transform="translate(326 318)">
-                <circle r="127" class="intelligence-orb-shell"/>
-                <ellipse rx="121" ry="56" transform="rotate(-30)" class="intelligence-orb-trace"/>
-                <ellipse rx="84" ry="122" transform="rotate(44)" class="intelligence-orb-trace intelligence-orb-trace-secondary"/>
-                <g class="intelligence-orb-ribbons" filter="url(#intelligence-glow)">
-                  <path d="M-107 -55 C-46 -137 21 -139 87 -67 S83 31 4 76 S-94 89 -108 18" />
-                  <path d="M-114 29 C-63 -32 -21 -105 47 -106 S119 -64 113 -11 S28 98 -52 108" />
-                  <path d="M-82 -86 C-5 -28 -45 55 24 98 S107 66 109 4" />
+              <ellipse cx="474" cy="313" rx="322" ry="270" fill="url(#intelligence-scene-glow)" />
+              <circle cx="468" cy="304" r="251" class="intelligence-field" />
+              <circle cx="468" cy="304" r="202" class="intelligence-field intelligence-field-alt" />
+
+              <g transform="translate(390 331)">
+                <g class="intelligence-sphere intelligence-sphere-large">
+                  <circle r="118" class="intelligence-sphere-shell" />
+                  <circle r="104" class="intelligence-sphere-inner" />
+                  <g class="intelligence-sphere-axis intelligence-axis-a">
+                    <ellipse rx="111" ry="44" class="intelligence-orbit-stroke" />
+                  </g>
+                  <g class="intelligence-sphere-axis intelligence-axis-b">
+                    <ellipse rx="85" ry="112" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
+                  </g>
+                  <path d="M-70 -79 C-32 -111 23 -112 74 -74" class="intelligence-sphere-sheen" />
                 </g>
               </g>
-              <g class="intelligence-orb intelligence-orb-upper" transform="translate(558 170)">
-                <circle r="75" class="intelligence-orb-shell"/>
-                <ellipse rx="72" ry="30" transform="rotate(35)" class="intelligence-orb-trace"/>
-                <g class="intelligence-orb-ribbons" filter="url(#intelligence-glow)">
-                  <path d="M-60 -31 C-3 -87 43 -49 60 -5 S34 72 -16 62 S-72 4 -60 -31"/>
-                  <path d="M-40 -61 C-53 -2 7 57 46 52 S65 -10 37 -47"/>
-                  <path d="M-67 10 C-13 -16 16 -73 54 -31 S45 53 -11 67"/>
+              <g transform="translate(585 271)">
+                <g class="intelligence-sphere intelligence-sphere-medium">
+                  <circle r="73" class="intelligence-sphere-shell" />
+                  <circle r="63" class="intelligence-sphere-inner" />
+                  <g class="intelligence-sphere-axis intelligence-axis-a">
+                    <ellipse rx="67" ry="27" class="intelligence-orbit-stroke" />
+                  </g>
+                  <g class="intelligence-sphere-axis intelligence-axis-b">
+                    <ellipse rx="50" ry="69" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
+                  </g>
+                  <path d="M-43 -49 C-12 -68 17 -67 44 -43" class="intelligence-sphere-sheen" />
                 </g>
               </g>
-              <g class="intelligence-orb intelligence-orb-lower" transform="translate(568 432)">
-                <circle r="67" class="intelligence-orb-shell"/>
-                <ellipse rx="64" ry="27" transform="rotate(-42)" class="intelligence-orb-trace"/>
-                <g class="intelligence-orb-ribbons" filter="url(#intelligence-glow)">
-                  <path d="M-55 -28 C-9 -77 43 -48 60 -8 S28 62 -13 55 S-66 10 -55 -28"/>
-                  <path d="M-35 -56 C-48 -4 -4 53 32 57 S57 -7 39 -48"/>
-                  <path d="M-59 19 C-20 -24 12 -66 51 -29 S37 59 -20 60"/>
+              <g transform="translate(688 431)">
+                <g class="intelligence-sphere intelligence-sphere-small">
+                  <circle r="56" class="intelligence-sphere-shell" />
+                  <circle r="47" class="intelligence-sphere-inner" />
+                  <g class="intelligence-sphere-axis intelligence-axis-a">
+                    <ellipse rx="51" ry="21" class="intelligence-orbit-stroke" />
+                  </g>
+                  <g class="intelligence-sphere-axis intelligence-axis-b">
+                    <ellipse rx="38" ry="52" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
+                  </g>
+                  <path d="M-30 -36 C-9 -51 12 -51 31 -33" class="intelligence-sphere-sheen" />
                 </g>
               </g>
-              <circle cx="190" cy="202" r="2" class="intelligence-star"/>
-              <circle cx="627" cy="304" r="2.6" class="intelligence-star intelligence-star-second"/>
+              <circle cx="242" cy="191" r="2" class="intelligence-star" />
+              <circle cx="710" cy="220" r="1.7" class="intelligence-star intelligence-star-second" />
             </svg>
           </div>
           <div class="morph-scene safeguard-scene" :style="{ opacity: opacityAt(2) }" aria-hidden="true">
@@ -580,32 +596,35 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Page 02: slow-flowing luminous ribbon constellation inspired by the video reference.
-   No copy or letterforms in the art; Page 03's separate approval animation is untouched. */
-.negotiation-scene{aspect-ratio:4/3;isolation:isolate}
-.intelligence-art{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 22px #2457ff48)}
-.intelligence-field{fill:none;stroke:#305cde40;stroke-width:1;stroke-dasharray:2 8;transform-origin:406px 302px;animation:intelligence-field-turn 65s linear infinite}
-.intelligence-field-alt{stroke:#316dff26;stroke-dasharray:0;animation-direction:reverse;animation-duration:49s}
-.intelligence-orb{transform-box:view-box;transform-origin:center;will-change:opacity}
-.intelligence-orb-shell{fill:#0719445c;stroke:#4f89ff49;stroke-width:1.4;filter:drop-shadow(0 0 16px #316fff77)}
-.intelligence-orb-trace{fill:none;stroke:#80b9ff70;stroke-width:1.7;filter:drop-shadow(0 0 8px #508aff)}
-.intelligence-orb-trace-secondary{stroke:#538dff47}
-.intelligence-orb-ribbons{fill:none;stroke:url(#intelligence-ribbon);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.95;transform-box:fill-box;transform-origin:center;animation:intelligence-ribbon-flow 17s ease-in-out infinite alternate}
-.intelligence-orb-ribbons path:nth-child(2){stroke-width:3;opacity:.75}
-.intelligence-orb-ribbons path:nth-child(3){stroke-width:2.3;opacity:.63}
-.intelligence-orb-main{animation:intelligence-main-float 19s ease-in-out infinite}
-.intelligence-orb-upper{animation:intelligence-upper-float 23s ease-in-out infinite}
-.intelligence-orb-lower{animation:intelligence-lower-float 21s ease-in-out infinite}
-.intelligence-orb-upper .intelligence-orb-ribbons{animation-duration:21s;animation-direction:alternate-reverse}
-.intelligence-orb-lower .intelligence-orb-ribbons{animation-duration:15s}
-.intelligence-star{fill:#c8e8ff;filter:drop-shadow(0 0 7px #8fcaff);animation:intelligence-star-pulse 6s ease-in-out infinite}
+/* Page 02 only: polished spheres with two deliberate orbital bands each.
+   Slow, independently phased motion; no text or diagram elements. */
+.negotiation-scene{aspect-ratio:860/620;isolation:isolate}
+.intelligence-art{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 24px #295bfb30)}
+.intelligence-field{fill:none;stroke:#376bdb22;stroke-width:1;stroke-dasharray:2 11;transform-box:view-box;transform-origin:468px 304px;animation:intelligence-field-spin 68s linear infinite}
+.intelligence-field-alt{stroke:#5585e719;stroke-dasharray:none;animation-direction:reverse;animation-duration:52s}
+.intelligence-sphere{transform-box:fill-box;transform-origin:center;will-change:transform}
+.intelligence-sphere-shell{fill:url(#intelligence-sphere-fill);stroke:#7ab1ff70;stroke-width:1.4;filter:drop-shadow(0 0 17px #4d8fff64)}
+.intelligence-sphere-inner{fill:none;stroke:#a0ceff24;stroke-width:1}
+.intelligence-sphere-axis{transform-box:fill-box;transform-origin:center}
+.intelligence-axis-a{animation:intelligence-axis-a 19s ease-in-out infinite alternate}
+.intelligence-axis-b{animation:intelligence-axis-b 23s ease-in-out infinite alternate}
+.intelligence-orbit-stroke{fill:none;stroke:url(#intelligence-orbital-stroke);stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 5px #80b7ff80)}
+.intelligence-orbit-secondary{stroke-width:1.7;opacity:.8}
+.intelligence-sphere-sheen{fill:none;stroke:#d9efff9e;stroke-width:1.8;stroke-linecap:round;filter:drop-shadow(0 0 7px #c5e7ff88)}
+.intelligence-sphere-large{animation:intelligence-large 19s ease-in-out infinite}
+.intelligence-sphere-medium{animation:intelligence-medium 22s ease-in-out infinite}
+.intelligence-sphere-small{animation:intelligence-small 20s ease-in-out infinite}
+.intelligence-sphere-medium .intelligence-axis-a{animation-duration:22s;animation-direction:alternate-reverse}
+.intelligence-sphere-small .intelligence-axis-b{animation-duration:20s}
+.intelligence-star{fill:#d6efff;filter:drop-shadow(0 0 7px #7fbcff);animation:intelligence-star-glow 7s ease-in-out infinite}
 .intelligence-star-second{animation-delay:-3s}
-@keyframes intelligence-field-turn{to{rotate:360deg}}
-@keyframes intelligence-ribbon-flow{0%{transform:rotate(-15deg) scale(.94)}50%{transform:rotate(65deg) scale(1.05)}100%{transform:rotate(135deg) scale(.96)}}
-@keyframes intelligence-main-float{0%,100%{transform:translate(326px,318px) rotate(-9deg)}50%{transform:translate(335px,306px) rotate(13deg)}}
-@keyframes intelligence-upper-float{0%,100%{transform:translate(558px,170px) rotate(18deg)}50%{transform:translate(544px,182px) rotate(-17deg)}}
-@keyframes intelligence-lower-float{0%,100%{transform:translate(568px,432px) rotate(-13deg)}50%{transform:translate(580px,420px) rotate(15deg)}}
-@keyframes intelligence-star-pulse{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes intelligence-field-spin{to{transform:rotate(360deg)}}
+@keyframes intelligence-axis-a{0%{transform:rotate(-16deg) scaleY(.9)}100%{transform:rotate(24deg) scaleY(1.08)}}
+@keyframes intelligence-axis-b{0%{transform:rotate(29deg) scaleX(.94)}100%{transform:rotate(-27deg) scaleX(1.06)}}
+@keyframes intelligence-large{0%,100%{transform:translate(0,0) rotate(-7deg)}50%{transform:translate(12px,-10px) rotate(9deg)}}
+@keyframes intelligence-medium{0%,100%{transform:translate(0,0) rotate(9deg)}50%{transform:translate(-9px,11px) rotate(-8deg)}}
+@keyframes intelligence-small{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(9px,-12px) rotate(11deg)}}
+@keyframes intelligence-star-glow{0%,100%{opacity:.25}50%{opacity:1}}
 @media(max-width:600px){.negotiation-scene{width:112vw}}
 @media(prefers-reduced-motion:reduce){.negotiation-scene *{animation:none!important}}
 </style>
