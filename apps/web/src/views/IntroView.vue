@@ -238,11 +238,11 @@ onBeforeUnmount(() => {
             <div class="approval-particle approval-particle-one" />
             <div class="approval-particle approval-particle-two" />
           </div>
-          <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3 }">
+          <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3, 'cinema-caption--problem': activeIndex === 0, 'cinema-caption--intelligence': activeIndex === 1 }">
             <Transition name="cinema-copy" mode="out-in">
               <div :key="activeIndex" class="cinema-caption-inner">
                 <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ story.kicker }}</span>
-                <h1>{{ story.title }}</h1>
+                <h1><span v-for="(line, lineIndex) in story.title.split('\n')" :key="lineIndex" class="cinema-headline-line">{{ line }}</span></h1>
                 <p>{{ story.detail }}</p>
                 <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
               </div>
@@ -668,4 +668,18 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
+
+/* Editorial two-line headline rhythm: keep each intended phrase intact on
+   desktop, rather than letting the browser introduce unwanted third lines. */
+.cinema-headline-line{display:block}
+@media (min-width:1100px){
+  .cinema-caption--problem{width:min(43vw,620px)}
+  .cinema-caption--problem h1{font-size:clamp(38px,3.08vw,49px);letter-spacing:-.062em}
+  .cinema-caption--intelligence h1{font-size:clamp(44px,3.85vw,61px);letter-spacing:-.062em}
+  .cinema-caption--problem .cinema-headline-line,
+  .cinema-caption--intelligence .cinema-headline-line{white-space:nowrap}
+}
+@media (max-width:1099px){
+  .cinema-headline-line{white-space:normal}
+}
 </style>
