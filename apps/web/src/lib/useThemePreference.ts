@@ -9,7 +9,8 @@ function initialTheme(): ThemeChoice {
     const saved = window.localStorage.getItem(KEY);
     if (saved === 'light' || saved === 'dark') return saved;
   } catch { /* Private browsing may deny storage access. */ }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // New visitors start with the cinematic dark theme. Explicit preferences persist.
+  return 'dark';
 }
 
 const currentTheme = ref<ThemeChoice>(initialTheme());
