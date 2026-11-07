@@ -33,7 +33,7 @@ const interpolate = (stops: number[], t: number) => {
 const sceneStyle = computed(() => {
   const t = position.value;
   return {
-    '--device-scale': String(interpolate([.74,.8,.76,.74],t)),
+    '--device-scale': String(interpolate([.90,.96,1.0,.90],t)),
     '--device-rotation': interpolate([-9,5,-12,-9],t) + 'deg',
     '--device-x': interpolate([0,-2,3,0],t) + '%',
     '--device-y': interpolate([0,-2,2,0],t) + '%',
@@ -506,5 +506,29 @@ onBeforeUnmount(() => {
 @media(prefers-reduced-motion:reduce){
   .safeguard-scene *{animation:none!important}
   .approval-signal,.approval-burst{display:none}
+}
+/* Balanced composition across the three unique cinematic scenes.
+   Desktop: a distinct right-hand visual column; tablet/mobile: a wider,
+   centered sculpture above the caption. No animation or copy changes. */
+@media (min-width:901px){
+  .luminous-world,.morph-scene{
+    left:69%;
+    top:48%;
+    width:min(58vw,780px);
+  }
+}
+@media (min-width:601px) and (max-width:900px){
+  .luminous-world,.morph-scene{
+    left:53%;
+    top:38%;
+    width:min(84vw,740px);
+  }
+}
+@media (max-width:600px){
+  .luminous-world,.morph-scene{
+    left:50%;
+    top:34%;
+    width:110vw;
+  }
 }
 </style>
