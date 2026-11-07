@@ -668,17 +668,4 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
-
-/* Simplify the shared cube on chapters 01 and 04: remove the extra
-   luminous side/back outlines and prevent rear edges showing through. */
-.luminous-core .core-face:not(.core-front){
-  border:0;
-  box-shadow:none;
-  background:linear-gradient(145deg,#23599a,#0b244f 80%);
-  backface-visibility:hidden;
-}
-.luminous-core .core-front{
-  background:linear-gradient(140deg,#388cebdc 0%,#15569fdc 42%,#071e4af2 100%);
-  backface-visibility:hidden;
-}
 </style>
