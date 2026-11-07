@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ArrowRight, Shield, ShoppingBag, Store } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 
 import { errorMessage } from '@/api/client';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import Logo from '@/components/Logo.vue';
+import WelcomeCinematic from '@/components/WelcomeCinematic.vue';
 import Skeleton from '@/components/Skeleton.vue';
 import { useSession } from '@/stores/session';
 
@@ -14,17 +15,65 @@ const router = useRouter();
 const route = useRoute();
 const error = ref<string | null>(null);
 const busy = ref<string | null>(null);
+const welcomeMode = ref<'welcome' | 'launch' | null>(route.query.welcome === '1' ? 'welcome' : null);
+const chosenName = ref('');
+const welcomeLeaving = ref(false);
+let welcomeTimeout: ReturnType<typeof setTimeout> | null = null;
+let launchTimeout: ReturnType<typeof setTimeout> | null = null;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-onMounted(() => session.loadAccounts().catch((e) => (error.value = errorMessage(e))));
+onMounted(() => {
+  session.loadAccounts().catch((e) => (error.value = errorMessage(e)));
+  if (welcomeMode.value === 'welcome') {
+    // The welcome screen holds briefly, then eases away into the account picker.
+    welcomeTimeout = setTimeout(() => {
+      welcomeLeaving.value = true;
+      welcomeTimeout = setTimeout(() => {
+        welcomeMode.value = null;
+        welcomeLeaving.value = false;
+        welcomeTimeout = null;
+      }, reducedMotion() ? 0 : 430);
+    }, reducedMotion() ? 60 : 1430);
+  }
+});
+onBeforeUnmount(() => {
+  if (welcomeTimeout) clearTimeout(welcomeTimeout);
+  if (launchTimeout) clearTimeout(launchTimeout);
+});
 
 async function choose(id: string) {
   busy.value = id;
   error.value = null;
+  chosenName.value = session.accounts.find((account) => account.id === id)?.name ?? '';
+  welcomeLeaving.value = false;
+  welcomeMode.value = 'launch';
+  // Start the animation on click, while authentication proceeds beneath it.
+  // Never route before both the animation and actual sign-in have completed.
+  const animation = new Promise<void>((resolve) => {
+    launchTimeout = setTimeout(() => {
+      launchTimeout = null;
+      resolve();
+    }, reducedMotion() ? 120 : 1700);
+  });
   try {
     await session.signIn(id);
     const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/dashboard';
+    await animation;
+    if (next === '/dashboard') {
+      try { sessionStorage.setItem('resolveos-dashboard-entrance', '1'); } catch { /* restricted storage */ }
+    }
     await router.push(next);
   } catch (e) {
+    if (launchTimeout) {
+      clearTimeout(launchTimeout);
+      launchTimeout = null;
+    }
+    welcomeLeaving.value = true;
+    welcomeTimeout = setTimeout(() => {
+      welcomeMode.value = null;
+      welcomeLeaving.value = false;
+      welcomeTimeout = null;
+    }, reducedMotion() ? 0 : 430);
     error.value = errorMessage(e);
   } finally {
     busy.value = null;
@@ -40,6 +89,7 @@ const roleCopy = {
 
 <template>
   <div class="grid min-h-screen place-items-center px-4 py-12">
+    <WelcomeCinematic v-if="welcomeMode" :key="welcomeMode" :mode="welcomeMode" :name="chosenName" :leaving="welcomeLeaving" />
     <div class="w-full max-w-lg">
       <RouterLink to="/" class="mb-8 inline-block"><Logo /></RouterLink>
       <h1 class="text-2xl font-semibold tracking-tight">Choose a demo person</h1>

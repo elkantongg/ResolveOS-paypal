@@ -23,6 +23,7 @@ const error = ref<string | null>(null);
 const query = ref('');
 const status = ref<'ALL' | CaseStatus>('ALL');
 const resetting = ref(false);
+const arrivingFromDemo = ref(typeof window !== 'undefined' && window.sessionStorage.getItem('resolveos-dashboard-entrance') === '1');
 
 async function loadCases() {
   const params = new URLSearchParams({ status: status.value });
@@ -44,7 +45,10 @@ async function load() {
     error.value = errorMessage(e);
   }
 }
-onMounted(load);
+onMounted(() => {
+  if (arrivingFromDemo.value) window.sessionStorage.removeItem('resolveos-dashboard-entrance');
+  void load();
+});
 
 let debounce: ReturnType<typeof setTimeout> | null = null;
 watch([query, status], () => {
@@ -76,7 +80,7 @@ const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merch
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" :class="{ 'dashboard-arrival': arrivingFromDemo }">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <p class="eyebrow">{{ session.role === 'MERCHANT' ? 'Merchant workspace' : session.role === 'BUYER' ? 'Your cases' : 'All cases' }}</p>
@@ -191,3 +195,13 @@ const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merch
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Once the sign-in launch screen lifts, reveal the actual workspace gracefully. */
+.dashboard-arrival{animation:dashboard-arrival .9s cubic-bezier(.17,.75,.25,1) both}
+@keyframes dashboard-arrival {
+  from{opacity:0;transform:translateY(24px);filter:blur(6px)}
+  to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+@media(prefers-reduced-motion:reduce){.dashboard-arrival{animation:none}}
+</style>

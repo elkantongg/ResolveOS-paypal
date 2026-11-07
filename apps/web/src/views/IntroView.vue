@@ -18,10 +18,10 @@ let lastNavigationAt = 0;
 let touchStartY: number | null = null;
 
 const stories = [
-  { kicker: '01 / THE PROBLEM', title: 'A payment went through.\nTrust did not.', detail: 'The customer says it never arrived. The seller sees delivered. Both deserve to be heard.', label: 'THE DISPUTE' },
-  { kicker: '02 / THE INTELLIGENCE', title: 'Two sides.\nOne conversation.', detail: 'Independent AI advocates assess evidence, exchange offers, and respect private limits.', label: 'THE NEGOTIATION' },
-  { kicker: '03 / THE SAFEGUARDS', title: 'AI proposes.\nPeople decide.', detail: 'No agent can move money. Both people must approve the exact same terms.', label: 'THE APPROVAL' },
-  { kicker: '04 / THE RESOLUTION', title: 'Resolved.\nWith proof.', detail: 'Approved refunds are executed using PayPal Sandbox and recorded with a verifiable receipt.', label: 'THE OUTCOME' },
+  { kicker: 'THE PROBLEM', title: 'A payment went through.\nTrust did not.', detail: 'The customer says it never arrived. The seller sees delivered. Both deserve to be heard.', label: 'THE DISPUTE' },
+  { kicker: 'THE INTELLIGENCE', title: 'Two sides.\nOne conversation.', detail: 'Independent AI advocates assess evidence, exchange offers, and respect private limits.', label: 'THE NEGOTIATION' },
+  { kicker: 'THE SAFEGUARDS', title: 'AI proposes.\nPeople decide.', detail: 'No agent can move money. Both people must approve the exact same terms.', label: 'THE APPROVAL' },
+  { kicker: 'THE RESOLUTION', title: 'Resolved.\nWith proof.', detail: 'Approved refunds are executed using PayPal Sandbox and recorded with a verifiable receipt.', label: 'THE OUTCOME' },
 ] as const;
 const activeIndex = computed(() => chapter.value);
 const position = computed(() => chapter.value);
@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
         <button type="button" class="cinema-icon" @click="toggleTheme" :aria-label="currentTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'">
           <Moon v-if="currentTheme === 'light'" :size="17" /><Sun v-else :size="17" />
         </button>
-        <RouterLink to="/signin" class="cinema-enter">Enter ResolveOS <ArrowUpRight :size="15" /></RouterLink>
+        <RouterLink to="/signin?welcome=1" class="cinema-enter">Enter ResolveOS <ArrowUpRight :size="15" /></RouterLink>
       </div>
     </header>
 
@@ -178,10 +178,10 @@ onBeforeUnmount(() => {
             <svg class="intelligence-art" viewBox="0 0 860 620" preserveAspectRatio="xMidYMid meet" focusable="false">
               <defs>
                 <radialGradient id="intelligence-sphere-fill" cx="32%" cy="25%" r="82%">
-                  <stop offset="0%" stop-color="#8bc9ff" stop-opacity=".28" />
-                  <stop offset="34%" stop-color="#3676db" stop-opacity=".18" />
-                  <stop offset="75%" stop-color="#0c2e75" stop-opacity=".12" />
-                  <stop offset="100%" stop-color="#081638" stop-opacity=".32" />
+                  <stop class="intelligence-fill-highlight" offset="0%" stop-color="#8bc9ff" stop-opacity=".28" />
+                  <stop class="intelligence-fill-mid" offset="34%" stop-color="#3676db" stop-opacity=".18" />
+                  <stop class="intelligence-fill-deep" offset="75%" stop-color="#0c2e75" stop-opacity=".12" />
+                  <stop class="intelligence-fill-edge" offset="100%" stop-color="#081638" stop-opacity=".32" />
                 </radialGradient>
                 <linearGradient id="intelligence-orbital-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stop-color="#4481f5" stop-opacity=".18" />
@@ -209,6 +209,9 @@ onBeforeUnmount(() => {
                     <ellipse rx="85" ry="112" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
                   </g>
                   <path d="M-70 -79 C-32 -111 23 -112 74 -74" class="intelligence-sphere-sheen" />
+                  <path class="intelligence-sparkle intelligence-sparkle-1-1" d="M -62 -64 Q -61 -58 -55 -57 Q -61 -56 -62 -50 Q -63 -56 -69 -57 Q -63 -58 -62 -64 Z" />
+                  <path class="intelligence-sparkle intelligence-sparkle-1-2" d="M 58 -33.5 Q 59 -29 63.5 -28 Q 59 -27 58 -22.5 Q 57 -27 52.5 -28 Q 57 -29 58 -33.5 Z" />
+                  <path class="intelligence-sparkle intelligence-sparkle-1-3" d="M 30 68.5 Q 31 72 34.5 73 Q 31 74 30 77.5 Q 29 74 25.5 73 Q 29 72 30 68.5 Z" />
                 </g>
               </g>
               <g class="intelligence-drift intelligence-drift-medium">
@@ -222,6 +225,8 @@ onBeforeUnmount(() => {
                     <ellipse rx="50" ry="69" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
                   </g>
                   <path d="M-43 -49 C-12 -68 17 -67 44 -43" class="intelligence-sphere-sheen" />
+                  <path class="intelligence-sparkle intelligence-sparkle-2-1" d="M -36 -34 Q -35 -30 -31 -29 Q -35 -28 -36 -24 Q -37 -28 -41 -29 Q -37 -30 -36 -34 Z" />
+                  <path class="intelligence-sparkle intelligence-sparkle-2-2" d="M 37 12 Q 38 15 41 16 Q 38 17 37 20 Q 36 17 33 16 Q 36 15 37 12 Z" />
                 </g>
               </g>
               <g class="intelligence-drift intelligence-drift-small">
@@ -235,6 +240,8 @@ onBeforeUnmount(() => {
                     <ellipse rx="38" ry="52" class="intelligence-orbit-stroke intelligence-orbit-secondary" />
                   </g>
                   <path d="M-30 -36 C-9 -51 12 -51 31 -33" class="intelligence-sphere-sheen" />
+                  <path class="intelligence-sparkle intelligence-sparkle-3-1" d="M -24 12.5 Q -23 16 -19.5 17 Q -23 18 -24 21.5 Q -25 18 -28.5 17 Q -25 16 -24 12.5 Z" />
+                  <path class="intelligence-sparkle intelligence-sparkle-3-2" d="M 29 -25 Q 30 -22 33 -21 Q 30 -20 29 -17 Q 28 -20 25 -21 Q 28 -22 29 -25 Z" />
                 </g>
               </g>
               <circle cx="242" cy="191" r="2" class="intelligence-star" />
@@ -282,7 +289,7 @@ onBeforeUnmount(() => {
               <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
               <h1><span v-for="(line, lineIndex) in item.title.split('\n')" :key="lineIndex" class="cinema-headline-line" :class="{ 'cinema-headline-line--accent': lineIndex === 1 }">{{ line }}</span></h1>
               <p>{{ item.detail }}</p>
-              <RouterLink v-if="i === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
+              <RouterLink v-if="i === 3" to="/signin?welcome=1" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
             </div>
           </div>
 
@@ -1150,4 +1157,25 @@ onBeforeUnmount(() => {
   border-color:#314b74;
 }
 .cinematic-intro .cinema-icon svg{stroke:currentColor}
+
+
+/* Tasteful glints travel with each sphere, without affecting their orbit paths. */
+.intelligence-sparkle{
+  fill:#e5f8ff;
+  opacity:.12;
+  transform-box:fill-box;
+  transform-origin:center;
+  filter:drop-shadow(0 0 4px #b3e9ff) drop-shadow(0 0 9px #5da9ff);
+  animation:intelligence-glint 3.7s ease-in-out infinite;
+}
+.intelligence-sparkle-1-2,.intelligence-sparkle-2-2,.intelligence-sparkle-3-2{animation-delay:-1.45s;animation-duration:4.9s}
+.intelligence-sparkle-1-3{animation-delay:-2.6s;animation-duration:5.5s}
+.intelligence-sparkle-2-1{animation-delay:-.75s}
+.intelligence-sparkle-3-1{animation-delay:-2.1s;animation-duration:4.3s}
+@keyframes intelligence-glint{
+  0%,100%{opacity:.10;scale:.65}
+  37%{opacity:.92;scale:1.18}
+  63%{opacity:.22;scale:.8}
+}
+@media(prefers-reduced-motion:reduce){.intelligence-sparkle{animation:none;opacity:.5}}
 </style>
