@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleCheck, CreditCard, FileSearch, Moon, ShieldCheck, Sparkles, Sun } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleCheck, CreditCard, FileSearch, Moon, Pause, Play, ShieldCheck, Sparkles, Sun } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
@@ -9,6 +9,28 @@ const { currentTheme, toggleTheme } = useThemePreference();
 const chapter = ref(0);
 const progress = ref(0);
 const reduceMotion = ref(false);
+const cinematicPaused = ref(false);
+const cinematicDuration = 14;
+const cinematicElapsed = ref(0);
+let cinematicStart = 0;
+let cinematicRaf = 0;
+let cinematicPrevious = 0;
+function tickCinematic(time: number) {
+  if (!cinematicPrevious) cinematicPrevious = time;
+  if (!cinematicPaused.value && !reduceMotion.value) {
+    cinematicElapsed.value = (cinematicElapsed.value + (time - cinematicPrevious) / 1000) % cinematicDuration;
+  }
+  cinematicPrevious = time;
+  cinematicRaf = requestAnimationFrame(tickCinematic);
+}
+function toggleCinematic() {
+  cinematicPaused.value = !cinematicPaused.value;
+}
+function seekCinematic(event: Event) {
+  const input = event.target as HTMLInputElement;
+  cinematicElapsed.value = (Number(input.value) / 100) * cinematicDuration;
+}
+
 const storyEl = ref<HTMLElement | null>(null);
 let frame = 0;
 let targetProgress = 0;
@@ -75,17 +97,20 @@ onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
   updateProgress();
+  cinematicPaused.value = reduceMotion.value;
+  cinematicRaf = requestAnimationFrame(tickCinematic);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll);
   window.removeEventListener('resize', onScroll);
   if (frame) cancelAnimationFrame(frame);
   lastFrame = 0;
+  if (cinematicRaf) cancelAnimationFrame(cinematicRaf);
 });
 </script>
 
 <template>
-  <div class="premium-intro min-h-screen" :class="{ 'theme-dark': currentTheme === 'dark' }" :style="{ '--scroll': progress }">
+  <div class="premium-intro min-h-screen" :class="{ 'theme-dark': currentTheme === 'dark', 'cinematic-paused': cinematicPaused || reduceMotion }" :style="{ '--scroll': progress }">
     <div class="studio-lines" aria-hidden="true" />
     <div class="studio-light studio-light-left" aria-hidden="true" />
     <div class="studio-light studio-light-right" aria-hidden="true" />
@@ -113,6 +138,20 @@ onBeforeUnmount(() => {
         <div class="product-stage" aria-label="Animated ResolveOS payment resolution illustration">
           <div class="stage-ground" aria-hidden="true" />
           <div class="stage-disc" aria-hidden="true" />
+          <!-- Autoplaying architectural motion system, inspired by the supplied reference.
+               All objects are drawn with CSS and remain decorative, not mock transactions. -->
+          <div class="cinematic-architecture" aria-hidden="true">
+            <div class="cinematic-beam beam-a" />
+            <div class="cinematic-beam beam-b" />
+            <div class="cinematic-plinth plinth-a" />
+            <div class="cinematic-plinth plinth-b" />
+            <div class="cinematic-ring-assembly">
+              <div class="cinematic-ring ring-a" />
+              <div class="cinematic-ring ring-b" />
+              <div class="cinematic-ring ring-c" />
+            </div>
+            <div class="cinematic-glow" />
+          </div>
           <div class="core-system" :class="'core-chapter-' + chapter" aria-hidden="true">
             <div class="core-shadow" />
             <div class="core-halo core-halo-one" />
@@ -141,6 +180,17 @@ onBeforeUnmount(() => {
             <span class="annotation-indicator green" />
             <span>PAYPAL SANDBOX</span>
             <strong>Verified status</strong>
+          </div>
+          <div class="cinematic-playback" aria-label="Decorative animation controls">
+            <button type="button" class="cinematic-toggle" :aria-label="cinematicPaused ? 'Play hero animation' : 'Pause hero animation'" @click="toggleCinematic">
+              <Play v-if="cinematicPaused" :size="14" fill="currentColor" />
+              <Pause v-else :size="14" fill="currentColor" />
+            </button>
+            <input class="cinematic-scrub" type="range" min="0" max="100" step="0.1"
+              :value="(cinematicElapsed / cinematicDuration) * 100"
+              :style="{ '--played': ((cinematicElapsed / cinematicDuration) * 100) + '%' }"
+              aria-label="Animation progress" @input="seekCinematic" />
+            <span class="cinematic-time">{{ String(Math.floor(cinematicElapsed)).padStart(2, '0') }} / {{ cinematicDuration }}s</span>
           </div>
           <div class="product-caption"><span class="caption-led" /> RESOLVE / INTELLIGENCE LAYER <span class="caption-number">00{{ chapter + 1 }}</span></div>
         </div>
@@ -276,6 +326,37 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
 @keyframes orbit-turn-reverse {50% {transform:rotate(65deg) scale(.96)}}
 @keyframes annotation-float {50% {translate:0 -9px}}
 @keyframes scroll-indicate {50% {transform:translateY(7px)}}
+
+/* Premium architectural hero: kinetic surfaces move continuously independently of scroll. */
+.cinematic-architecture {position:absolute;inset:4% -9%;perspective:950px;transform-style:preserve-3d;pointer-events:none;z-index:1;opacity:.88;filter:drop-shadow(0 26px 30px rgba(70,92,170,.14))}
+.cinematic-beam {position:absolute;width:74%;height:19%;left:15%;top:37%;border-radius:24px;background:linear-gradient(135deg,#fbfdff 7%,#c7d8fc 34%,#9179ff 53%,#4f32df 59%,#d6dfff 82%,#f7fbff 100%);box-shadow:inset 3px 3px 9px #fff,0 20px 45px #7162d64f;transform:rotate(-31deg) skewX(-17deg);animation:kinetic-beam 14s cubic-bezier(.45,0,.55,1) infinite alternate;transform-origin:center}
+.beam-b {width:48%;height:14%;top:60%;left:30%;background:linear-gradient(145deg,#f7fbff,#d3dffc 35%,#9db5ff 50%,#7455ed 70%,#f9faff);animation-delay:-7s;animation-direction:alternate-reverse}
+.cinematic-plinth {position:absolute;width:33%;height:26%;left:53%;top:17%;border-radius:25px;background:linear-gradient(135deg,#fff,#e7eafd 38%,#d5d0f6 57%,#fff);box-shadow:inset 3px 5px 15px #fff,14px 27px 33px #8977bf30;transform:rotate(-24deg) skew(-12deg);animation:kinetic-plinth 14s ease-in-out infinite alternate}
+.plinth-b {top:61%;left:9%;width:29%;height:20%;animation-delay:-7s;animation-direction:alternate-reverse}
+.cinematic-ring-assembly {position:absolute;inset:17% 18%;transform-style:preserve-3d;transform:rotate(-23deg);animation:kinetic-assembly 14s ease-in-out infinite alternate}
+.cinematic-ring {position:absolute;inset:7%;border-radius:50%;border:clamp(18px,3.5vw,44px) solid transparent;border-top-color:#fcfdff;border-right-color:#e3e5ff;border-bottom-color:#bbc1fa;border-left-color:#fff;box-shadow:inset 0 8px 23px #6d6fd256,10px 22px 34px #6069ad33,0 0 19px #fff;transform:rotateY(57deg) rotateZ(22deg)}
+.ring-b {inset:16%;border-width:clamp(11px,2vw,28px);border-left-color:#afaaf9;transform:rotateY(-46deg) rotateZ(36deg);animation:kinetic-ring 14s ease-in-out infinite alternate-reverse}
+.ring-c {inset:32%;border-width:clamp(6px,1.2vw,15px);border-right-color:#7e66e8;transform:rotateX(70deg) rotateZ(18deg)}
+.cinematic-glow {position:absolute;inset:21%;background:radial-gradient(ellipse,#a35bff77,transparent 63%);filter:blur(31px);mix-blend-mode:screen;animation:kinetic-glow 7s ease-in-out infinite alternate}
+.cinematic-architecture + .core-system {opacity:.38;transform:translateY(calc(24px - var(--scroll)*55px)) scale(.63) rotate(calc(var(--scroll)*35deg));mix-blend-mode:multiply}
+.cinematic-playback {position:absolute;bottom:7%;left:18%;right:18%;z-index:15;display:flex;align-items:center;gap:13px;padding:9px 13px;border-radius:999px;border:1px solid #ffffffb8;background:#ffffffa6;box-shadow:0 12px 40px #536ea028;backdrop-filter:blur(18px);pointer-events:auto}
+.cinematic-toggle {width:27px;height:27px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;background:#244776;color:#fff;cursor:pointer}
+.cinematic-scrub {flex:1;min-width:40px;appearance:none;height:4px;border-radius:999px;background:linear-gradient(to right,#8f58f5 var(--played),#bac9e0 var(--played));cursor:pointer}
+.cinematic-scrub::-webkit-slider-thumb {appearance:none;width:10px;height:10px;background:#7b50ed;border-radius:50%;box-shadow:0 0 0 4px #926bff30}
+.cinematic-scrub::-moz-range-thumb {width:10px;height:10px;background:#7b50ed;border:0;border-radius:50%}
+.cinematic-time {font:650 10px var(--font-mono,monospace);white-space:nowrap;color:#5b6b87}
+.cinematic-paused .cinematic-architecture * {animation-play-state:paused!important}
+.theme-dark .cinematic-architecture {opacity:.6;filter:drop-shadow(0 20px 35px rgba(49,60,135,.28))}
+.theme-dark .cinematic-architecture + .core-system {mix-blend-mode:screen;opacity:.58}
+.theme-dark .cinematic-playback {background:#1b2d4dcc;border-color:#587097}
+.theme-dark .cinematic-time {color:#d4e3fd}
+.theme-dark .cinematic-toggle {background:#bbd6ff;color:#162a50}
+@keyframes kinetic-beam {0%{transform:translate3d(-10%,10%,0) rotate(-31deg) skewX(-17deg) scale(.82)}50%{transform:translate3d(15%,-18%,0) rotate(22deg) skewX(-17deg) scale(1.1)}100%{transform:translate3d(-2%,12%,0) rotate(-15deg) skewX(-10deg) scale(.94)}}
+@keyframes kinetic-plinth {0%{transform:translate3d(14%,30%,0) rotate(-24deg) skew(-12deg)}50%{transform:translate3d(-12%,-24%,0) rotate(18deg) skew(-12deg)}100%{transform:translate3d(18%,2%,0) rotate(-13deg) skew(-3deg)}}
+@keyframes kinetic-assembly {0%{transform:rotate(-23deg) rotateY(-18deg) scale(.9)}50%{transform:rotate(19deg) rotateY(22deg) scale(1.05)}100%{transform:rotate(-12deg) rotateY(-10deg) scale(.94)}}
+@keyframes kinetic-ring {to{transform:rotateY(35deg) rotateZ(-45deg)}}
+@keyframes kinetic-glow {to{opacity:.5;transform:scale(1.4)}}
+
 @media (max-width:1100px) {
  .story-copy {width:53%;padding-left:clamp(32px,7vw,90px)} .product-stage {width:47%}
  .chapter-title {font-size:clamp(42px,5vw,70px)}
@@ -297,6 +378,9 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
  .floating-annotation {font-size:7px;padding:9px;gap:5px}.floating-annotation strong {font-size:10px}
  .annotation-one {top:10%;left:4%}.annotation-two {top:12%;right:2%}.annotation-three {bottom:13%;left:3%}
  .story-progress {display:none}
+ .cinematic-architecture {inset:0 -5%}
+ .cinematic-playback {bottom:1%;left:14%;right:14%;padding:6px 9px}
+ .cinematic-time {font-size:8px}
  .case-mini {margin-top:26px}
  .studio-footer {padding:36px 24px 44px}
 }
@@ -306,7 +390,7 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce) {
  .chapter-inner {opacity:1;transform:none;filter:none}
  .core-system {transform:none}
- .core-orb,.core-orbit,.scroll-hint svg,.floating-annotation {animation:none!important}
+ .core-orb,.core-orbit,.scroll-hint svg,.floating-annotation,.cinematic-architecture * {animation:none!important}
  .floating-annotation.visible {transform:none}
 }
 /* Component-local theme states prevent the intro's hard-coded light palette from
