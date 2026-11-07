@@ -24,9 +24,9 @@ varying vec3 vPosition;
 varying vec2 vUv;
 varying float vFront;
 void main(){
-  float rx = -0.23 + 0.15 * sin(uTime * 0.32);
-  float ry = -0.38 + 0.23 * sin(uTime * 0.26 + 0.4);
-  float rz = 0.055 * sin(uTime * 0.18);
+  float rx = 0.43 + 0.07 * sin(uTime * 0.28);
+  float ry = -0.62 + 0.10 * sin(uTime * 0.24 + 0.4);
+  float rz = 0.035 * sin(uTime * 0.18);
   mat3 mx = mat3(1.,0.,0., 0.,cos(rx),sin(rx), 0.,-sin(rx),cos(rx));
   mat3 my = mat3(cos(ry),0.,-sin(ry), 0.,1.,0., sin(ry),0.,cos(ry));
   mat3 mz = mat3(cos(rz),sin(rz),0., -sin(rz),cos(rz),0., 0.,0.,1.);
@@ -39,7 +39,10 @@ void main(){
   float depth = 4.8 - p.z;
   vec2 projected = p.xy * (2.55 / depth);
   projected.x /= max(0.65,uAspect);
-  gl_Position = vec4(projected, (p.z / 6.) , 1.);
+  // WebGL depth grows away from the camera: nearer +Z vertices must
+  // use SMALLER depth values, otherwise the back of the cube occludes
+  // the front face and logo and the object appears as a flat slab.
+  gl_Position = vec4(projected, -p.z / 6., 1.);
 }`;
 const fragmentSource = `
 precision mediump float;
