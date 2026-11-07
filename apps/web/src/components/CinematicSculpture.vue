@@ -6,7 +6,6 @@ const canvas = ref<HTMLCanvasElement | null>(null);
 let gl: WebGLRenderingContext | null = null;
 let program: WebGLProgram | null = null;
 let resizeObserver: ResizeObserver | null = null;
-let frame = 0;
 let vertexBuffer: WebGLBuffer | null = null;
 let normalBuffer: WebGLBuffer | null = null;
 let colorBuffer: WebGLBuffer | null = null;
@@ -94,8 +93,9 @@ varying vec3 vNormal;
 varying vec3 vShade;
 varying vec3 vPosition;
 void main() {
-  float turn = time * .13 + scroll * .43;
-  float tilt = .18 * sin(time * .17);
+  float phase = time * 6.28318530718 / 14.0;
+  float turn = phase + scroll * .43;
+  float tilt = .18 * sin(phase);
   vec3 p = position;
   float a = turn + cursor.x * .14;
   p = vec3(p.x*cos(a)+p.z*sin(a), p.y, -p.x*sin(a)+p.z*cos(a));
@@ -108,7 +108,7 @@ void main() {
   vPosition = p;
   float aspect = viewport.x / viewport.y;
   float projection = 2.35 / (5.1 - p.z);
-  gl_Position = vec4(p.x * projection / aspect, p.y * projection, p.z * .075, 1.0);
+  gl_Position = vec4(p.x * projection / aspect, p.y * projection, -p.z * .075, 1.0);
 }`;
 const fragmentShader = `
 precision highp float;
@@ -214,7 +214,6 @@ watch(() => [props.time, props.scroll, props.dark], render);
 onMounted(init);
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
-  if (frame) cancelAnimationFrame(frame);
   if (gl) {
     for (const buffer of [vertexBuffer, normalBuffer, colorBuffer]) if (buffer) gl.deleteBuffer(buffer);
     if (program) gl.deleteProgram(program);
