@@ -607,8 +607,8 @@ onBeforeUnmount(() => {
    transform-origin inconsistencies and makes the travel visible on Chrome. */
 .intelligence-drift{transform-origin:0 0;will-change:transform}
 .intelligence-drift-large{animation:intelligence-large-travel 11.5s cubic-bezier(.45,0,.55,1) infinite}
-.intelligence-drift-medium{animation:intelligence-medium-revolve 13s linear infinite}
-.intelligence-drift-small{animation:intelligence-small-revolve 16s linear infinite}
+.intelligence-drift-medium{animation:intelligence-medium-wander 17.3s ease-in-out infinite}
+.intelligence-drift-small{animation:intelligence-small-wander 20.7s ease-in-out infinite}
 .intelligence-sphere{transform-box:fill-box;transform-origin:center;will-change:transform}
 .intelligence-sphere-shell{fill:url(#intelligence-sphere-fill);stroke:#7ab1ff70;stroke-width:1.4;filter:drop-shadow(0 0 17px #4d8fff64)}
 .intelligence-sphere-inner{fill:none;stroke:#a0ceff24;stroke-width:1}
@@ -634,43 +634,27 @@ onBeforeUnmount(() => {
   50%{transform:translate(435px,306px)}
   75%{transform:translate(362px,390px)}
 }
-@keyframes intelligence-medium-revolve{
-  0.00%{transform:translate(581.3px,288.0px) scale(0.773)}
-  6.25%{transform:translate(595.0px,331.0px) scale(0.842)}
-  12.50%{transform:translate(580.1px,373.8px) scale(0.910)}
-  18.75%{transform:translate(538.8px,409.9px) scale(0.968)}
-  25.00%{transform:translate(477.4px,433.8px) scale(1.007)}
-  31.25%{transform:translate(405.4px,442.0px) scale(1.020)}
-  37.50%{transform:translate(333.5px,433.1px) scale(1.006)}
-  43.75%{transform:translate(272.9px,408.5px) scale(0.966)}
-  50.00%{transform:translate(232.7px,372.0px) scale(0.907)}
-  56.25%{transform:translate(219.0px,329.0px) scale(0.838)}
-  62.50%{transform:translate(233.9px,286.2px) scale(0.770)}
-  68.75%{transform:translate(275.2px,250.1px) scale(0.712)}
-  75.00%{transform:translate(336.6px,226.2px) scale(0.673)}
-  81.25%{transform:translate(408.6px,218.0px) scale(0.660)}
-  87.50%{transform:translate(480.5px,226.9px) scale(0.674)}
-  93.75%{transform:translate(541.1px,251.5px) scale(0.714)}
-  100.00%{transform:translate(581.3px,288.0px) scale(0.773)}
+/* Irregular, independently phased wandering paths, instead of precise orbital loops. */
+@keyframes intelligence-medium-wander{
+  0%,100%{transform:translate(594px,261px) scale(.90)}
+  11%{transform:translate(650px,312px) scale(1.00)}
+  23%{transform:translate(565px,381px) scale(1.10)}
+  36%{transform:translate(452px,404px) scale(.98)}
+  48%{transform:translate(306px,355px) scale(.82)}
+  61%{transform:translate(269px,265px) scale(.70)}
+  74%{transform:translate(390px,215px) scale(.74)}
+  86%{transform:translate(526px,218px) scale(.81)}
 }
-@keyframes intelligence-small-revolve{
-  0.00%{transform:translate(601.2px,409.4px) scale(0.946)}
-  6.25%{transform:translate(640.4px,361.5px) scale(0.882)}
-  12.50%{transform:translate(644.0px,308.9px) scale(0.812)}
-  18.75%{transform:translate(611.6px,259.5px) scale(0.746)}
-  25.00%{transform:translate(548.1px,220.8px) scale(0.694)}
-  31.25%{transform:translate(463.0px,198.7px) scale(0.665)}
-  37.50%{transform:translate(369.5px,196.7px) scale(0.662)}
-  43.75%{transform:translate(281.6px,214.9px) scale(0.687)}
-  50.00%{transform:translate(212.8px,250.6px) scale(0.734)}
-  56.25%{transform:translate(173.6px,298.5px) scale(0.798)}
-  62.50%{transform:translate(170.0px,351.1px) scale(0.868)}
-  68.75%{transform:translate(202.4px,400.5px) scale(0.934)}
-  75.00%{transform:translate(265.9px,439.2px) scale(0.986)}
-  81.25%{transform:translate(351.0px,461.3px) scale(1.015)}
-  87.50%{transform:translate(444.5px,463.3px) scale(1.018)}
-  93.75%{transform:translate(532.4px,445.1px) scale(0.993)}
-  100.00%{transform:translate(601.2px,409.4px) scale(0.946)}
+@keyframes intelligence-small-wander{
+  0%,100%{transform:translate(693px,424px) scale(.96)}
+  9%{transform:translate(609px,458px) scale(1.04)}
+  21%{transform:translate(471px,438px) scale(.98)}
+  34%{transform:translate(295px,395px) scale(.84)}
+  45%{transform:translate(211px,306px) scale(.69)}
+  57%{transform:translate(296px,206px) scale(.66)}
+  68%{transform:translate(452px,194px) scale(.72)}
+  81%{transform:translate(643px,239px) scale(.83)}
+  92%{transform:translate(738px,333px) scale(.94)}
 }
 @keyframes intelligence-large-tilt{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(24deg)}}
 @keyframes intelligence-medium-tilt{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-25deg)}}
@@ -684,8 +668,7 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
-/* Pages 01 and 04 — a plain, solid cube with just the ResolveOS mark.
-   Opaque faces hide internal/back edges; the surrounding animated orbits stay intact. */
+/* Pages 01 / 04: softly rounded, luminous cube — not an angular wireframe. */
 .luminous-core{
   --cube-side:clamp(82px,9vw,132px);
   --cube-half:calc(var(--cube-side) / 2);
@@ -693,20 +676,21 @@ onBeforeUnmount(() => {
   height:var(--cube-side);
 }
 .luminous-core .core-face{
-  border:1.5px solid #83b9ff;
-  border-radius:3px;
-  background:#153761;
-  box-shadow:inset 0 0 12px #4c91eb20,0 0 12px #4992f447;
+  border:1.5px solid #a1d5ffb8;
+  border-radius:19%;
+  background:linear-gradient(145deg,#377aceed 0%,#17477ddf 38%,#091c42ee 100%);
+  box-shadow:inset 0 0 18px #83c5ff52,0 0 17px #59a7ff9c;
   backface-visibility:hidden;
 }
 .luminous-core .core-front{
   transform:translateZ(var(--cube-half));
-  background:#1b477a;
+  background:linear-gradient(145deg,#327ac5ee,#103e76ef 58%,#0a2350f5);
+  box-shadow:inset 0 0 22px #7dc3ff60,0 0 24px #80c5ffb3;
 }
-.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half));background:#102b4c}
-.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:#10345c}
-.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:#153c67}
-.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:#2a5280}
-.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half));background:#0e294a}
-.luminous-core .core-emblem-logo{width:61%;height:61%;filter:drop-shadow(0 0 9px #a4eaff77)}
+.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half))}
+.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:linear-gradient(125deg,#1e5d9bef,#071c45f4)}
+.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:linear-gradient(125deg,#1c5794ef,#0b2a58f4)}
+.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:linear-gradient(145deg,#4b94d7ec,#204b85ed)}
+.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half))}
+.luminous-core .core-emblem-logo{width:62%;height:62%;filter:drop-shadow(0 0 10px #b5efffb2)}
 </style>
