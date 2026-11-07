@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ArrowRight, Shield, ShoppingBag, Store } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 
 import { errorMessage } from '@/api/client';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import Logo from '@/components/Logo.vue';
+import WelcomeCinematic from '@/components/WelcomeCinematic.vue';
 import Skeleton from '@/components/Skeleton.vue';
 import { useSession } from '@/stores/session';
 
@@ -14,8 +15,26 @@ const router = useRouter();
 const route = useRoute();
 const error = ref<string | null>(null);
 const busy = ref<string | null>(null);
+const welcomeMode = ref<'welcome' | 'launch' | null>(route.query.welcome === '1' ? 'welcome' : null);
+const chosenName = ref('');
+let welcomeTimeout: ReturnType<typeof setTimeout> | null = null;
+let launchTimeout: ReturnType<typeof setTimeout> | null = null;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-onMounted(() => session.loadAccounts().catch((e) => (error.value = errorMessage(e))));
+onMounted(() => {
+  session.loadAccounts().catch((e) => (error.value = errorMessage(e)));
+  if (welcomeMode.value === 'welcome') {
+    // Keep the existing demo sign-in flow; this is purely an arrival animation.
+    welcomeTimeout = setTimeout(() => {
+      welcomeMode.value = null;
+      welcomeTimeout = null;
+    }, reducedMotion() ? 120 : 1750);
+  }
+});
+onBeforeUnmount(() => {
+  if (welcomeTimeout) clearTimeout(welcomeTimeout);
+  if (launchTimeout) clearTimeout(launchTimeout);
+});
 
 async function choose(id: string) {
   busy.value = id;
@@ -23,6 +42,14 @@ async function choose(id: string) {
   try {
     await session.signIn(id);
     const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/dashboard';
+    chosenName.value = session.accounts.find((account) => account.id === id)?.name ?? session.user?.name ?? '';
+    welcomeMode.value = 'launch';
+    await new Promise<void>((resolve) => {
+      launchTimeout = setTimeout(() => {
+        launchTimeout = null;
+        resolve();
+      }, reducedMotion() ? 120 : 1500);
+    });
     await router.push(next);
   } catch (e) {
     error.value = errorMessage(e);
@@ -40,6 +67,7 @@ const roleCopy = {
 
 <template>
   <div class="grid min-h-screen place-items-center px-4 py-12">
+    <WelcomeCinematic v-if="welcomeMode" :key="welcomeMode" :mode="welcomeMode" :name="chosenName" />
     <div class="w-full max-w-lg">
       <RouterLink to="/" class="mb-8 inline-block"><Logo /></RouterLink>
       <h1 class="text-2xl font-semibold tracking-tight">Choose a demo person</h1>
