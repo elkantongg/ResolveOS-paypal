@@ -33,17 +33,18 @@ function setTheme(value: ThemeChoice) {
   commitTheme(value);
 }
 
-/** Build a low-complexity, fixed wavy edge. The compositor interpolates
- * between just two polygons instead of processing 1,665 animated vertices.
- * Keeping the same point count at each end avoids expensive shape rebuilding.
+/** A single continuous wave with a fixed vertex count for every frame.
+ * Sampling intermediate frames avoids the abrupt polygon morph and zig-zag
+ * flashes seen when the browser interpolates only the end shapes.
  */
-function revealShape(front: number, width: number, height: number, phase: number) {
-  const amplitude = Math.min(24, Math.max(10, width * .016));
-  const period = Math.max(180, height * .48);
+function revealShape(progress: number, width: number, height: number, phase: number): string {
+  const amplitude = Math.min(24, Math.max(9, width * 0.014));
+  const front = -amplitude - 4 + progress * (width + 2 * amplitude + 8);
   const points: string[] = [];
-  for (let i = 0; i <= 10; i++) {
-    const y = height * i / 10;
-    const edge = front + Math.sin((y / period) * Math.PI * 2 + phase) * amplitude;
+  for (let i = 0; i <= 24; i++) {
+    const y = height * i / 24;
+    const wave = Math.sin((y / Math.max(230, height * 0.55)) * Math.PI * 2 + phase + progress * Math.PI * 0.7);
+    const edge = front + wave * amplitude;
     points.push(`${edge.toFixed(1)}px ${y.toFixed(1)}px`);
   }
   return `polygon(0px 0px, ${points.join(', ')}, 0px ${height}px)`;
@@ -61,41 +62,41 @@ async function toggleTheme(event?: MouseEvent) {
 
   isThemeChanging.value = true;
   document.documentElement.classList.add('theme-wave-active');
-  let changed = false;
-
+  let committed = false;
+  let activeAnimation: Animation | null = null;
   try {
     const transition = document.startViewTransition(async () => {
       commitTheme(next);
-      changed = true;
+      committed = true;
       await nextTick();
     });
     await transition.ready;
-
     const width = window.innerWidth;
     const height = window.innerHeight;
     const target = event?.currentTarget;
     const bounds = target instanceof Element ? target.getBoundingClientRect() : null;
-    // The reveal always travels left-to-right, with a phase aligned to the toggle.
-    const phase = bounds ? bounds.top / Math.max(1, height) * Math.PI * 2 : 0;
-    const amplitude = Math.min(24, Math.max(10, width * .016));
-    // Only two compositor-friendly keyframes. The ripple remains in the edge
-    // silhouette as it travels; there is no repeated JS geometry per frame.
-    const keyframes = [
-      { clipPath: revealShape(-amplitude - 3, width, height, phase) },
-      { clipPath: revealShape(width + amplitude + 3, width, height, phase) },
-    ];
-    const animation = document.documentElement.animate(keyframes, {
-      duration: 920,
+    const phase = bounds ? (bounds.top / Math.max(1, height)) * Math.PI : 0;
+
+    // All keyframes share the same polygon structure and advance monotonically,
+    // so the transition cannot freeze or jump backwards between frames.
+    const steps = 32;
+    const frames = Array.from({ length: steps + 1 }, (_, i) => ({
+      clipPath: revealShape(i / steps, width, height, phase),
+      offset: i / steps,
+    }));
+    activeAnimation = document.documentElement.animate(frames, {
+      duration: 1120,
       easing: 'cubic-bezier(.42,0,.24,1)',
       fill: 'both',
       pseudoElement: '::view-transition-new(root)',
     });
-    await animation.finished;
+    await activeAnimation.finished;
     await transition.finished;
   } catch {
-    // Failed snapshot/animation must never leave the toggle locked.
-    if (!changed) commitTheme(next);
+    // The browser may cancel a transition during navigation or tab switching.
+    if (!committed) commitTheme(next);
   } finally {
+    activeAnimation?.cancel();
     document.documentElement.classList.remove('theme-wave-active');
     isThemeChanging.value = false;
   }
