@@ -606,15 +606,15 @@ onBeforeUnmount(() => {
 /* Outer wrappers use absolute SVG translations in every keyframe; this avoids
    transform-origin inconsistencies and makes the travel visible on Chrome. */
 .intelligence-drift{transform-origin:0 0;will-change:transform}
-.intelligence-drift-large{animation:intelligence-large-travel 14s ease-in-out infinite}
-.intelligence-drift-medium{animation:intelligence-medium-travel 16s ease-in-out infinite}
-.intelligence-drift-small{animation:intelligence-small-travel 13s ease-in-out infinite}
+.intelligence-drift-large{animation:intelligence-large-travel 11.5s cubic-bezier(.45,0,.55,1) infinite}
+.intelligence-drift-medium{animation:intelligence-medium-travel 13.5s cubic-bezier(.45,0,.55,1) infinite}
+.intelligence-drift-small{animation:intelligence-small-travel 10.5s cubic-bezier(.45,0,.55,1) infinite}
 .intelligence-sphere{transform-box:fill-box;transform-origin:center;will-change:transform}
 .intelligence-sphere-shell{fill:url(#intelligence-sphere-fill);stroke:#7ab1ff70;stroke-width:1.4;filter:drop-shadow(0 0 17px #4d8fff64)}
 .intelligence-sphere-inner{fill:none;stroke:#a0ceff24;stroke-width:1}
 .intelligence-sphere-axis{transform-box:fill-box;transform-origin:center;will-change:transform}
-.intelligence-axis-a{animation:intelligence-axis-a 13s linear infinite}
-.intelligence-axis-b{animation:intelligence-axis-b 16s linear infinite reverse}
+.intelligence-axis-a{animation:intelligence-axis-a 9s linear infinite}
+.intelligence-axis-b{animation:intelligence-axis-b 11s linear infinite reverse}
 .intelligence-orbit-stroke{fill:none;stroke:url(#intelligence-orbital-stroke);stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 5px #80b7ff80)}
 .intelligence-orbit-secondary{stroke-width:1.7;opacity:.8}
 .intelligence-sphere-sheen{fill:none;stroke:#d9efff9e;stroke-width:1.8;stroke-linecap:round;filter:drop-shadow(0 0 7px #c5e7ff88)}
@@ -630,21 +630,21 @@ onBeforeUnmount(() => {
 @keyframes intelligence-axis-b{from{transform:rotate(38deg) scaleX(.81)}to{transform:rotate(398deg) scaleX(.81)}}
 @keyframes intelligence-large-travel{
   0%,100%{transform:translate(390px,331px)}
-  25%{transform:translate(417px,291px)}
-  50%{transform:translate(442px,340px)}
-  75%{transform:translate(390px,375px)}
+  25%{transform:translate(332px,262px)}
+  50%{transform:translate(435px,306px)}
+  75%{transform:translate(362px,390px)}
 }
 @keyframes intelligence-medium-travel{
   0%,100%{transform:translate(585px,271px)}
-  25%{transform:translate(628px,299px)}
-  50%{transform:translate(600px,343px)}
-  75%{transform:translate(557px,304px)}
+  25%{transform:translate(641px,241px)}
+  50%{transform:translate(555px,328px)}
+  75%{transform:translate(615px,355px)}
 }
 @keyframes intelligence-small-travel{
   0%,100%{transform:translate(688px,431px)}
-  25%{transform:translate(632px,405px)}
-  50%{transform:translate(650px,354px)}
-  75%{transform:translate(715px,376px)}
+  25%{transform:translate(734px,373px)}
+  50%{transform:translate(630px,351px)}
+  75%{transform:translate(655px,455px)}
 }
 @keyframes intelligence-large-tilt{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(24deg)}}
 @keyframes intelligence-medium-tilt{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-25deg)}}
@@ -657,4 +657,30 @@ onBeforeUnmount(() => {
   .intelligence-drift-medium{transform:translate(585px,271px)}
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
+
+/* Pages 01 and 04 — a plain, solid cube with just the ResolveOS mark.
+   Opaque faces hide internal/back edges; the surrounding animated orbits stay intact. */
+.luminous-core{
+  --cube-side:clamp(82px,9vw,132px);
+  --cube-half:calc(var(--cube-side) / 2);
+  width:var(--cube-side);
+  height:var(--cube-side);
+}
+.luminous-core .core-face{
+  border:1.5px solid #83b9ff;
+  border-radius:3px;
+  background:#153761;
+  box-shadow:inset 0 0 12px #4c91eb20,0 0 12px #4992f447;
+  backface-visibility:hidden;
+}
+.luminous-core .core-front{
+  transform:translateZ(var(--cube-half));
+  background:#1b477a;
+}
+.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half));background:#102b4c}
+.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:#10345c}
+.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:#153c67}
+.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:#2a5280}
+.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half));background:#0e294a}
+.luminous-core .core-emblem-logo{width:61%;height:61%;filter:drop-shadow(0 0 9px #a4eaff77)}
 </style>
