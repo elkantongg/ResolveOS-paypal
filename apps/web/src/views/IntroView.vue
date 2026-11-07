@@ -12,7 +12,6 @@ const reduceMotion = ref(false);
 const cinematicPaused = ref(false);
 const cinematicDuration = 14;
 const cinematicElapsed = ref(0);
-let cinematicStart = 0;
 let cinematicRaf = 0;
 let cinematicPrevious = 0;
 function tickCinematic(time: number) {
