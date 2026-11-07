@@ -95,7 +95,7 @@ onBeforeUnmount(() => {
             <div class="luminous-orbit orbit-beta"><span /><span /></div>
             <div class="luminous-orbit orbit-gamma"><span /><span /></div>
             <div class="luminous-core">
-              <div class="core-face core-front"><span class="core-emblem">R</span></div>
+              <div class="core-face core-front"><svg viewBox="0 0 32 32" class="core-emblem-logo" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--color-primary)" /><path d="M8.5 11.5h7.5a3.5 3.5 0 0 1 0 7H11" stroke="white" stroke-width="2.4" fill="none" stroke-linecap="round" /><path d="M23.5 20.5H16a3.5 3.5 0 0 1 0-7H21" stroke="var(--color-accent-bright)" stroke-width="2.4" fill="none" stroke-linecap="round" /></svg></div>
               <div class="core-face core-back" />
               <div class="core-face core-left" />
               <div class="core-face core-right" />
@@ -295,4 +295,6 @@ onBeforeUnmount(() => {
 :global(html[data-theme='light']) .final-proceed{background:#173c85;color:#fff;box-shadow:0 12px 35px #2d62ad40}
 :global(html[data-theme='dark']) .cinema-header .cinema-icon{background:#131d31;border-color:#4d6387;color:#eaf3ff}
 :global(html[data-theme='dark']) .cinema-header .cinema-enter{background:#e8f2ff;color:#0e1930}
+
+.core-emblem-logo{width:72%;height:72%;filter:drop-shadow(0 0 8px #ffffff88) drop-shadow(0 0 18px #58a8ff6b)}
 </style>
