@@ -11,6 +11,8 @@ const progress = ref(0);
 const reduceMotion = ref(false);
 const storyEl = ref<HTMLElement | null>(null);
 let frame = 0;
+let targetProgress = 0;
+let lastFrame = 0;
 
 const chapters = [
   {
@@ -37,11 +39,12 @@ const chapters = [
 ] as const;
 
 const progressLabel = computed(() => String(chapter.value + 1).padStart(2, '0'));
+// Scroll remains native; only the decorative parallax follows with eased inertia.
 function updateProgress() {
   if (!storyEl.value) return;
   const bounds = storyEl.value.getBoundingClientRect();
   const distance = Math.max(1, storyEl.value.offsetHeight - window.innerHeight);
-  progress.value = Math.max(0, Math.min(1, -bounds.top / distance));
+  targetProgress = Math.max(0, Math.min(1, -bounds.top / distance));
   const positions = [...storyEl.value.querySelectorAll<HTMLElement>('[data-story-chapter]')];
   let best = 0;
   let shortest = Infinity;
@@ -51,10 +54,18 @@ function updateProgress() {
     if (gap < shortest) { shortest = gap; best = index; }
   });
   chapter.value = best;
+  if (!frame) frame = requestAnimationFrame(animateProgress);
+}
+function animateProgress(now: number) {
+  const dt = lastFrame ? Math.min(64, now - lastFrame) : 16;
+  lastFrame = now;
+  const easing = reduceMotion.value ? 1 : 1 - Math.exp(-dt / 240);
+  const delta = targetProgress - progress.value;
+  progress.value = Math.abs(delta) < .00015 ? targetProgress : progress.value + delta * easing;
+  frame = progress.value === targetProgress ? 0 : requestAnimationFrame(animateProgress);
 }
 function onScroll() {
-  if (frame) return;
-  frame = requestAnimationFrame(() => { frame = 0; updateProgress(); });
+  updateProgress();
 }
 function jumpTo(index: number) {
   document.getElementById('story-' + index)?.scrollIntoView({ behavior: reduceMotion.value ? 'auto' : 'smooth', block: 'center' });
@@ -69,6 +80,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll);
   window.removeEventListener('resize', onScroll);
   if (frame) cancelAnimationFrame(frame);
+  lastFrame = 0;
 });
 </script>
 
@@ -197,10 +209,10 @@ onBeforeUnmount(() => {
 .premium-theme {border:1px solid #c7d8ed;border-radius:50%;background:#ffffffad;width:39px;height:39px;display:grid;place-items:center;cursor:pointer;color:#263e65}
 .premium-nav-link {padding:12px 20px;background:#172a47;color:#fff;border-radius:100px;font-size:12px;font-weight:650;display:flex;gap:12px;align-items:center;transition:transform .2s,background .2s}
 .premium-nav-link:hover,.action-primary:hover {transform:translateY(-2px);background:#264e91}
-.story-stage {position:relative;max-width:1600px;margin:auto;min-height:300svh}
+.story-stage {position:relative;max-width:1600px;margin:auto;min-height:435svh}
 .story-copy {position:relative;z-index:12;width:49%;padding-left:clamp(24px,9vw,145px)}
-.story-chapter {min-height:100svh;display:flex;align-items:center;padding:100px 0 80px;scroll-margin-top:0}
-.chapter-inner {max-width:580px;opacity:.22;transform:translateY(34px);filter:blur(4px);transition:opacity .7s ease,transform .7s ease,filter .7s ease}
+.story-chapter {min-height:145svh;display:flex;align-items:center;padding:150px 0 130px;scroll-margin-top:0}
+.chapter-inner {max-width:580px;opacity:.22;transform:translateY(24px);filter:blur(2px);transition:opacity 1.1s cubic-bezier(.22,1,.36,1),transform 1.25s cubic-bezier(.22,1,.36,1),filter 1.1s ease}
 .story-chapter-active .chapter-inner {opacity:1;transform:none;filter:none}
 .chapter-eyebrow {font-family:var(--font-mono,monospace);display:flex;align-items:center;gap:12px;color:#5277b5;font-size:11px;letter-spacing:.2em;font-weight:650}
 .eyebrow-line {width:30px;height:1px;background:#699ade}
@@ -275,7 +287,7 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
  .story-stage {display:flex;flex-direction:column;min-height:0}
  .product-stage {position:sticky;top:75px;order:0;float:none;width:100%;height:43svh;min-height:285px;overflow:hidden;z-index:16}
  .story-copy {order:1;width:100%;padding:0 23px}
- .story-chapter {min-height:76svh;padding:45px 0 100px;align-items:flex-start;scroll-margin-top:36vh}
+ .story-chapter {min-height:105svh;padding:65px 0 130px;align-items:flex-start;scroll-margin-top:36vh}
  .chapter-inner {filter:none;opacity:.5;transform:translateY(15px)}
  .chapter-title {font-size:clamp(43px,10vw,68px);max-width:580px}
  .chapter-description {font-size:15px}
@@ -289,7 +301,7 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
  .studio-footer {padding:36px 24px 44px}
 }
 @media(max-width:390px) {
- .chapter-title {font-size:41px}.product-stage {height:38svh}.story-chapter {min-height:80svh}
+ .chapter-title {font-size:41px}.product-stage {height:38svh}.story-chapter {min-height:110svh}
 }
 @media (prefers-reduced-motion:reduce) {
  .chapter-inner {opacity:1;transform:none;filter:none}
