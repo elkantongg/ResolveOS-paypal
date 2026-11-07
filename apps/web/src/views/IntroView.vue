@@ -30,17 +30,17 @@ const interpolate = (stops: number[], t: number) => {
 const sceneStyle = computed(() => {
   const t = position.value;
   return {
-    '--device-scale': String(interpolate([1,1.65,1.92,1.12],t)),
-    '--device-rotation': interpolate([-14,15,-24,-7],t) + 'deg',
-    '--device-x': interpolate([0,-9,12,0],t) + '%',
-    '--device-y': interpolate([1,5,-4,0],t) + '%',
+    '--device-scale': String(interpolate([.74,.8,.76,.74],t)),
+    '--device-rotation': interpolate([-9,5,-12,-9],t) + 'deg',
+    '--device-x': interpolate([0,-2,3,0],t) + '%',
+    '--device-y': interpolate([0,-2,2,0],t) + '%',
     '--desk-scale': String(interpolate([1,1.13,1.22,1.02],t)),
     '--camera-light': String(interpolate([.45,.8,1,.55],t)),
   } as Record<string,string>;
 });
 const opacityAt = (index: number) => {
   const distance = Math.abs(position.value - index);
-  return Math.max(0, Math.min(1, (1 - distance) * 2.6));
+  return Math.max(0, Math.min(1, (1 - distance) * 2.1));
 };
 const update = () => {
   frame = 0;
@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
       <div ref="scrollArea" class="cinema-scroll" :class="{ 'cinema-reduced': reducedMotion }">
         <section class="cinema-sticky" :style="sceneStyle" aria-label="ResolveOS product introduction">
           <!-- The reference's luminous, rotating motion is the hero; no device mockup or tabletop. -->
-          <div class="luminous-world" aria-hidden="true">
+          <div class="luminous-world" :style="{ opacity: Math.max(opacityAt(0),opacityAt(3)) }" aria-hidden="true">
             <div class="luminous-halo halo-outer" />
             <div class="luminous-halo halo-middle" />
             <div class="luminous-halo halo-inner" />
@@ -110,16 +110,26 @@ onBeforeUnmount(() => {
             <div class="luminous-particle particle-three" />
           </div>
 
+          <div class="morph-scene negotiation-scene" :style="{ opacity: opacityAt(1) }" aria-hidden="true">
+            <div class="negotiation-link"/><div class="negotiation-node buyer-node"><span>B</span></div><div class="negotiation-node merchant-node"><span>M</span></div>
+            <div class="negotiation-signal"/>
+          </div>
+          <div class="morph-scene safeguard-scene" :style="{ opacity: opacityAt(2) }" aria-hidden="true">
+            <div class="safeguard-ring safeguard-ring-one"/><div class="safeguard-ring safeguard-ring-two"/>
+            <div class="safeguard-shield"><div class="safeguard-shield-inner"><LockKeyhole :size="66" :stroke-width="1.2"/></div></div>
+            <div class="safeguard-dot dot-one"/><div class="safeguard-dot dot-two"/>
+          </div>
           <div class="cinema-caption">
-            <div class="cinema-caption-inner">
-              <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ story.kicker }}</span>
-              <h1>{{ story.title }}</h1>
-              <p>{{ story.detail }}</p>
+            <div v-for="(item,i) in stories" :key="i" class="cinema-caption-inner" :style="{ opacity: opacityAt(i), transform: 'translateY(' + ((i-position)*17) + 'px)' }" :aria-hidden="activeIndex !== i">
+              <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
+              <h1>{{ item.title }}</h1>
+              <p>{{ item.detail }}</p>
             </div>
           </div>
 
+          <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
           <div class="cinema-foot">
-            <span class="cinema-scroll-label"><ArrowDown :size="14" /> SCROLL TO EXPLORE</span>
+            <span class="cinema-scroll-label"><ArrowDown :size="14" /> {{ activeIndex === 3 ? 'END OF INTRODUCTION' : 'SCROLL TO EXPLORE' }}</span>
             <div class="cinema-progress" role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100" aria-label="Introduction progress">
               <div :style="{ width: (progress * 100) + '%' }" />
             </div>
@@ -225,4 +235,41 @@ onBeforeUnmount(() => {
 @keyframes light-breathe{50%{opacity:.4;filter:brightness(1.6)}}
 @media(max-width:700px){.luminous-world{width:90vw;top:37%;}.cinema-caption{bottom:90px;max-width:85vw}.cinema-sticky:after{background:linear-gradient(0deg,#02040bdc,transparent 45%)}.core-front{transform:translateZ(32px)}.core-back{transform:rotateY(180deg) translateZ(32px)}.core-left{transform:rotateY(-90deg) translateZ(32px)}.core-right{transform:rotateY(90deg) translateZ(32px)}.core-top{transform:rotateX(90deg) translateZ(32px)}.core-bottom{transform:rotateX(-90deg) translateZ(32px)}}
 @media(prefers-reduced-motion:reduce){.luminous-world,.luminous-world *{animation:none!important}.luminous-world{transform:translate(-50%,-50%) scale(.85)}}
+
+/* Cinematic refinements: room around the sculpture, readable copy and slower movement. */
+.cinema-scroll{height:500vh}
+.luminous-world,.morph-scene{left:65%;top:48%;width:min(53vw,660px);transform:translate(-50%,-50%) translate(var(--device-x),var(--device-y)) scale(var(--device-scale)) rotate(var(--device-rotation));will-change:transform,opacity;pointer-events:none}
+.luminous-world:before{animation-duration:11s}
+.halo-outer{animation-duration:27s}.halo-middle{animation-duration:23s}.halo-inner{animation-duration:19s}
+.orbit-alpha{animation-duration:25s}.orbit-beta{animation-duration:20s}.orbit-gamma{animation-duration:35s}
+.luminous-core{animation-duration:27s}
+.luminous-particle{animation-duration:8s}
+.cinema-caption{left:clamp(28px,6vw,105px);top:50%;bottom:auto;transform:translateY(-50%);width:min(41vw,570px);max-width:none;height:370px;z-index:7}
+.cinema-caption-inner{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;transition:opacity .16s linear,transform .16s linear}
+.cinema-caption h1{font-size:clamp(46px,5vw,80px);line-height:1.02;margin:18px 0 22px}
+.cinema-caption p{font-size:clamp(16px,1.3vw,20px);line-height:1.55;max-width:470px}
+.cinema-eyebrow{font-size:12px}
+.cinema-foot{z-index:10}
+.final-proceed{position:absolute;z-index:15;left:clamp(28px,6vw,105px);bottom:14%;display:inline-flex;align-items:center;gap:14px;border-radius:99px;padding:17px 26px;background:#e5f1ff;color:#07142c;font-weight:750;font-size:16px;text-decoration:none;box-shadow:0 0 32px #4e9cff55;transition:transform .25s,box-shadow .25s}
+.final-proceed:hover{transform:translateY(-4px);box-shadow:0 0 50px #4e9cff99}
+.morph-scene{position:absolute;aspect-ratio:1;filter:drop-shadow(0 0 32px #1778ff77)}
+.negotiation-link{position:absolute;left:13%;right:13%;top:50%;height:3px;background:linear-gradient(90deg,#7fbfff,white,#7fbfff);box-shadow:0 0 25px #69b3ff;animation:signal-glow 8s ease-in-out infinite}
+.negotiation-node{position:absolute;width:43%;aspect-ratio:1;top:28%;display:grid;place-items:center;border:3px solid #a5d9ff;border-radius:50%;box-shadow:inset 0 0 48px #277bf788,0 0 35px #5eaaffaa;background:radial-gradient(circle,#2a60b877,#050d27 72%);animation:node-hover 11s ease-in-out infinite}
+.negotiation-node:before{content:'';position:absolute;inset:12%;border:2px dashed #b7e4ffbb;border-radius:50%;animation:halo-roll 28s linear infinite}
+.negotiation-node span{font-size:clamp(34px,5vw,76px);font-weight:700;color:#d7eeff;text-shadow:0 0 24px #81c5ff}
+.buyer-node{left:0}.merchant-node{right:0;animation-delay:-5s}
+.negotiation-signal{position:absolute;width:12px;height:12px;top:49%;left:15%;border-radius:50%;background:white;box-shadow:0 0 25px 10px #4ba6ff;animation:travel-signal 7s ease-in-out infinite}
+.safeguard-ring{position:absolute;inset:4%;border:2px solid #7ac0ff88;border-radius:35%;transform:rotate(45deg);box-shadow:inset 0 0 35px #2173e666,0 0 37px #2173e666;animation:safeguard-rotate 30s linear infinite}
+.safeguard-ring-two{inset:14%;border-radius:50%;border-style:dotted;animation-direction:reverse;animation-duration:36s}
+.safeguard-shield{position:absolute;inset:24%;display:grid;place-items:center;background:linear-gradient(145deg,#d8f1ff,#3c8cd4 31%,#07172d 78%,#8bc9ff);clip-path:polygon(50% 0%,93% 21%,87% 76%,50% 100%,13% 76%,7% 21%);animation:shield-float 10s ease-in-out infinite;filter:drop-shadow(0 0 25px #5aa7ff)}
+.safeguard-shield-inner{width:95%;height:95%;display:grid;place-items:center;clip-path:inherit;background:radial-gradient(circle at 50% 30%,#2464b6,#050e29 78%);color:#d9f0ff}
+.safeguard-dot{position:absolute;width:14%;aspect-ratio:1;border:2px solid #b9e3ff;border-radius:20%;background:#174a91;box-shadow:0 0 25px #58aaff}.dot-one{top:13%;left:10%;transform:rotate(-27deg)}.dot-two{bottom:12%;right:10%;transform:rotate(27deg)}
+@keyframes node-hover{50%{transform:translateY(-14px)}}
+@keyframes travel-signal{0%{left:20%;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:78%;opacity:0}}
+@keyframes signal-glow{50%{filter:brightness(1.9)}}
+@keyframes safeguard-rotate{to{transform:rotate(405deg)}}
+@keyframes shield-float{50%{transform:translateY(-12px) scale(.97)}}
+@media(max-width:900px){.luminous-world,.morph-scene{left:60%;top:41%;width:75vw}.cinema-caption{top:auto;bottom:10%;left:26px;transform:none;width:80vw;height:220px}.cinema-caption h1{font-size:clamp(35px,5vw,59px)}.cinema-caption p{font-size:14px}.final-proceed{bottom:10%;left:26px}}
+@media(max-width:600px){.cinema-scroll{height:470vh}.luminous-world,.morph-scene{left:50%;top:35%;width:100vw}.cinema-caption{left:22px;bottom:105px;width:calc(100% - 44px);height:185px}.cinema-caption h1{font-size:clamp(33px,9vw,49px);margin:9px 0}.cinema-caption p{font-size:12px;line-height:1.43}.cinema-eyebrow{font-size:10px}.final-proceed{left:22px;bottom:65px;font-size:13px;padding:13px 19px}}
+@media(prefers-reduced-motion:reduce){.morph-scene *,.luminous-world *{animation:none!important}.cinema-caption-inner{transition:none}}
 </style>
