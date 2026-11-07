@@ -239,14 +239,20 @@ onBeforeUnmount(() => {
             <div class="approval-particle approval-particle-two" />
           </div>
           <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3, 'cinema-caption--problem': activeIndex === 0, 'cinema-caption--intelligence': activeIndex === 1 }">
-            <Transition name="cinema-copy">
-              <div :key="activeIndex" class="cinema-caption-inner">
-                <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ story.kicker }}</span>
-                <h1><span v-for="(line, lineIndex) in story.title.split('\n')" :key="lineIndex" class="cinema-headline-line" :class="{ 'cinema-headline-line--accent': lineIndex === 1 }">{{ line }}</span></h1>
-                <p>{{ story.detail }}</p>
-                <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
-              </div>
-            </Transition>
+            <!-- Keep all chapters mounted so font metrics never load during the handoff. -->
+            <div
+              v-for="(item, i) in stories"
+              :key="i"
+              class="cinema-caption-inner"
+              :class="{ 'cinema-caption-inner--active': activeIndex === i }"
+              :aria-hidden="activeIndex !== i"
+              :inert="activeIndex !== i"
+            >
+              <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
+              <h1><span v-for="(line, lineIndex) in item.title.split('\n')" :key="lineIndex" class="cinema-headline-line" :class="{ 'cinema-headline-line--accent': lineIndex === 1 }">{{ line }}</span></h1>
+              <p>{{ item.detail }}</p>
+              <RouterLink v-if="i === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
+            </div>
           </div>
 
           <div class="cinema-foot">
@@ -606,9 +612,9 @@ onBeforeUnmount(() => {
 /* Outer wrappers use absolute SVG translations in every keyframe; this avoids
    transform-origin inconsistencies and makes the travel visible on Chrome. */
 .intelligence-drift{transform-origin:0 0;will-change:transform}
-.intelligence-drift-large{animation:intelligence-large-travel 11.5s cubic-bezier(.45,0,.55,1) infinite}
-.intelligence-drift-medium{animation:intelligence-medium-wander 17.3s ease-in-out infinite}
-.intelligence-drift-small{animation:intelligence-small-wander 20.7s ease-in-out infinite}
+.intelligence-drift-large{animation:intelligence-large-travel 14.7s linear infinite}
+.intelligence-drift-medium{animation:intelligence-medium-wander 15.9s linear infinite}
+.intelligence-drift-small{animation:intelligence-small-wander 19.4s linear infinite}
 .intelligence-sphere{transform-box:fill-box;transform-origin:center;will-change:transform}
 .intelligence-sphere-shell{fill:url(#intelligence-sphere-fill);stroke:#7ab1ff70;stroke-width:1.4;filter:drop-shadow(0 0 17px #4d8fff64)}
 .intelligence-sphere-inner{fill:none;stroke:#a0ceff24;stroke-width:1}
@@ -628,33 +634,231 @@ onBeforeUnmount(() => {
 @keyframes intelligence-field-spin{to{transform:rotate(360deg)}}
 @keyframes intelligence-axis-a{from{transform:rotate(-32deg) scaleY(.7)}to{transform:rotate(328deg) scaleY(.7)}}
 @keyframes intelligence-axis-b{from{transform:rotate(38deg) scaleX(.81)}to{transform:rotate(398deg) scaleX(.81)}}
+/* Harmonic closed curves: never ease to a stop at individual waypoints. */
 @keyframes intelligence-large-travel{
-  0%,100%{transform:translate(390px,331px)}
-  25%{transform:translate(332px,262px)}
-  50%{transform:translate(435px,306px)}
-  75%{transform:translate(362px,390px)}
+  0.0000%{transform:translate(441.55px,333.19px) scale(1.000)}
+  1.3889%{transform:translate(439.85px,339.56px) scale(1.000)}
+  2.7778%{transform:translate(437.55px,345.58px) scale(1.000)}
+  4.1667%{transform:translate(434.69px,351.04px) scale(1.000)}
+  5.5556%{transform:translate(431.36px,355.79px) scale(1.000)}
+  6.9444%{transform:translate(427.62px,359.73px) scale(1.000)}
+  8.3333%{transform:translate(423.57px,362.78px) scale(1.000)}
+  9.7222%{transform:translate(419.29px,364.94px) scale(1.000)}
+  11.1111%{transform:translate(414.86px,366.24px) scale(1.000)}
+  12.5000%{transform:translate(410.38px,366.78px) scale(1.000)}
+  13.8889%{transform:translate(405.92px,366.67px) scale(1.000)}
+  15.2778%{transform:translate(401.56px,366.08px) scale(1.000)}
+  16.6667%{transform:translate(397.38px,365.19px) scale(1.000)}
+  18.0556%{transform:translate(393.42px,364.16px) scale(1.000)}
+  19.4444%{transform:translate(389.75px,363.18px) scale(1.000)}
+  20.8333%{transform:translate(386.39px,362.40px) scale(1.000)}
+  22.2222%{transform:translate(383.38px,361.93px) scale(1.000)}
+  23.6111%{transform:translate(380.73px,361.86px) scale(1.000)}
+  25.0000%{transform:translate(378.45px,362.22px) scale(1.000)}
+  26.3889%{transform:translate(376.51px,362.99px) scale(1.000)}
+  27.7778%{transform:translate(374.90px,364.12px) scale(1.000)}
+  29.1667%{transform:translate(373.59px,365.49px) scale(1.000)}
+  30.5556%{transform:translate(372.55px,366.97px) scale(1.000)}
+  31.9444%{transform:translate(371.72px,368.39px) scale(1.000)}
+  33.3333%{transform:translate(371.07px,369.56px) scale(1.000)}
+  34.7222%{transform:translate(370.53px,370.31px) scale(1.000)}
+  36.1111%{transform:translate(370.07px,370.46px) scale(1.000)}
+  37.5000%{transform:translate(369.62px,369.87px) scale(1.000)}
+  38.8889%{transform:translate(369.15px,368.43px) scale(1.000)}
+  40.2778%{transform:translate(368.61px,366.07px) scale(1.000)}
+  41.6667%{transform:translate(367.98px,362.78px) scale(1.000)}
+  43.0556%{transform:translate(367.23px,358.60px) scale(1.000)}
+  44.4444%{transform:translate(366.34px,353.61px) scale(1.000)}
+  45.8333%{transform:translate(365.32px,347.95px) scale(1.000)}
+  47.2222%{transform:translate(364.17px,341.79px) scale(1.000)}
+  48.6111%{transform:translate(362.90px,335.34px) scale(1.000)}
+  50.0000%{transform:translate(361.55px,328.81px) scale(1.000)}
+  51.3889%{transform:translate(360.16px,322.44px) scale(1.000)}
+  52.7778%{transform:translate(358.76px,316.42px) scale(1.000)}
+  54.1667%{transform:translate(357.42px,310.96px) scale(1.000)}
+  55.5556%{transform:translate(356.18px,306.21px) scale(1.000)}
+  56.9444%{transform:translate(355.12px,302.27px) scale(1.000)}
+  58.3333%{transform:translate(354.29px,299.22px) scale(1.000)}
+  59.7222%{transform:translate(353.76px,297.06px) scale(1.000)}
+  61.1111%{transform:translate(353.58px,295.76px) scale(1.000)}
+  62.5000%{transform:translate(353.81px,295.22px) scale(1.000)}
+  63.8889%{transform:translate(354.50px,295.33px) scale(1.000)}
+  65.2778%{transform:translate(355.68px,295.92px) scale(1.000)}
+  66.6667%{transform:translate(357.38px,296.81px) scale(1.000)}
+  68.0556%{transform:translate(359.61px,297.84px) scale(1.000)}
+  69.4444%{transform:translate(362.39px,298.82px) scale(1.000)}
+  70.8333%{transform:translate(365.69px,299.60px) scale(1.000)}
+  72.2222%{transform:translate(369.49px,300.07px) scale(1.000)}
+  73.6111%{transform:translate(373.76px,300.14px) scale(1.000)}
+  75.0000%{transform:translate(378.45px,299.78px) scale(1.000)}
+  76.3889%{transform:translate(383.48px,299.01px) scale(1.000)}
+  77.7778%{transform:translate(388.79px,297.88px) scale(1.000)}
+  79.1667%{transform:translate(394.30px,296.51px) scale(1.000)}
+  80.5556%{transform:translate(399.91px,295.03px) scale(1.000)}
+  81.9444%{transform:translate(405.53px,293.61px) scale(1.000)}
+  83.3333%{transform:translate(411.07px,292.44px) scale(1.000)}
+  84.7222%{transform:translate(416.42px,291.69px) scale(1.000)}
+  86.1111%{transform:translate(421.49px,291.54px) scale(1.000)}
+  87.5000%{transform:translate(426.19px,292.13px) scale(1.000)}
+  88.8889%{transform:translate(430.43px,293.57px) scale(1.000)}
+  90.2778%{transform:translate(434.15px,295.93px) scale(1.000)}
+  91.6667%{transform:translate(437.26px,299.22px) scale(1.000)}
+  93.0556%{transform:translate(439.74px,303.40px) scale(1.000)}
+  94.4444%{transform:translate(441.52px,308.39px) scale(1.000)}
+  95.8333%{transform:translate(442.60px,314.05px) scale(1.000)}
+  97.2222%{transform:translate(442.95px,320.21px) scale(1.000)}
+  98.6111%{transform:translate(442.60px,326.66px) scale(1.000)}
+  100.0000%{transform:translate(441.55px,333.19px) scale(1.000)}
 }
-/* Irregular, independently phased wandering paths, instead of precise orbital loops. */
 @keyframes intelligence-medium-wander{
-  0%,100%{transform:translate(594px,261px) scale(.90)}
-  11%{transform:translate(650px,312px) scale(1.00)}
-  23%{transform:translate(565px,381px) scale(1.10)}
-  36%{transform:translate(452px,404px) scale(.98)}
-  48%{transform:translate(306px,355px) scale(.82)}
-  61%{transform:translate(269px,265px) scale(.70)}
-  74%{transform:translate(390px,215px) scale(.74)}
-  86%{transform:translate(526px,218px) scale(.81)}
+  0.0000%{transform:translate(617.39px,364.40px) scale(0.897)}
+  1.3889%{transform:translate(608.33px,374.98px) scale(0.910)}
+  2.7778%{transform:translate(597.25px,384.76px) scale(0.923)}
+  4.1667%{transform:translate(584.50px,393.64px) scale(0.935)}
+  5.5556%{transform:translate(570.50px,401.56px) scale(0.947)}
+  6.9444%{transform:translate(555.66px,408.45px) scale(0.957)}
+  8.3333%{transform:translate(540.40px,414.27px) scale(0.967)}
+  9.7222%{transform:translate(525.11px,419.01px) scale(0.976)}
+  11.1111%{transform:translate(510.11px,422.66px) scale(0.984)}
+  12.5000%{transform:translate(495.65px,425.25px) scale(0.992)}
+  13.8889%{transform:translate(481.93px,426.80px) scale(0.997)}
+  15.2778%{transform:translate(469.03px,427.37px) scale(1.002)}
+  16.6667%{transform:translate(456.95px,427.01px) scale(1.006)}
+  18.0556%{transform:translate(445.62px,425.80px) scale(1.009)}
+  19.4444%{transform:translate(434.88px,423.81px) scale(1.010)}
+  20.8333%{transform:translate(424.53px,421.12px) scale(1.010)}
+  22.2222%{transform:translate(414.36px,417.82px) scale(1.009)}
+  23.6111%{transform:translate(404.12px,413.98px) scale(1.006)}
+  25.0000%{transform:translate(393.58px,409.69px) scale(1.003)}
+  26.3889%{transform:translate(382.56px,405.02px) scale(0.998)}
+  27.7778%{transform:translate(370.93px,400.04px) scale(0.992)}
+  29.1667%{transform:translate(358.64px,394.80px) scale(0.985)}
+  30.5556%{transform:translate(345.70px,389.36px) scale(0.977)}
+  31.9444%{transform:translate(332.24px,383.75px) scale(0.969)}
+  33.3333%{transform:translate(318.45px,378.01px) scale(0.959)}
+  34.7222%{transform:translate(304.60px,372.14px) scale(0.948)}
+  36.1111%{transform:translate(291.04px,366.16px) scale(0.937)}
+  37.5000%{transform:translate(278.15px,360.07px) scale(0.925)}
+  38.8889%{transform:translate(266.33px,353.86px) scale(0.912)}
+  40.2778%{transform:translate(256.00px,347.52px) scale(0.899)}
+  41.6667%{transform:translate(247.52px,341.03px) scale(0.885)}
+  43.0556%{transform:translate(241.24px,334.38px) scale(0.872)}
+  44.4444%{transform:translate(237.41px,327.55px) scale(0.858)}
+  45.8333%{transform:translate(236.20px,320.52px) scale(0.844)}
+  47.2222%{transform:translate(237.70px,313.29px) scale(0.830)}
+  48.6111%{transform:translate(241.88px,305.85px) scale(0.816)}
+  50.0000%{transform:translate(248.61px,298.21px) scale(0.803)}
+  51.3889%{transform:translate(257.67px,290.38px) scale(0.790)}
+  52.7778%{transform:translate(268.75px,282.41px) scale(0.777)}
+  54.1667%{transform:translate(281.50px,274.32px) scale(0.765)}
+  55.5556%{transform:translate(295.50px,266.16px) scale(0.753)}
+  56.9444%{transform:translate(310.34px,258.01px) scale(0.743)}
+  58.3333%{transform:translate(325.60px,249.94px) scale(0.733)}
+  59.7222%{transform:translate(340.89px,242.04px) scale(0.724)}
+  61.1111%{transform:translate(355.89px,234.40px) scale(0.716)}
+  62.5000%{transform:translate(370.35px,227.12px) scale(0.708)}
+  63.8889%{transform:translate(384.07px,220.32px) scale(0.703)}
+  65.2778%{transform:translate(396.97px,214.11px) scale(0.698)}
+  66.6667%{transform:translate(409.05px,208.59px) scale(0.694)}
+  68.0556%{transform:translate(420.38px,203.88px) scale(0.691)}
+  69.4444%{transform:translate(431.12px,200.08px) scale(0.690)}
+  70.8333%{transform:translate(441.47px,197.29px) scale(0.690)}
+  72.2222%{transform:translate(451.64px,195.58px) scale(0.691)}
+  73.6111%{transform:translate(461.88px,195.03px) scale(0.694)}
+  75.0000%{transform:translate(472.42px,195.70px) scale(0.697)}
+  76.3889%{transform:translate(483.44px,197.61px) scale(0.702)}
+  77.7778%{transform:translate(495.07px,200.79px) scale(0.708)}
+  79.1667%{transform:translate(507.36px,205.23px) scale(0.715)}
+  80.5556%{transform:translate(520.30px,210.91px) scale(0.723)}
+  81.9444%{transform:translate(533.76px,217.78px) scale(0.731)}
+  83.3333%{transform:translate(547.55px,225.78px) scale(0.741)}
+  84.7222%{transform:translate(561.40px,234.81px) scale(0.752)}
+  86.1111%{transform:translate(574.96px,244.78px) scale(0.763)}
+  87.5000%{transform:translate(587.85px,255.56px) scale(0.775)}
+  88.8889%{transform:translate(599.67px,267.02px) scale(0.788)}
+  90.2778%{transform:translate(610.00px,279.00px) scale(0.801)}
+  91.6667%{transform:translate(618.48px,291.36px) scale(0.815)}
+  93.0556%{transform:translate(624.76px,303.94px) scale(0.828)}
+  94.4444%{transform:translate(628.59px,316.56px) scale(0.842)}
+  95.8333%{transform:translate(629.80px,329.07px) scale(0.856)}
+  97.2222%{transform:translate(628.30px,341.32px) scale(0.870)}
+  98.6111%{transform:translate(624.12px,353.14px) scale(0.884)}
+  100.0000%{transform:translate(617.39px,364.40px) scale(0.897)}
 }
 @keyframes intelligence-small-wander{
-  0%,100%{transform:translate(693px,424px) scale(.96)}
-  9%{transform:translate(609px,458px) scale(1.04)}
-  21%{transform:translate(471px,438px) scale(.98)}
-  34%{transform:translate(295px,395px) scale(.84)}
-  45%{transform:translate(211px,306px) scale(.69)}
-  57%{transform:translate(296px,206px) scale(.66)}
-  68%{transform:translate(452px,194px) scale(.72)}
-  81%{transform:translate(643px,239px) scale(.83)}
-  92%{transform:translate(738px,333px) scale(.94)}
+  0.0000%{transform:translate(362.40px,459.98px) scale(0.935)}
+  1.3889%{transform:translate(378.29px,466.25px) scale(0.940)}
+  2.7778%{transform:translate(393.13px,471.13px) scale(0.945)}
+  4.1667%{transform:translate(407.00px,474.56px) scale(0.948)}
+  5.5556%{transform:translate(420.06px,476.50px) scale(0.949)}
+  6.9444%{transform:translate(432.56px,476.92px) scale(0.950)}
+  8.3333%{transform:translate(444.77px,475.83px) scale(0.949)}
+  9.7222%{transform:translate(456.99px,473.23px) scale(0.947)}
+  11.1111%{transform:translate(469.53px,469.17px) scale(0.944)}
+  12.5000%{transform:translate(482.62px,463.72px) scale(0.939)}
+  13.8889%{transform:translate(496.46px,456.93px) scale(0.934)}
+  15.2778%{transform:translate(511.15px,448.92px) scale(0.927)}
+  16.6667%{transform:translate(526.70px,439.79px) scale(0.919)}
+  18.0556%{transform:translate(542.99px,429.66px) scale(0.909)}
+  19.4444%{transform:translate(559.81px,418.67px) scale(0.899)}
+  20.8333%{transform:translate(576.86px,406.95px) scale(0.888)}
+  22.2222%{transform:translate(593.72px,394.65px) scale(0.877)}
+  23.6111%{transform:translate(609.93px,381.91px) scale(0.864)}
+  25.0000%{transform:translate(624.99px,368.88px) scale(0.851)}
+  26.3889%{transform:translate(638.40px,355.70px) scale(0.837)}
+  27.7778%{transform:translate(649.66px,342.50px) scale(0.823)}
+  29.1667%{transform:translate(658.35px,329.42px) scale(0.808)}
+  30.5556%{transform:translate(664.10px,316.56px) scale(0.794)}
+  31.9444%{transform:translate(666.67px,304.05px) scale(0.779)}
+  33.3333%{transform:translate(665.92px,291.96px) scale(0.764)}
+  34.7222%{transform:translate(661.84px,280.38px) scale(0.749)}
+  36.1111%{transform:translate(654.57px,269.39px) scale(0.735)}
+  37.5000%{transform:translate(644.33px,259.03px) scale(0.721)}
+  38.8889%{transform:translate(631.48px,249.35px) scale(0.707)}
+  40.2778%{transform:translate(616.45px,240.38px) scale(0.694)}
+  41.6667%{transform:translate(599.74px,232.14px) scale(0.682)}
+  43.0556%{transform:translate(581.86px,224.64px) scale(0.670)}
+  44.4444%{transform:translate(563.34px,217.88px) scale(0.659)}
+  45.8333%{transform:translate(544.67px,211.85px) scale(0.649)}
+  47.2222%{transform:translate(526.27px,206.56px) scale(0.640)}
+  48.6111%{transform:translate(508.50px,201.98px) scale(0.632)}
+  50.0000%{transform:translate(491.60px,198.10px) scale(0.625)}
+  51.3889%{transform:translate(475.71px,194.92px) scale(0.620)}
+  52.7778%{transform:translate(460.87px,192.42px) scale(0.615)}
+  54.1667%{transform:translate(447.00px,190.59px) scale(0.612)}
+  55.5556%{transform:translate(433.94px,189.43px) scale(0.611)}
+  56.9444%{transform:translate(421.44px,188.93px) scale(0.610)}
+  58.3333%{transform:translate(409.23px,189.11px) scale(0.611)}
+  59.7222%{transform:translate(397.01px,189.97px) scale(0.613)}
+  61.1111%{transform:translate(384.47px,191.53px) scale(0.616)}
+  62.5000%{transform:translate(371.38px,193.79px) scale(0.621)}
+  63.8889%{transform:translate(357.54px,196.79px) scale(0.626)}
+  65.2778%{transform:translate(342.85px,200.54px) scale(0.633)}
+  66.6667%{transform:translate(327.30px,205.06px) scale(0.641)}
+  68.0556%{transform:translate(311.01px,210.37px) scale(0.651)}
+  69.4444%{transform:translate(294.19px,216.48px) scale(0.661)}
+  70.8333%{transform:translate(277.14px,223.41px) scale(0.672)}
+  72.2222%{transform:translate(260.28px,231.15px) scale(0.683)}
+  73.6111%{transform:translate(244.07px,239.69px) scale(0.696)}
+  75.0000%{transform:translate(229.01px,249.03px) scale(0.709)}
+  76.3889%{transform:translate(215.60px,259.13px) scale(0.723)}
+  77.7778%{transform:translate(204.34px,269.95px) scale(0.737)}
+  79.1667%{transform:translate(195.65px,281.43px) scale(0.752)}
+  80.5556%{transform:translate(189.90px,293.51px) scale(0.766)}
+  81.9444%{transform:translate(187.33px,306.10px) scale(0.781)}
+  83.3333%{transform:translate(188.08px,319.10px) scale(0.796)}
+  84.7222%{transform:translate(192.16px,332.42px) scale(0.811)}
+  86.1111%{transform:translate(199.43px,345.91px) scale(0.825)}
+  87.5000%{transform:translate(209.67px,359.46px) scale(0.839)}
+  88.8889%{transform:translate(222.52px,372.92px) scale(0.853)}
+  90.2778%{transform:translate(237.55px,386.16px) scale(0.866)}
+  91.6667%{transform:translate(254.26px,399.01px) scale(0.878)}
+  93.0556%{transform:translate(272.14px,411.33px) scale(0.890)}
+  94.4444%{transform:translate(290.66px,422.97px) scale(0.901)}
+  95.8333%{transform:translate(309.33px,433.79px) scale(0.911)}
+  97.2222%{transform:translate(327.73px,443.64px) scale(0.920)}
+  98.6111%{transform:translate(345.50px,452.41px) scale(0.928)}
+  100.0000%{transform:translate(362.40px,459.98px) scale(0.935)}
 }
 @keyframes intelligence-large-tilt{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(24deg)}}
 @keyframes intelligence-medium-tilt{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-25deg)}}
@@ -769,5 +973,30 @@ onBeforeUnmount(() => {
   .cinema-sticky,.cinema-copy-enter-active,.cinema-copy-leave-active,.luminous-world,.morph-scene{
     transition:none!important;
   }
+}
+
+/* Keep every chapter in the same stack: no remount/reflow as fonts change.
+   The previous copy and incoming copy crossfade with no empty middle frame. */
+.cinematic-intro .cinema-caption-inner{
+  opacity:0;
+  transform:translate3d(0,18px,0);
+  pointer-events:none;
+  visibility:hidden;
+  transition:opacity 1.12s cubic-bezier(.45,0,.2,1),
+             transform 1.28s cubic-bezier(.22,1,.36,1),
+             visibility 0s linear 1.28s;
+}
+.cinematic-intro .cinema-caption-inner--active{
+  opacity:1;
+  transform:translate3d(0,0,0);
+  visibility:visible;
+  pointer-events:auto;
+  transition:opacity 1.12s cubic-bezier(.45,0,.2,1),
+             transform 1.28s cubic-bezier(.22,1,.36,1),
+             visibility 0s;
+}
+@media(prefers-reduced-motion:reduce){
+  .cinematic-intro .cinema-caption-inner,
+  .cinematic-intro .cinema-caption-inner--active{transition:none!important;transform:none!important}
 }
 </style>
