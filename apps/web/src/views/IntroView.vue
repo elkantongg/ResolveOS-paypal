@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhol
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
+import RoundedResolveCube from '@/components/RoundedResolveCube.vue';
 import { useThemePreference } from '@/lib/useThemePreference';
 
 const { currentTheme, toggleTheme } = useThemePreference();
@@ -127,35 +128,7 @@ onBeforeUnmount(() => {
             <div class="luminous-orbit orbit-alpha"><span /><span /><span /></div>
             <div class="luminous-orbit orbit-beta"><span /><span /></div>
             <div class="luminous-orbit orbit-gamma"><span /><span /></div>
-            <div class="luminous-core">
-              <div class="core-face core-front"><svg viewBox="0 0 32 32" class="core-emblem-logo" aria-hidden="true"><path d="M8.5 11.5h7.5a3.5 3.5 0 0 1 0 7H11" stroke="white" stroke-width="2.4" fill="none" stroke-linecap="round" /><path d="M23.5 20.5H16a3.5 3.5 0 0 1 0-7H21" stroke="var(--color-accent-bright)" stroke-width="2.4" fill="none" stroke-linecap="round" /></svg></div>
-              <div class="core-face core-back" />
-              <div class="core-face core-left" />
-              <div class="core-face core-right" />
-              <div class="core-face core-top" />
-              <div class="core-face core-bottom" />
-              <!-- Rounded beveled seams bridge adjacent faces, leaving no open corners. -->
-              <span class="cube-bevel cube-bevel-x bevel-top bevel-front" />
-              <span class="cube-bevel cube-bevel-x bevel-bottom bevel-front" />
-              <span class="cube-bevel cube-bevel-x bevel-top bevel-back" />
-              <span class="cube-bevel cube-bevel-x bevel-bottom bevel-back" />
-              <span class="cube-bevel cube-bevel-y bevel-left bevel-front" />
-              <span class="cube-bevel cube-bevel-y bevel-right bevel-front" />
-              <span class="cube-bevel cube-bevel-y bevel-left bevel-back" />
-              <span class="cube-bevel cube-bevel-y bevel-right bevel-back" />
-              <span class="cube-bevel cube-bevel-z bevel-left bevel-top" />
-              <span class="cube-bevel cube-bevel-z bevel-right bevel-top" />
-              <span class="cube-bevel cube-bevel-z bevel-left bevel-bottom" />
-              <span class="cube-bevel cube-bevel-z bevel-right bevel-bottom" />
-              <span class="cube-corner corner-left corner-top corner-front" />
-              <span class="cube-corner corner-left corner-top corner-back" />
-              <span class="cube-corner corner-right corner-top corner-front" />
-              <span class="cube-corner corner-right corner-top corner-back" />
-              <span class="cube-corner corner-left corner-bottom corner-front" />
-              <span class="cube-corner corner-left corner-bottom corner-back" />
-              <span class="cube-corner corner-right corner-bottom corner-front" />
-              <span class="cube-corner corner-right corner-bottom corner-back" />
-            </div>
+            <div class="luminous-core"><RoundedResolveCube /></div>
             <div class="luminous-beam beam-one" />
             <div class="luminous-beam beam-two" />
             <div class="luminous-particle particle-one" />
@@ -689,60 +662,6 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
-/* Pages 01 / 04 — sealed, rounded dice-like cube.  Face rounding
-   alone leaves visible holes at perpendicular junctions, so opaque edge
-   bevels and corners join all six faces into one continuous solid. */
-.luminous-core{
-  --cube-side:clamp(82px,9vw,132px);
-  --cube-half:calc(var(--cube-side) / 2);
-  --cube-bevel:calc(var(--cube-side) * .16);
-  width:var(--cube-side);
-  height:var(--cube-side);
-}
-.luminous-core .core-face{
-  border:1px solid #87c9f7c7;
-  border-radius:18%;
-  background:linear-gradient(145deg,#3476b9 0%,#19497a 45%,#0c254b 100%);
-  box-shadow:inset 0 0 17px #78beff40,0 0 12px #54a1f67a;
-  backface-visibility:hidden;
-}
-.luminous-core .core-front{
-  transform:translateZ(var(--cube-half));
-  background:linear-gradient(145deg,#367fc5,#154476 62%,#0a2751);
-  box-shadow:inset 0 0 20px #85d0ff48,0 0 17px #70b8ff8a;
-}
-.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half));}
-.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:#174676}
-.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:#1c5387}
-.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:#377db3}
-.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half));background:#113660}
-.luminous-core .core-emblem-logo{width:62%;height:62%;filter:drop-shadow(0 0 8px #b5efffac)}
-/* 12 solid rounded edge bevels. They fill the cutaway face corners rather
-   than letting the background show through as gaps during rotation. */
-.cube-bevel,.cube-corner{position:absolute;left:50%;top:50%;display:block;pointer-events:none;background:#235787;box-shadow:inset 0 0 5px #91d0ff33,0 0 7px #6fb9fa50}
-.cube-bevel{border-radius:999px}
-.cube-bevel-x{width:var(--cube-side);height:var(--cube-bevel)}
-.cube-bevel-y{width:var(--cube-bevel);height:var(--cube-side)}
-.cube-bevel-z{width:var(--cube-bevel);height:var(--cube-side);transform-origin:center;transform-style:preserve-3d}
-.cube-bevel-x.bevel-top.bevel-front{transform:translate(-50%,-50%) translate3d(0,calc(-1 * var(--cube-half)),var(--cube-half))}
-.cube-bevel-x.bevel-bottom.bevel-front{transform:translate(-50%,-50%) translate3d(0,var(--cube-half),var(--cube-half))}
-.cube-bevel-x.bevel-top.bevel-back{transform:translate(-50%,-50%) translate3d(0,calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
-.cube-bevel-x.bevel-bottom.bevel-back{transform:translate(-50%,-50%) translate3d(0,var(--cube-half),calc(-1 * var(--cube-half)))}
-.cube-bevel-y.bevel-left.bevel-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),0,var(--cube-half))}
-.cube-bevel-y.bevel-right.bevel-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),0,var(--cube-half))}
-.cube-bevel-y.bevel-left.bevel-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),0,calc(-1 * var(--cube-half)))}
-.cube-bevel-y.bevel-right.bevel-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),0,calc(-1 * var(--cube-half)))}
-.cube-bevel-z.bevel-left.bevel-top{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),0) rotateX(90deg)}
-.cube-bevel-z.bevel-right.bevel-top{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),0) rotateX(90deg)}
-.cube-bevel-z.bevel-left.bevel-bottom{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),0) rotateX(90deg)}
-.cube-bevel-z.bevel-right.bevel-bottom{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),0) rotateX(90deg)}
-.cube-corner{width:var(--cube-bevel);height:var(--cube-bevel);border-radius:50%;background:radial-gradient(circle at 30% 25%,#4b91c2,#205381 72%,#17416b)}
-.cube-corner.corner-left.corner-top.corner-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),var(--cube-half))}
-.cube-corner.corner-left.corner-top.corner-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
-.cube-corner.corner-right.corner-top.corner-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),var(--cube-half))}
-.cube-corner.corner-right.corner-top.corner-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
-.cube-corner.corner-left.corner-bottom.corner-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),var(--cube-half))}
-.cube-corner.corner-left.corner-bottom.corner-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),calc(-1 * var(--cube-half)))}
-.cube-corner.corner-right.corner-bottom.corner-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),var(--cube-half))}
-.cube-corner.corner-right.corner-bottom.corner-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),calc(-1 * var(--cube-half)))}
+/* A single continuous rounded 3D mesh, rather than separate CSS faces. */
+.luminous-core{width:clamp(88px,9vw,134px);height:clamp(88px,9vw,134px)}
 </style>
