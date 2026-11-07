@@ -1142,4 +1142,12 @@ onBeforeUnmount(() => {
   .cinematic-intro .cinema-stage--entering .morph-scene{animation:none!important}
   .cinema-handoff{display:none}
 }
+
+/* Intro theme toggle: navy icon against a soft light surface for contrast. */
+.cinematic-intro .cinema-icon{
+  color:#142b52;
+  background:#eaf2ff;
+  border-color:#314b74;
+}
+.cinematic-intro .cinema-icon svg{stroke:currentColor}
 </style>
