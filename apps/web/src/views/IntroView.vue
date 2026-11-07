@@ -999,4 +999,36 @@ onBeforeUnmount(() => {
   .cinematic-intro .cinema-caption-inner,
   .cinematic-intro .cinema-caption-inner--active{transition:none!important;transform:none!important}
 }
+
+/* Atomic chapter changes: only one chapter's copy and illustration is visible
+   per frame. Do not crossfade separate headlines/3D scenes over each other.
+   Preserve ambient motion *within* the active scene. */
+.cinematic-intro .cinema-caption-inner,
+.cinematic-intro .cinema-caption-inner--active {
+  transition:none!important;
+  animation:none!important;
+  transform:none!important;
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
+}
+.cinematic-intro .cinema-caption-inner--active {
+  visibility:visible;
+  opacity:1;
+  pointer-events:auto;
+}
+.cinematic-intro .luminous-world,
+.cinematic-intro .morph-scene {
+  transition:transform 1.35s cubic-bezier(.22,1,.36,1)!important;
+}
+/* Inactive scenes stay mounted to preserve their animation phase, but their
+   visibility snaps on chapter change instead of briefly appearing together. */
+.cinematic-intro .luminous-world[style*="opacity: 0"],
+.cinematic-intro .morph-scene[style*="opacity: 0"] {
+  visibility:hidden;
+}
+.cinematic-intro .luminous-world[style*="opacity: 1"],
+.cinematic-intro .morph-scene[style*="opacity: 1"] {
+  visibility:visible;
+}
 </style>
