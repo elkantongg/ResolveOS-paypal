@@ -309,3 +309,16 @@ html[data-theme='dark'] .cinema-next { background:#10182777;border-color:#ffffff
 html[data-theme='dark'] .luminous-world { filter:drop-shadow(0 0 38px #1361ff55); }
 html[data-theme='dark'] .morph-scene { filter:drop-shadow(0 0 32px #1778ff77); }
 html[data-theme='dark'] .final-proceed { background:#e5f1ff;color:#07142c;box-shadow:0 0 32px #4e9cff55; }
+
+/* Chapter 02: retain the original dark-mode glass orbs while giving light
+   mode deeper, more defined navy-blue spheres. */
+html[data-theme='light'] .negotiation-scene .intelligence-fill-highlight { stop-color:#2463ba;stop-opacity:.82; }
+html[data-theme='light'] .negotiation-scene .intelligence-fill-mid { stop-color:#1d4fa3;stop-opacity:.84; }
+html[data-theme='light'] .negotiation-scene .intelligence-fill-deep { stop-color:#102e71;stop-opacity:.91; }
+html[data-theme='light'] .negotiation-scene .intelligence-fill-edge { stop-color:#0c2459;stop-opacity:.97; }
+html[data-theme='light'] .negotiation-scene .intelligence-sphere-shell {
+  stroke:#174786cf;stroke-width:1.65;filter:drop-shadow(0 8px 18px #2858a554);
+}
+html[data-theme='light'] .negotiation-scene .intelligence-sphere-inner { stroke:#9acaff5c; }
+html[data-theme='light'] .negotiation-scene .intelligence-orbit-stroke { filter:drop-shadow(0 0 3px #0e3f8680); }
+html[data-theme='light'] .negotiation-scene .intelligence-sphere-sheen { stroke:#b5ddffdb; }
