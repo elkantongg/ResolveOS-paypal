@@ -246,11 +246,11 @@ html[data-theme='dark'] {
 }
 html[data-theme='dark'] .btn-primary { color: #081323; }
 html[data-theme='dark'] .bg-white { background-color: var(--color-surface); }
-html { transition: background-color .22s ease, color .22s ease; }
-@media (prefers-reduced-motion: reduce) { html { transition: none; } }
+html { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }
 
-/* The new theme is revealed from the theme toggle as a circular wave.
-   Remove the browser's default crossfade so it cannot obscure the reveal. */
+/* Reveal the captured new theme through a custom sinusoidal wave. Keep the old
+   snapshot fixed underneath; browser default fades would obscure the wave. */
 html.theme-wave-active::view-transition-old(root),
 html.theme-wave-active::view-transition-new(root) {
   animation: none;
