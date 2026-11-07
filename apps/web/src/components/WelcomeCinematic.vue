@@ -4,6 +4,7 @@ import { computed } from 'vue';
 const props = defineProps<{
   mode: 'welcome' | 'launch';
   name?: string;
+  leaving?: boolean;
 }>();
 
 const title = computed(() => props.mode === 'welcome' ? 'Welcome to ResolveOS.' : 'Your workspace awaits.');
@@ -11,7 +12,7 @@ const subtitle = computed(() => props.mode === 'welcome' ? 'A better way to find
 </script>
 
 <template>
-  <div class="welcome-cinematic" role="status" aria-live="polite" :aria-label="title">
+  <div class="welcome-cinematic" :class="{ 'welcome-cinematic--leaving': leaving }" role="status" aria-live="polite" :aria-label="title">
     <div class="welcome-cinematic__halo welcome-cinematic__halo--outer" />
     <div class="welcome-cinematic__halo welcome-cinematic__halo--inner" />
     <div class="welcome-cinematic__noise" />
@@ -59,11 +60,15 @@ const subtitle = computed(() => props.mode === 'welcome' ? 'A better way to find
 .welcome-cinematic__progress span{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4a8aff,#b8ddff,#48d8b0);transform-origin:left;animation:welcome-progress 1.65s cubic-bezier(.17,.73,.2,1) both}
 .welcome-cinematic__foot{position:absolute;bottom:max(29px,5vh);font-family:'Geist',sans-serif;font-size:9px;letter-spacing:.22em;color:#7591ba;text-align:center;padding:0 18px}
 .welcome-cinematic__foot span{color:#87baff}
+.welcome-cinematic--leaving{animation:welcome-depart .43s cubic-bezier(.4,0,1,1) both;pointer-events:none}
+.welcome-cinematic--leaving .welcome-cinematic__content{animation:welcome-content-depart .43s cubic-bezier(.4,0,1,1) both}
+@keyframes welcome-depart{from{opacity:1}to{opacity:0}}
+@keyframes welcome-content-depart{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-17px) scale(1.025)}}
 @keyframes welcome-arrive{from{opacity:0;transform:translateY(29px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes welcome-mark{from{opacity:0;transform:scale(.67) rotate(-17deg)}to{opacity:1;transform:scale(1) rotate(0)}}
 @keyframes welcome-breathe{0%,100%{opacity:.55}50%{opacity:1}}
 @keyframes welcome-orbit{from{rotate:0deg}to{rotate:360deg}}
 @keyframes welcome-shift{from{transform:translateY(70px);opacity:0}to{transform:translateY(-60px);opacity:1}}
 @keyframes welcome-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@media(prefers-reduced-motion:reduce){.welcome-cinematic *{animation:none!important}.welcome-cinematic__progress span{transform:none}}
+@media(prefers-reduced-motion:reduce){.welcome-cinematic *{animation:none!important}.welcome-cinematic__progress span{transform:none}.welcome-cinematic--leaving{animation:none;opacity:0}}
 </style>
