@@ -4,6 +4,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { errorMessage } from '@/api/client';
+import WelcomeCinematic from '@/components/WelcomeCinematic.vue';
 import { useSession } from '@/stores/session';
 
 /**
@@ -17,6 +18,12 @@ const open = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);
 const root = ref<HTMLElement | null>(null);
+const switchingName = ref('');
+const showingLaunch = ref(false);
+const launchLeaving = ref(false);
+let leaveTimer: ReturnType<typeof setTimeout> | null = null;
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 async function toggle() {
   open.value = !open.value;
@@ -24,17 +31,32 @@ async function toggle() {
 }
 
 async function switchTo(userId: string) {
+  if (busy.value || userId === session.user?.id) return;
   busy.value = true;
   error.value = null;
+  switchingName.value = session.accounts.find((account) => account.id === userId)?.name ?? '';
+  launchLeaving.value = false;
+  showingLaunch.value = true;
+  // The animation starts immediately while server-side sign-in occurs.
+  const minimumAnimation = delay(reducedMotion() ? 100 : 1700);
   try {
     await session.signIn(userId);
+    await minimumAnimation;
     open.value = false;
-    // Re-run the current page's data loading as the new person.
-    await router.replace({ path: route.path, query: { ...route.query, as: userId.slice(0, 6) } });
+    // Changing the account must refresh session-dependent dashboard data.
+    try { window.sessionStorage.setItem('resolveos-dashboard-entrance', '1'); } catch { /* restricted storage */ }
+    await router.replace({ path: '/dashboard', query: { as: userId.slice(0, 6) } });
+    launchLeaving.value = true;
+    await delay(reducedMotion() ? 0 : 440);
+    showingLaunch.value = false;
   } catch (e) {
+    launchLeaving.value = true;
     error.value = errorMessage(e);
+    await delay(reducedMotion() ? 0 : 440);
+    showingLaunch.value = false;
   } finally {
     busy.value = false;
+    launchLeaving.value = false;
   }
 }
 
@@ -55,6 +77,7 @@ onMounted(() => {
   document.addEventListener('keydown', onKey);
 });
 onBeforeUnmount(() => {
+  if (leaveTimer) clearTimeout(leaveTimer);
   document.removeEventListener('click', onDocClick);
   document.removeEventListener('keydown', onKey);
 });
@@ -64,6 +87,7 @@ const roleLabel = { BUYER: 'Buyer', MERCHANT: 'Merchant', OPERATOR: 'Demo operat
 
 <template>
   <div ref="root" class="relative">
+    <WelcomeCinematic v-if="showingLaunch" mode="launch" :name="switchingName" :leaving="launchLeaving" />
     <button
       type="button"
       class="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-left transition hover:border-line-strong"
