@@ -114,3 +114,4 @@ html.blue-cursor-text .blue-cursor-halo,html.blue-cursor-text .blue-cursor-dot{o
 @media (hover:none),(pointer:coarse),(prefers-reduced-motion:reduce){
   .blue-cursor-halo,.blue-cursor-dot{display:none!important}
 }
+</style>
