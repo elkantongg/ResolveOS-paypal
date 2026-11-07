@@ -28,7 +28,7 @@ const subtitle = computed(() => props.mode === 'welcome' ? 'A better way to find
         </svg>
         <span class="welcome-cinematic__pulse" />
       </div>
-      <p class="welcome-cinematic__eyebrow">{{ mode === 'welcome' ? 'WELCOME / 01' : 'WORKSPACE / READY' }}</p>
+      <p v-if="mode === 'launch'" class="welcome-cinematic__eyebrow">WORKSPACE / READY</p>
       <h1 class="welcome-cinematic__title">{{ title }}</h1>
       <p class="welcome-cinematic__subtitle">{{ subtitle }}</p>
       <div class="welcome-cinematic__progress"><span /></div>
