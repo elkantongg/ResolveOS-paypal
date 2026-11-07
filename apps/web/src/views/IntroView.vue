@@ -239,10 +239,10 @@ onBeforeUnmount(() => {
             <div class="approval-particle approval-particle-two" />
           </div>
           <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3, 'cinema-caption--problem': activeIndex === 0, 'cinema-caption--intelligence': activeIndex === 1 }">
-            <Transition name="cinema-copy" mode="out-in">
+            <Transition name="cinema-copy">
               <div :key="activeIndex" class="cinema-caption-inner">
                 <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ story.kicker }}</span>
-                <h1><span v-for="(line, lineIndex) in story.title.split('\n')" :key="lineIndex" class="cinema-headline-line">{{ line }}</span></h1>
+                <h1><span v-for="(line, lineIndex) in story.title.split('\n')" :key="lineIndex" class="cinema-headline-line" :class="{ 'cinema-headline-line--accent': lineIndex === 1 }">{{ line }}</span></h1>
                 <p>{{ story.detail }}</p>
                 <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
               </div>
@@ -713,5 +713,61 @@ onBeforeUnmount(() => {
 }
 @media(max-width:699px){
   .cinematic-intro .cinema-caption h1{letter-spacing:-.055em;line-height:1.07}
+}
+
+/* Seamless synchronized chapter handoff: allow incoming typography to arrive
+   as outgoing typography fades instead of leaving a black empty interval.
+   Both layers are absolutely positioned so layout never jumps during overlap. */
+.cinema-caption-inner{will-change:opacity,transform}
+.cinema-copy-enter-active{
+  transition:opacity 1.15s cubic-bezier(.22,1,.36,1),
+             transform 1.25s cubic-bezier(.22,1,.36,1) !important;
+  transition-delay:.08s !important;
+}
+.cinema-copy-leave-active{
+  transition:opacity .68s cubic-bezier(.4,0,.2,1),
+             transform .86s cubic-bezier(.4,0,.2,1) !important;
+  pointer-events:none !important;
+}
+.cinema-copy-enter-from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}
+.cinema-copy-leave-to{opacity:0;transform:translate3d(0,-14px,0) scale(.99)}
+/* Registered custom properties allow scene placement and geometry to
+   interpolate smoothly instead of snapping to their next chapter values. */
+@property --device-scale{syntax:"<number>";inherits:true;initial-value:1}
+@property --desk-scale{syntax:"<number>";inherits:true;initial-value:1}
+@property --camera-light{syntax:"<number>";inherits:true;initial-value:.5}
+@property --device-rotation{syntax:"<angle>";inherits:true;initial-value:0deg}
+@property --device-x{syntax:"<percentage>";inherits:true;initial-value:0%}
+@property --device-y{syntax:"<percentage>";inherits:true;initial-value:0%}
+.cinema-sticky{
+  transition:--device-scale 1.6s cubic-bezier(.22,1,.36,1),
+             --desk-scale 1.6s cubic-bezier(.22,1,.36,1),
+             --camera-light 1.6s ease,
+             --device-rotation 1.6s cubic-bezier(.22,1,.36,1),
+             --device-x 1.6s cubic-bezier(.22,1,.36,1),
+             --device-y 1.6s cubic-bezier(.22,1,.36,1);
+}
+.luminous-world,.morph-scene{
+  transition:opacity 1.55s cubic-bezier(.4,0,.2,1),
+             transform 1.65s cubic-bezier(.22,1,.36,1);
+}
+/* A controlled editorial contrast: confident geometric lead, expressive
+   italic serif finish. Keeps the two manually defined headline lines intact. */
+.cinematic-intro .cinema-caption h1 .cinema-headline-line--accent{
+  font-family:'Instrument Serif',Georgia,'Times New Roman',serif;
+  font-style:italic;
+  font-weight:400;
+  font-size:1.15em;
+  line-height:.98;
+  letter-spacing:-.032em;
+}
+@media(min-width:1100px){
+  .cinematic-intro .cinema-caption--intelligence h1{font-size:clamp(40px,3.42vw,55px)}
+  .cinematic-intro .cinema-caption--problem h1{font-size:clamp(35px,2.85vw,46px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .cinema-sticky,.cinema-copy-enter-active,.cinema-copy-leave-active,.luminous-world,.morph-scene{
+    transition:none!important;
+  }
 }
 </style>
