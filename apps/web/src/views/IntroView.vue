@@ -87,43 +87,27 @@ onBeforeUnmount(() => {
     <main id="main">
       <div ref="scrollArea" class="cinema-scroll" :class="{ 'cinema-reduced': reducedMotion }">
         <section class="cinema-sticky" :style="sceneStyle" aria-label="ResolveOS product introduction">
-          <div class="cinema-set" aria-hidden="true">
-            <div class="cinema-table" />
-            <div class="cinema-mat" />
-            <div class="cinema-watch"><div class="cinema-watch-face"><div class="watch-hand" /></div></div>
-            <div class="cinema-light" />
-          </div>
-
-          <div class="cinema-camera">
-            <div class="cinema-phone">
-              <div class="phone-rim">
-                <div class="phone-screen">
-                  <div class="phone-island" />
-                  <div class="phone-topline"><span>9:41</span><span class="signal">● ▰ ▰</span></div>
-                  <div class="phone-stage">
-                    <div class="phone-graphic" :class="'graphic-' + activeIndex">
-                      <div class="graphic-orbit orbit-one" />
-                      <div class="graphic-orbit orbit-two" />
-                      <div class="graphic-core">
-                        <div v-if="activeIndex === 0" class="graphic-dispute"><span>$180</span><small>PAYMENT IN QUESTION</small></div>
-                        <Handshake v-else-if="activeIndex === 1" :size="69" :stroke-width="1.1" />
-                        <LockKeyhole v-else-if="activeIndex === 2" :size="65" :stroke-width="1.1" />
-                        <Check v-else :size="72" :stroke-width="1.2" />
-                      </div>
-                      <div class="graphic-spark spark-a" /><div class="graphic-spark spark-b" />
-                    </div>
-                    <div class="phone-stories">
-                      <div v-for="(item, i) in stories" :key="i" class="phone-story" :style="{ opacity: opacityAt(i), transform: 'translateY(' + ((i-position)*22) + 'px)', pointerEvents: i === activeIndex ? 'auto' : 'none' }">
-                        <p class="phone-kicker">{{ item.label }}</p>
-                        <h2>{{ item.title }}</h2>
-                        <p class="phone-detail">{{ item.detail }}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="phone-bottom"><span>RESOLVE<span class="phone-os">OS</span></span><span class="phone-bottom-line" /></div>
-                </div>
-              </div>
+          <!-- The reference's luminous, rotating motion is the hero; no device mockup or tabletop. -->
+          <div class="luminous-world" aria-hidden="true">
+            <div class="luminous-halo halo-outer" />
+            <div class="luminous-halo halo-middle" />
+            <div class="luminous-halo halo-inner" />
+            <div class="luminous-orbit orbit-alpha"><span /><span /><span /></div>
+            <div class="luminous-orbit orbit-beta"><span /><span /></div>
+            <div class="luminous-orbit orbit-gamma"><span /><span /></div>
+            <div class="luminous-core">
+              <div class="core-face core-front"><span class="core-emblem">R</span></div>
+              <div class="core-face core-back" />
+              <div class="core-face core-left" />
+              <div class="core-face core-right" />
+              <div class="core-face core-top" />
+              <div class="core-face core-bottom" />
             </div>
+            <div class="luminous-beam beam-one" />
+            <div class="luminous-beam beam-two" />
+            <div class="luminous-particle particle-one" />
+            <div class="luminous-particle particle-two" />
+            <div class="luminous-particle particle-three" />
           </div>
 
           <div class="cinema-caption">
@@ -144,14 +128,7 @@ onBeforeUnmount(() => {
         </section>
       </div>
 
-      <section class="cinema-finish">
-        <div class="cinema-finish-glow" aria-hidden="true" />
-        <span class="cinema-eyebrow"><Sparkles :size="13" /> TWO SIDES. ONE RESOLUTION.</span>
-        <h2>Turn disagreement<br />into resolution.</h2>
-        <p>Experience evidence-led AI negotiation with human approval and PayPal Sandbox settlement.</p>
-        <RouterLink to="/signin" class="cinema-cta">Enter ResolveOS <ArrowRight :size="18" /></RouterLink>
-        <p class="cinema-disclaimer">Independent hackathon prototype · PayPal Sandbox · Test money only</p>
-      </section>
+
     </main>
   </div>
 </template>
@@ -213,4 +190,39 @@ onBeforeUnmount(() => {
 @media(max-width:900px){.cinema-caption{left:25px;bottom:13%;max-width:235px}.cinema-caption h1{font-size:28px}.cinema-caption p{font-size:11px}.cinema-phone{width:clamp(230px,36vw,320px)}.cinema-mat{width:110vw;left:0}.cinema-watch{right:-12%;width:28vw;border-width:20px}}
 @media(max-width:600px){.cinema-header{padding:16px}.cinema-enter{padding:11px 13px;font-size:11px}.cinema-scroll{height:360vh}.cinema-sticky{min-height:520px}.cinema-phone{width:220px;transform:translate(var(--device-x),-8%) rotate(var(--device-rotation)) scale(calc(var(--device-scale) * .8)) rotateX(7deg)}.cinema-mat{width:170vw;left:-30%;top:-20%}.cinema-watch{width:37vw;right:-19%;top:29%}.cinema-caption{bottom:83px;left:22px;max-width:calc(100% - 44px)}.cinema-caption h1{font-size:25px;margin:8px 0}.cinema-caption p{font-size:11px;line-height:1.4;max-width:300px}.cinema-foot{bottom:19px;left:22px;right:22px;gap:12px}.cinema-scroll-label{font-size:8px}.cinema-progress{max-width:none}.phone-story h2{font-size:22px}.phone-detail{font-size:10px}.cinema-finish{min-height:75svh}}
 @media(prefers-reduced-motion:reduce){.cinema-scroll{height:100svh}.cinema-phone,.phone-story,.cinema-progress>div{transition:none!important}.graphic-orbit{animation:none}.cinema-next,.cinema-scroll-label{display:none}}
+
+/* Standalone cinematic object — the reference movement without phone hardware. */
+.cinema-sticky { background:radial-gradient(ellipse at 53% 48%,#122044 0%,#080d1f 37%,#02040b 79%); }
+.luminous-world {position:absolute;left:50%;top:47%;width:min(55vw,660px);aspect-ratio:1;transform:translate(-50%,-50%) translate(var(--device-x),var(--device-y)) scale(var(--device-scale)) rotate(var(--device-rotation));transform-style:preserve-3d;perspective:1000px;will-change:transform;filter:drop-shadow(0 0 38px #1361ff66);}
+.luminous-world:before{content:'';position:absolute;inset:-25%;background:radial-gradient(circle,#176fff22 0%,#1244aa0a 42%,transparent 66%);animation:light-breathe 5s ease-in-out infinite}
+.luminous-halo{position:absolute;border-radius:50%;border:1px solid #8bc9ff77;box-shadow:0 0 17px #4aa6ff66,inset 0 0 22px #266cff33;left:50%;top:50%;transform:translate(-50%,-50%) rotateX(65deg)}
+.halo-outer{width:98%;height:98%;border-width:2px;animation:halo-roll 13s linear infinite}
+.halo-middle{width:75%;height:75%;border-style:dashed;border-width:2px;animation:halo-roll-reverse 10s linear infinite}
+.halo-inner{width:53%;height:53%;border-color:#e5f6ffbb;animation:halo-roll 7s linear infinite}
+.luminous-orbit{position:absolute;inset:9%;border:4px solid transparent;border-top-color:#d4f1ff;border-right-color:#499eff;border-radius:38%;box-shadow:0 -3px 23px #a9dfffaa,inset 0 0 19px #347eff88;transform-style:preserve-3d;animation:orbit-hero 11s linear infinite}
+.luminous-orbit span{position:absolute;display:block;top:-6px;left:40%;width:18%;height:7px;border-radius:8px;background:#e0f7ff;box-shadow:0 0 24px 7px #459bffb0}
+.orbit-alpha{transform:rotate(25deg) rotateY(58deg)}
+.orbit-beta{inset:23%;border-width:5px;border-color:transparent #74bfff #ffffff transparent;animation-direction:reverse;animation-duration:8s;filter:drop-shadow(0 0 16px #468fff)}
+.orbit-gamma{inset:0%;border-width:2px;border-radius:50%;border-color:#357bdf66 transparent #8bcfff transparent;animation-duration:17s;transform:rotateX(56deg)}
+.luminous-core{position:absolute;left:50%;top:50%;width:21%;height:21%;transform:translate(-50%,-50%) rotateX(-20deg) rotateY(35deg);transform-style:preserve-3d;animation:core-spin 12s ease-in-out infinite}
+.core-face{position:absolute;inset:0;border:2px solid #bfe7ff;background:linear-gradient(140deg,#d6f4ffbb,#2782ed99 27%,#030d34f2 72%,#76bcff66);box-shadow:inset 0 0 27px #46a0ff,0 0 20px #78baff;border-radius:12%}
+.core-front{transform:translateZ(65px);display:grid;place-items:center}
+.core-back{transform:rotateY(180deg) translateZ(65px)}
+.core-left{transform:rotateY(-90deg) translateZ(65px)}
+.core-right{transform:rotateY(90deg) translateZ(65px)}
+.core-top{transform:rotateX(90deg) translateZ(65px)}
+.core-bottom{transform:rotateX(-90deg) translateZ(65px)}
+.core-emblem{font-weight:800;font-size:clamp(30px,6vw,77px);color:white;text-shadow:0 0 17px #fff,0 0 35px #48a8ff}
+.luminous-beam{position:absolute;top:50%;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,#59afff99,transparent);transform:rotate(-28deg);box-shadow:0 0 14px #4c95ff}.beam-two{transform:rotate(58deg);opacity:.6}
+.luminous-particle{position:absolute;width:5px;height:5px;background:white;border-radius:50%;box-shadow:0 0 15px 4px #64b6ff;animation:light-breathe 3s ease-in-out infinite}.particle-one{top:8%;left:28%}.particle-two{top:72%;right:8%;animation-delay:1s}.particle-three{top:86%;left:25%;animation-delay:2s}
+.cinema-caption{z-index:5;bottom:12%;max-width:400px}.cinema-caption h1{font-size:clamp(32px,3.7vw,54px)}.cinema-caption p{max-width:350px}
+.cinema-sticky:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#02040bb8,transparent 37%,transparent 75%,#02040b33)}
+.cinema-foot{z-index:6}
+@keyframes orbit-hero{from{transform:rotate(25deg) rotateY(58deg) rotateZ(0deg)}to{transform:rotate(385deg) rotateY(418deg) rotateZ(360deg)}}
+@keyframes core-spin{50%{transform:translate(-50%,-50%) rotateX(45deg) rotateY(210deg)}100%{transform:translate(-50%,-50%) rotateX(340deg) rotateY(395deg)}}
+@keyframes halo-roll{to{transform:translate(-50%,-50%) rotateX(65deg) rotate(360deg)}}
+@keyframes halo-roll-reverse{to{transform:translate(-50%,-50%) rotateX(65deg) rotate(-360deg)}}
+@keyframes light-breathe{50%{opacity:.4;filter:brightness(1.6)}}
+@media(max-width:700px){.luminous-world{width:90vw;top:37%;}.cinema-caption{bottom:90px;max-width:85vw}.cinema-sticky:after{background:linear-gradient(0deg,#02040bdc,transparent 45%)}.core-front{transform:translateZ(32px)}.core-back{transform:rotateY(180deg) translateZ(32px)}.core-left{transform:rotateY(-90deg) translateZ(32px)}.core-right{transform:rotateY(90deg) translateZ(32px)}.core-top{transform:rotateX(90deg) translateZ(32px)}.core-bottom{transform:rotateX(-90deg) translateZ(32px)}}
+@media(prefers-reduced-motion:reduce){.luminous-world,.luminous-world *{animation:none!important}.luminous-world{transform:translate(-50%,-50%) scale(.85)}}
 </style>
