@@ -85,7 +85,9 @@ const roleLabel = { BUYER: 'Buyer', MERCHANT: 'Merchant', OPERATOR: 'Demo operat
 
 <template>
   <div ref="root" class="relative">
-    <WelcomeCinematic v-if="showingLaunch" mode="launch" :name="switchingName" :leaving="launchLeaving" />
+    <Teleport to="body">
+      <WelcomeCinematic v-if="showingLaunch" mode="launch" :name="switchingName" :leaving="launchLeaving" />
+    </Teleport>
     <button
       type="button"
       class="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-left transition hover:border-line-strong"
