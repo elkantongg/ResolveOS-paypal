@@ -118,15 +118,15 @@ onBeforeUnmount(() => {
             <div class="safeguard-shield"><div class="safeguard-shield-inner"><LockKeyhole :size="66" :stroke-width="1.2"/></div></div>
             <div class="safeguard-dot dot-one"/><div class="safeguard-dot dot-two"/>
           </div>
-          <div class="cinema-caption">
-            <div v-for="(item,i) in stories" :key="i" class="cinema-caption-inner" :style="{ opacity: opacityAt(i), transform: 'translateY(' + ((i-position)*17) + 'px)' }" :aria-hidden="activeIndex !== i">
+          <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3 }">
+            <div v-for="(item,i) in stories" :key="i" class="cinema-caption-inner" :aria-hidden="activeIndex !== i" :style="{ opacity: opacityAt(i), transform: 'translateY(' + ((i-position)*17) + 'px)', pointerEvents: activeIndex === i ? 'auto' : 'none' }">
               <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
               <h1>{{ item.title }}</h1>
               <p>{{ item.detail }}</p>
+              <RouterLink v-if="i === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
             </div>
           </div>
 
-          <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
           <div class="cinema-foot">
             <span class="cinema-scroll-label"><ArrowDown :size="14" /> {{ activeIndex === 3 ? 'END OF INTRODUCTION' : 'SCROLL TO EXPLORE' }}</span>
             <div class="cinema-progress" role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100" aria-label="Introduction progress">
@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
 .cinema-caption p{font-size:clamp(16px,1.3vw,20px);line-height:1.55;max-width:470px}
 .cinema-eyebrow{font-size:12px}
 .cinema-foot{z-index:10}
-.final-proceed{position:absolute;z-index:15;left:clamp(28px,6vw,105px);bottom:14%;display:inline-flex;align-items:center;gap:14px;border-radius:99px;padding:17px 26px;background:#e5f1ff;color:#07142c;font-weight:750;font-size:16px;text-decoration:none;box-shadow:0 0 32px #4e9cff55;transition:transform .25s,box-shadow .25s}
+.final-proceed{position:relative;align-self:flex-start;flex-shrink:0;z-index:15;margin-top:26px;display:inline-flex;align-items:center;gap:14px;border-radius:99px;padding:17px 26px;background:#e5f1ff;color:#07142c;font-weight:750;font-size:16px;text-decoration:none;box-shadow:0 0 32px #4e9cff55;transition:transform .25s,box-shadow .25s}
 .final-proceed:hover{transform:translateY(-4px);box-shadow:0 0 50px #4e9cff99}
 .morph-scene{position:absolute;aspect-ratio:1;filter:drop-shadow(0 0 32px #1778ff77)}
 .negotiation-link{position:absolute;left:13%;right:13%;top:50%;height:3px;background:linear-gradient(90deg,#7fbfff,white,#7fbfff);box-shadow:0 0 25px #69b3ff;animation:signal-glow 8s ease-in-out infinite}
@@ -268,9 +268,19 @@ onBeforeUnmount(() => {
 @keyframes signal-glow{50%{filter:brightness(1.9)}}
 @keyframes safeguard-rotate{to{transform:rotate(405deg)}}
 @keyframes shield-float{50%{transform:translateY(-12px) scale(.97)}}
-@media(max-width:900px){.luminous-world,.morph-scene{left:60%;top:41%;width:75vw}.cinema-caption{top:auto;bottom:10%;left:26px;transform:none;width:80vw;height:220px}.cinema-caption h1{font-size:clamp(35px,5vw,59px)}.cinema-caption p{font-size:14px}.final-proceed{bottom:10%;left:26px}}
-@media(max-width:600px){.cinema-scroll{height:470vh}.luminous-world,.morph-scene{left:50%;top:35%;width:100vw}.cinema-caption{left:22px;bottom:105px;width:calc(100% - 44px);height:185px}.cinema-caption h1{font-size:clamp(33px,9vw,49px);margin:9px 0}.cinema-caption p{font-size:12px;line-height:1.43}.cinema-eyebrow{font-size:10px}.final-proceed{left:22px;bottom:65px;font-size:13px;padding:13px 19px}}
+@media(max-width:900px){.luminous-world,.morph-scene{left:60%;top:41%;width:75vw}.cinema-caption{top:auto;bottom:10%;left:26px;transform:none;width:80vw;height:220px}.cinema-caption h1{font-size:clamp(35px,5vw,59px)}.cinema-caption p{font-size:14px}.cinema-caption--final{height:clamp(270px,42vh,355px)}}
+@media(max-width:600px){.cinema-scroll{height:470vh}.luminous-world,.morph-scene{left:50%;top:35%;width:100vw}.cinema-caption{left:22px;bottom:105px;width:calc(100% - 44px);height:185px}.cinema-caption h1{font-size:clamp(33px,9vw,49px);margin:9px 0}.cinema-caption p{font-size:12px;line-height:1.43}.cinema-eyebrow{font-size:10px}.cinema-caption--final{height:clamp(285px,47svh,355px);bottom:74px}.final-proceed{font-size:13px;padding:13px 19px;margin-top:17px}}
 @media(prefers-reduced-motion:reduce){.morph-scene *,.luminous-world *{animation:none!important}.cinema-caption-inner{transition:none}}
 
 .core-emblem-logo{width:72%;height:72%;filter:drop-shadow(0 0 8px #ffffff88) drop-shadow(0 0 18px #58a8ff6b)}
+
+/* Keep the last CTA in normal text flow at every viewport size: it can never
+   cover the description because it follows the paragraph in the same column. */
+.cinema-caption--final .cinema-caption-inner{justify-content:center}
+@media (max-height:680px){
+  .cinema-caption--final{height:clamp(230px,48svh,315px)}
+  .cinema-caption--final h1{font-size:clamp(28px,4.3vw,54px);margin:9px 0 10px}
+  .cinema-caption--final p{font-size:clamp(12px,1vw,16px);line-height:1.4}
+  .cinema-caption--final .final-proceed{margin-top:14px;padding:12px 20px}
+}
 </style>
