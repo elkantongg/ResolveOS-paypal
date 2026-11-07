@@ -134,6 +134,27 @@ onBeforeUnmount(() => {
               <div class="core-face core-right" />
               <div class="core-face core-top" />
               <div class="core-face core-bottom" />
+              <!-- Rounded beveled seams bridge adjacent faces, leaving no open corners. -->
+              <span class="cube-bevel cube-bevel-x bevel-top bevel-front" />
+              <span class="cube-bevel cube-bevel-x bevel-bottom bevel-front" />
+              <span class="cube-bevel cube-bevel-x bevel-top bevel-back" />
+              <span class="cube-bevel cube-bevel-x bevel-bottom bevel-back" />
+              <span class="cube-bevel cube-bevel-y bevel-left bevel-front" />
+              <span class="cube-bevel cube-bevel-y bevel-right bevel-front" />
+              <span class="cube-bevel cube-bevel-y bevel-left bevel-back" />
+              <span class="cube-bevel cube-bevel-y bevel-right bevel-back" />
+              <span class="cube-bevel cube-bevel-z bevel-left bevel-top" />
+              <span class="cube-bevel cube-bevel-z bevel-right bevel-top" />
+              <span class="cube-bevel cube-bevel-z bevel-left bevel-bottom" />
+              <span class="cube-bevel cube-bevel-z bevel-right bevel-bottom" />
+              <span class="cube-corner corner-left corner-top corner-front" />
+              <span class="cube-corner corner-left corner-top corner-back" />
+              <span class="cube-corner corner-right corner-top corner-front" />
+              <span class="cube-corner corner-right corner-top corner-back" />
+              <span class="cube-corner corner-left corner-bottom corner-front" />
+              <span class="cube-corner corner-left corner-bottom corner-back" />
+              <span class="cube-corner corner-right corner-bottom corner-front" />
+              <span class="cube-corner corner-right corner-bottom corner-back" />
             </div>
             <div class="luminous-beam beam-one" />
             <div class="luminous-beam beam-two" />
@@ -668,29 +689,60 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
-/* Pages 01 / 04: softly rounded, luminous cube — not an angular wireframe. */
+/* Pages 01 / 04 — sealed, rounded dice-like cube.  Face rounding
+   alone leaves visible holes at perpendicular junctions, so opaque edge
+   bevels and corners join all six faces into one continuous solid. */
 .luminous-core{
   --cube-side:clamp(82px,9vw,132px);
   --cube-half:calc(var(--cube-side) / 2);
+  --cube-bevel:calc(var(--cube-side) * .16);
   width:var(--cube-side);
   height:var(--cube-side);
 }
 .luminous-core .core-face{
-  border:1.5px solid #a1d5ffb8;
-  border-radius:19%;
-  background:linear-gradient(145deg,#377aceed 0%,#17477ddf 38%,#091c42ee 100%);
-  box-shadow:inset 0 0 18px #83c5ff52,0 0 17px #59a7ff9c;
+  border:1px solid #87c9f7c7;
+  border-radius:18%;
+  background:linear-gradient(145deg,#3476b9 0%,#19497a 45%,#0c254b 100%);
+  box-shadow:inset 0 0 17px #78beff40,0 0 12px #54a1f67a;
   backface-visibility:hidden;
 }
 .luminous-core .core-front{
   transform:translateZ(var(--cube-half));
-  background:linear-gradient(145deg,#327ac5ee,#103e76ef 58%,#0a2350f5);
-  box-shadow:inset 0 0 22px #7dc3ff60,0 0 24px #80c5ffb3;
+  background:linear-gradient(145deg,#367fc5,#154476 62%,#0a2751);
+  box-shadow:inset 0 0 20px #85d0ff48,0 0 17px #70b8ff8a;
 }
-.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half))}
-.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:linear-gradient(125deg,#1e5d9bef,#071c45f4)}
-.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:linear-gradient(125deg,#1c5794ef,#0b2a58f4)}
-.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:linear-gradient(145deg,#4b94d7ec,#204b85ed)}
-.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half))}
-.luminous-core .core-emblem-logo{width:62%;height:62%;filter:drop-shadow(0 0 10px #b5efffb2)}
+.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half));}
+.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:#174676}
+.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:#1c5387}
+.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:#377db3}
+.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half));background:#113660}
+.luminous-core .core-emblem-logo{width:62%;height:62%;filter:drop-shadow(0 0 8px #b5efffac)}
+/* 12 solid rounded edge bevels. They fill the cutaway face corners rather
+   than letting the background show through as gaps during rotation. */
+.cube-bevel,.cube-corner{position:absolute;left:50%;top:50%;display:block;pointer-events:none;background:#235787;box-shadow:inset 0 0 5px #91d0ff33,0 0 7px #6fb9fa50}
+.cube-bevel{border-radius:999px}
+.cube-bevel-x{width:var(--cube-side);height:var(--cube-bevel)}
+.cube-bevel-y{width:var(--cube-bevel);height:var(--cube-side)}
+.cube-bevel-z{width:var(--cube-bevel);height:var(--cube-side);transform-origin:center;transform-style:preserve-3d}
+.cube-bevel-x.bevel-top.bevel-front{transform:translate(-50%,-50%) translate3d(0,calc(-1 * var(--cube-half)),var(--cube-half))}
+.cube-bevel-x.bevel-bottom.bevel-front{transform:translate(-50%,-50%) translate3d(0,var(--cube-half),var(--cube-half))}
+.cube-bevel-x.bevel-top.bevel-back{transform:translate(-50%,-50%) translate3d(0,calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
+.cube-bevel-x.bevel-bottom.bevel-back{transform:translate(-50%,-50%) translate3d(0,var(--cube-half),calc(-1 * var(--cube-half)))}
+.cube-bevel-y.bevel-left.bevel-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),0,var(--cube-half))}
+.cube-bevel-y.bevel-right.bevel-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),0,var(--cube-half))}
+.cube-bevel-y.bevel-left.bevel-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),0,calc(-1 * var(--cube-half)))}
+.cube-bevel-y.bevel-right.bevel-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),0,calc(-1 * var(--cube-half)))}
+.cube-bevel-z.bevel-left.bevel-top{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),0) rotateX(90deg)}
+.cube-bevel-z.bevel-right.bevel-top{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),0) rotateX(90deg)}
+.cube-bevel-z.bevel-left.bevel-bottom{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),0) rotateX(90deg)}
+.cube-bevel-z.bevel-right.bevel-bottom{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),0) rotateX(90deg)}
+.cube-corner{width:var(--cube-bevel);height:var(--cube-bevel);border-radius:50%;background:radial-gradient(circle at 30% 25%,#4b91c2,#205381 72%,#17416b)}
+.cube-corner.corner-left.corner-top.corner-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),var(--cube-half))}
+.cube-corner.corner-left.corner-top.corner-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
+.cube-corner.corner-right.corner-top.corner-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),var(--cube-half))}
+.cube-corner.corner-right.corner-top.corner-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),calc(-1 * var(--cube-half)),calc(-1 * var(--cube-half)))}
+.cube-corner.corner-left.corner-bottom.corner-front{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),var(--cube-half))}
+.cube-corner.corner-left.corner-bottom.corner-back{transform:translate(-50%,-50%) translate3d(calc(-1 * var(--cube-half)),var(--cube-half),calc(-1 * var(--cube-half)))}
+.cube-corner.corner-right.corner-bottom.corner-front{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),var(--cube-half))}
+.cube-corner.corner-right.corner-bottom.corner-back{transform:translate(-50%,-50%) translate3d(var(--cube-half),var(--cube-half),calc(-1 * var(--cube-half)))}
 </style>
