@@ -1038,7 +1038,7 @@ onBeforeUnmount(() => {
 .cinematic-intro .cinema-caption-inner--active {
   transition:none!important;
   animation:none!important;
-  transform:none!important;
+  transform:none;
   visibility:hidden;
   opacity:0;
   pointer-events:none;
