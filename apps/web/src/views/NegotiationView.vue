@@ -7,6 +7,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api, errorMessage } from '@/api/client';
 import type { AuditEvent, CaseDetail, NegotiationState, Turn } from '@/api/types';
 import AgentPanel from '@/components/AgentPanel.vue';
+import NegotiationStage from '@/components/NegotiationStage.vue';
 import AgentAvatar from '@/components/AgentAvatar.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import GapMeter from '@/components/GapMeter.vue';
@@ -89,6 +90,8 @@ const turns = computed<Turn[]>(() => state.value?.turns ?? []);
 const latestOf = (agent: 'BUYER' | 'MERCHANT') => [...turns.value].reverse().find((t) => t.agent === agent) ?? null;
 const buyerTurn = computed(() => latestOf('BUYER'));
 const merchantTurn = computed(() => latestOf('MERCHANT'));
+const buyerTurnCount = computed(() => turns.value.filter(t => t.agent === 'BUYER').length);
+const merchantTurnCount = computed(() => turns.value.filter(t => t.agent === 'MERCHANT').length);
 const status = computed(() => state.value?.status ?? detail.value?.case.currentStatus ?? 'OPEN');
 const txn = computed(() => detail.value?.transaction);
 const agreed = computed(() =>
@@ -140,7 +143,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
           <ArrowLeft class="size-4" /> Case {{ detail.case.reference }}
         </RouterLink>
         <h1 class="flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
-          Negotiation room
+          Negotiation
           <StatusBadge :status="status" />
           <SourceBadge :source="txn!.sourceType" :capture-id="txn!.paypalCaptureId" />
         </h1>
@@ -174,6 +177,15 @@ async function act(kind: 'start' | 'advance' | 'run') {
 
       <!-- Timeline -->
       <section class="order-1 flex min-w-0 flex-col gap-4 xl:order-2" aria-label="Negotiation timeline">
+        <NegotiationStage
+          :status="status"
+          :active-agent="thinking"
+          :buyer-turn-count="buyerTurnCount"
+          :merchant-turn-count="merchantTurnCount"
+          :total-turns="turns.length"
+          :max-turns="state.maxTurns"
+          :is-live="state.mode === 'live'"
+        />
         <GapMeter
           :total-minor="txn!.originalAmountMinor"
           :currency="txn!.currency"
@@ -187,7 +199,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
             <AgentAvatar agent="REFEREE" size="sm" />
             <div class="text-sm">
               <p class="font-semibold">Neutral orchestrator</p>
-              <p class="text-xs text-muted">Runs the turns, checks every answer, enforces both sides’ limits. Turn {{ turns.length }} of {{ state.maxTurns }}.</p>
+              <p class="text-xs text-muted">Controls each turn and checks all offers. Turn {{ turns.length }} of {{ state.maxTurns }}.</p>
             </div>
           </div>
 
@@ -196,7 +208,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
               <span class="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-primary-soft text-primary"><Scale class="size-7" /></span>
               <h2 class="text-lg font-semibold">Ready to negotiate</h2>
               <p class="mt-1 text-sm text-muted text-pretty">
-                Each agent sees the shared evidence and only its own side’s limits. Nothing they agree is final: both of you approve before any money moves.
+                Your agents review evidence and make offers. Both people must approve before any refund.
               </p>
             </div>
 
@@ -274,7 +286,7 @@ async function act(kind: 'start' | 'advance' | 'run') {
               <button type="button" class="btn btn-primary" :disabled="busy !== null" @click="act('run')">
                 <FastForward class="size-4" /> {{ busy === 'run' ? 'Negotiating…' : 'Run to a result' }}
               </button>
-              <span class="text-xs text-muted">At most {{ state.maxTurns }} turns; it stops on agreement or deadlock.</span>
+              <span class="text-xs text-muted">Stops on agreement or deadlock.</span>
             </template>
             <template v-else-if="status === 'AWAITING_APPROVAL' || status === 'PAYMENT_PROCESSING'">
               <button type="button" class="btn btn-primary btn-lg" @click="router.push(`/cases/${caseId}/settlement`)">
