@@ -5,8 +5,10 @@ const KEY = 'resolveos-theme';
 
 function initialTheme(): ThemeChoice {
   if (typeof window === 'undefined') return 'light';
-  const saved = window.localStorage.getItem(KEY);
-  if (saved === 'light' || saved === 'dark') return saved;
+  try {
+    const saved = window.localStorage.getItem(KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch { /* Private browsing may deny storage access. */ }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
@@ -18,78 +20,85 @@ function apply(value: ThemeChoice) {
   document.documentElement.dataset.theme = value;
   document.documentElement.style.colorScheme = value;
 }
-apply(currentTheme.value);
 
 function commitTheme(value: ThemeChoice) {
   currentTheme.value = value;
   apply(value);
-  if (typeof window !== 'undefined') window.localStorage.setItem(KEY, value);
+  try { window.localStorage.setItem(KEY, value); } catch { /* Keep the in-memory preference. */ }
 }
+apply(currentTheme.value);
 
 function setTheme(value: ThemeChoice) {
   if (isThemeChanging.value || value === currentTheme.value) return;
   commitTheme(value);
 }
 
-/**
- * Reveal the next theme as an expanding circular wave from the clicked control.
- * View Transitions snapshot the entire page, so the intro's custom palette and
- * the application's normal surfaces change together rather than abruptly.
+/** A continuous advancing boundary, with its leading edge displaced in a sine wave.
+ * The wave expands from the clicked control, revealing the *full new-page snapshot*
+ * rather than fading individual elements at different times.
  */
+function revealShape(front: number, width: number, height: number, phase: number) {
+  const amplitude = Math.min(43, Math.max(14, width * .028));
+  const period = Math.max(150, height * .36);
+  const points: string[] = [];
+  for (let i = 0; i <= 44; i++) {
+    const y = height * i / 44;
+    const wave = Math.sin(y / period * 2 * Math.PI + phase) * amplitude;
+    points.push(`${(front + wave).toFixed(1)}px ${y.toFixed(1)}px`);
+  }
+  return `polygon(0px 0px, ${points.join(', ')}, 0px ${height}px)`;
+}
+
 async function toggleTheme(event?: MouseEvent) {
   if (isThemeChanging.value) return;
   const next: ThemeChoice = currentTheme.value === 'dark' ? 'light' : 'dark';
-  const prefersReducedMotion =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (
-    typeof document === 'undefined' ||
-    typeof document.startViewTransition !== 'function' ||
-    prefersReducedMotion
-  ) {
+  if (typeof document === 'undefined') return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || typeof document.startViewTransition !== 'function') {
     commitTheme(next);
     return;
   }
 
-  const target = event?.currentTarget;
-  const bounds = target instanceof Element ? target.getBoundingClientRect() : null;
-  const x = bounds ? bounds.left + bounds.width / 2 : window.innerWidth / 2;
-  const y = bounds ? bounds.top + bounds.height / 2 : window.innerHeight / 2;
-  const radius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y),
-  );
-
   isThemeChanging.value = true;
   document.documentElement.classList.add('theme-wave-active');
+  let changed = false;
 
   try {
     const transition = document.startViewTransition(async () => {
       commitTheme(next);
-      // Vue updates the intro's theme-dark class asynchronously; wait until
-      // both it and html[data-theme] describe the new snapshot.
+      changed = true;
       await nextTick();
     });
-
     await transition.ready;
-    const animation = document.documentElement.animate(
-      [
-        { clipPath: `circle(0px at ${x}px ${y}px)` },
-        { clipPath: `circle(${radius}px at ${x}px ${y}px)` },
-      ],
-      {
-        duration: 1050,
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        fill: 'both',
-        pseudoElement: '::view-transition-new(root)',
-      },
-    );
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const target = event?.currentTarget;
+    const bounds = target instanceof Element ? target.getBoundingClientRect() : null;
+    // The reveal always travels left-to-right, with a phase aligned to the toggle.
+    const phase = bounds ? bounds.top / Math.max(1, height) * Math.PI * 2 : 0;
+    const amplitude = Math.min(43, Math.max(14, width * .028));
+    const from = -amplitude - 4;
+    const to = width + amplitude + 4;
+    const keyframes = Array.from({ length: 37 }, (_, i) => {
+      const t = i / 36;
+      const eased = t * t * (3 - 2 * t);
+      return {
+        clipPath: revealShape(from + (to - from) * eased, width, height, phase + t * Math.PI * 1.4),
+        offset: t,
+      };
+    });
+    const animation = document.documentElement.animate(keyframes, {
+      duration: 1450,
+      easing: 'linear',
+      fill: 'both',
+      pseudoElement: '::view-transition-new(root)',
+    });
     await animation.finished;
     await transition.finished;
   } catch {
-    // A cancelled transition or unsupported pseudo-element animation must not
-    // leave the toggle locked. Preserve the new theme either way.
-    commitTheme(next);
+    // Failed snapshot/animation must never leave the toggle locked.
+    if (!changed) commitTheme(next);
   } finally {
     document.documentElement.classList.remove('theme-wave-active');
     isThemeChanging.value = false;
