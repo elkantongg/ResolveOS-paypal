@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole, Check } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
@@ -147,9 +147,28 @@ onBeforeUnmount(() => {
             <div class="negotiation-signal"/>
           </div>
           <div class="morph-scene safeguard-scene" :style="{ opacity: opacityAt(2) }" aria-hidden="true">
-            <div class="safeguard-ring safeguard-ring-one"/><div class="safeguard-ring safeguard-ring-two"/>
-            <div class="safeguard-shield"><div class="safeguard-shield-inner"><LockKeyhole :size="66" :stroke-width="1.2"/></div></div>
-            <div class="safeguard-dot dot-one"/><div class="safeguard-dot dot-two"/>
+            <div class="approval-ambient" />
+            <div class="approval-orbit approval-orbit-outer" />
+            <div class="approval-orbit approval-orbit-inner" />
+            <div class="approval-path approval-path-left" />
+            <div class="approval-path approval-path-right" />
+            <div class="approval-seal">
+              <div class="approval-seal-ring" />
+              <div class="approval-seal-core"><LockKeyhole :size="60" :stroke-width="1.15" /></div>
+              <div class="approval-seal-sheen" />
+            </div>
+            <div class="approval-party approval-buyer">
+              <div class="approval-party-icon"><Check :size="27" :stroke-width="1.8" /></div>
+              <span>BUYER</span>
+              <small>APPROVED</small>
+            </div>
+            <div class="approval-party approval-merchant">
+              <div class="approval-party-icon"><Check :size="27" :stroke-width="1.8" /></div>
+              <span>MERCHANT</span>
+              <small>APPROVED</small>
+            </div>
+            <div class="approval-particle approval-particle-one" />
+            <div class="approval-particle approval-particle-two" />
           </div>
           <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3 }">
             <Transition name="cinema-copy" mode="out-in">
@@ -293,11 +312,35 @@ onBeforeUnmount(() => {
 .negotiation-node span{font-size:clamp(34px,5vw,76px);font-weight:700;color:#d7eeff;text-shadow:0 0 24px #81c5ff}
 .buyer-node{left:0}.merchant-node{right:0;animation-delay:-5s}
 .negotiation-signal{position:absolute;width:12px;height:12px;top:49%;left:15%;border-radius:50%;background:white;box-shadow:0 0 25px 10px #4ba6ff;animation:travel-signal 7s ease-in-out infinite}
-.safeguard-ring{position:absolute;inset:4%;border:2px solid #7ac0ff88;border-radius:35%;transform:rotate(45deg);box-shadow:inset 0 0 35px #2173e666,0 0 37px #2173e666;animation:safeguard-rotate 30s linear infinite}
-.safeguard-ring-two{inset:14%;border-radius:50%;border-style:dotted;animation-direction:reverse;animation-duration:36s}
-.safeguard-shield{position:absolute;inset:24%;display:grid;place-items:center;background:linear-gradient(145deg,#d8f1ff,#3c8cd4 31%,#07172d 78%,#8bc9ff);clip-path:polygon(50% 0%,93% 21%,87% 76%,50% 100%,13% 76%,7% 21%);animation:shield-float 10s ease-in-out infinite;filter:drop-shadow(0 0 25px #5aa7ff)}
-.safeguard-shield-inner{width:95%;height:95%;display:grid;place-items:center;clip-path:inherit;background:radial-gradient(circle at 50% 30%,#2464b6,#050e29 78%);color:#d9f0ff}
-.safeguard-dot{position:absolute;width:14%;aspect-ratio:1;border:2px solid #b9e3ff;border-radius:20%;background:#174a91;box-shadow:0 0 25px #58aaff}.dot-one{top:13%;left:10%;transform:rotate(-27deg)}.dot-two{bottom:12%;right:10%;transform:rotate(27deg)}
+/* Chapter 03: dual human approvals lock a protected settlement.
+   All animation stays inside this scene, independent from other chapters. */
+.safeguard-scene{isolation:isolate;display:grid;place-items:center}
+.approval-ambient{position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle,#1b60bf31 0%,#1c60b716 36%,transparent 70%);filter:blur(16px);animation:approval-breathe 8s ease-in-out infinite}
+.approval-orbit{position:absolute;border-radius:50%;border:1.5px solid #75b9ff7a;box-shadow:0 0 20px #379dff43,inset 0 0 20px #2e84e925}
+.approval-orbit-outer{inset:10%;transform:rotateX(68deg) rotate(-22deg);animation:approval-orbit-a 32s linear infinite}
+.approval-orbit-inner{inset:20%;border:1px dashed #bddfff82;transform:rotateY(68deg) rotate(24deg);animation:approval-orbit-b 26s linear infinite}
+.approval-path{position:absolute;top:49%;width:29%;height:2px;background:linear-gradient(90deg,transparent,#79caff,transparent);box-shadow:0 0 16px 2px #439cff8a;animation:approval-path-glow 6s ease-in-out infinite}
+.approval-path-left{left:16%;transform:rotate(-12deg)}.approval-path-right{right:16%;transform:rotate(12deg);animation-delay:-3s}
+.approval-seal{position:absolute;inset:30%;border-radius:50%;display:grid;place-items:center;transform-style:preserve-3d;animation:approval-seal-float 9s ease-in-out infinite;filter:drop-shadow(0 0 28px #4b9bff88)}
+.approval-seal-ring{position:absolute;inset:0;border:2px solid #b1e4ff;border-radius:30%;transform:rotate(45deg);background:linear-gradient(135deg,#66b6ff53,#03163377 63%,#84cfff42);box-shadow:0 0 35px #5aaaff88,inset 0 0 38px #4898ff77}
+.approval-seal-core{position:absolute;inset:11%;display:grid;place-items:center;border-radius:50%;border:1px solid #8ccaff9c;background:radial-gradient(circle at 40% 25%,#2866ac,#091735 70%);color:#e4f5ff;box-shadow:inset 0 0 30px #4b9fff77,0 0 25px #74bfff77}
+.approval-seal-sheen{position:absolute;inset:8%;border-radius:50%;border-top:2px solid #f2fcffb8;transform:rotate(-23deg);filter:drop-shadow(0 0 11px #c7edff)}
+.approval-party{position:absolute;z-index:2;top:38%;width:24%;aspect-ratio:1/1.08;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border:1.5px solid #90c9ffbb;border-radius:25%;background:radial-gradient(circle at 35% 18%,#2d79c6e8,#102c5dee 55%,#071329ed);box-shadow:0 0 30px #398cff66,inset 0 0 24px #338ce552;animation:approval-party-float 8s ease-in-out infinite}
+.approval-buyer{left:8%}.approval-merchant{right:8%;animation-delay:-4s}
+.approval-party-icon{display:grid;place-items:center;width:36%;aspect-ratio:1;border:1px solid #a4e3ff;border-radius:50%;background:#3b9ee477;box-shadow:0 0 16px #70cfff99;color:#effcff}
+.approval-party span{font-size:clamp(9px,1.05vw,14px);font-weight:750;letter-spacing:.08em;color:#e6f6ff}
+.approval-party small{font-size:clamp(6px,.7vw,9px);font-weight:600;letter-spacing:.17em;color:#9ecfff}
+.approval-particle{position:absolute;width:6px;height:6px;border-radius:50%;background:#eefbff;box-shadow:0 0 18px 6px #5da9ff;animation:approval-particle-drift 9s ease-in-out infinite}
+.approval-particle-one{left:25%;top:14%}.approval-particle-two{right:23%;bottom:15%;animation-delay:-4s}
+@keyframes approval-breathe{50%{transform:scale(1.09);opacity:.55}}
+@keyframes approval-orbit-a{to{transform:rotateX(68deg) rotate(338deg)}}
+@keyframes approval-orbit-b{to{transform:rotateY(68deg) rotate(-336deg)}}
+@keyframes approval-path-glow{50%{opacity:.4;filter:brightness(1.6)}}
+@keyframes approval-seal-float{50%{transform:translateY(-9px) scale(1.035)}}
+@keyframes approval-party-float{50%{transform:translateY(-11px)}}
+@keyframes approval-particle-drift{50%{opacity:.38;transform:translateY(13px)}}
+@media(max-width:600px){.approval-party{width:26%;top:39%}.approval-buyer{left:4%}.approval-merchant{right:4%}.approval-party span{font-size:9px}.approval-party small{font-size:6px}}
+@media(prefers-reduced-motion:reduce){.safeguard-scene *{animation:none!important}}
 @keyframes node-hover{50%{transform:translateY(-14px)}}
 @keyframes travel-signal{0%{left:20%;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:78%;opacity:0}}
 @keyframes signal-glow{50%{filter:brightness(1.9)}}
