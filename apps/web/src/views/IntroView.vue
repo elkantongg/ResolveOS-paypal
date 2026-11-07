@@ -684,4 +684,29 @@ onBeforeUnmount(() => {
   .intelligence-drift-small{transform:translate(688px,431px)}
 }
 
+/* Pages 01 and 04 — a plain, solid cube with just the ResolveOS mark.
+   Opaque faces hide internal/back edges; the surrounding animated orbits stay intact. */
+.luminous-core{
+  --cube-side:clamp(82px,9vw,132px);
+  --cube-half:calc(var(--cube-side) / 2);
+  width:var(--cube-side);
+  height:var(--cube-side);
+}
+.luminous-core .core-face{
+  border:1.5px solid #83b9ff;
+  border-radius:3px;
+  background:#153761;
+  box-shadow:inset 0 0 12px #4c91eb20,0 0 12px #4992f447;
+  backface-visibility:hidden;
+}
+.luminous-core .core-front{
+  transform:translateZ(var(--cube-half));
+  background:#1b477a;
+}
+.luminous-core .core-back{transform:rotateY(180deg) translateZ(var(--cube-half));background:#102b4c}
+.luminous-core .core-left{transform:rotateY(-90deg) translateZ(var(--cube-half));background:#10345c}
+.luminous-core .core-right{transform:rotateY(90deg) translateZ(var(--cube-half));background:#153c67}
+.luminous-core .core-top{transform:rotateX(90deg) translateZ(var(--cube-half));background:#2a5280}
+.luminous-core .core-bottom{transform:rotateX(-90deg) translateZ(var(--cube-half));background:#0e294a}
+.luminous-core .core-emblem-logo{width:61%;height:61%;filter:drop-shadow(0 0 9px #a4eaff77)}
 </style>
