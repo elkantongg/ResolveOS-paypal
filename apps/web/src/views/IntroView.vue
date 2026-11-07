@@ -1063,54 +1063,75 @@ onBeforeUnmount(() => {
   visibility:visible;
 }
 
-/* Cinematic 1.65s chapter handoff — a single stage, never two chapters
-   superimposed. 0–690ms exit, switch behind light sweep, 690–1650ms enter. */
+/* Directional vertical chapter handoff (down = up-scroll, up = reverse).
+   One full scene leaves before the next enters: no chapter double-exposure.
+   Use CSS translate (not transform) on visuals so their centered positioning,
+   3D transforms, and ongoing child animations remain untouched. */
 .cinematic-intro .cinema-stage--exiting .cinema-caption-inner--active{
-  animation:cinema-chapter-exit .69s cubic-bezier(.42,0,.8,.5) both!important;
+  animation:cinema-copy-scroll-out .69s cubic-bezier(.47,0,.74,.39) both!important;
   pointer-events:none;
 }
 .cinematic-intro .cinema-stage--entering .cinema-caption-inner--active{
-  animation:cinema-chapter-enter .88s cubic-bezier(.18,.72,.25,1) both!important;
+  animation:cinema-copy-scroll-in .94s cubic-bezier(.17,.75,.25,1) both!important;
 }
 .cinematic-intro .cinema-stage--exiting .luminous-world[style*="opacity: 1"],
 .cinematic-intro .cinema-stage--exiting .morph-scene[style*="opacity: 1"]{
-  animation:cinema-visual-exit .69s cubic-bezier(.42,0,.8,.5) both!important;
+  animation:cinema-art-scroll-out .69s cubic-bezier(.47,0,.74,.39) both!important;
 }
 .cinematic-intro .cinema-stage--entering .luminous-world[style*="opacity: 1"],
 .cinematic-intro .cinema-stage--entering .morph-scene[style*="opacity: 1"]{
-  animation:cinema-visual-enter .94s cubic-bezier(.18,.72,.25,1) both!important;
+  animation:cinema-art-scroll-in .94s cubic-bezier(.17,.75,.25,1) both!important;
 }
-@keyframes cinema-chapter-exit{
-  from{opacity:1;transform:translate3d(0,0,0) scale(1)}
-  to{opacity:0;transform:translate3d(0,-24px,0) scale(.985)}
+@keyframes cinema-copy-scroll-out{
+  0%{opacity:1;translate:0 0}
+  100%{opacity:0;translate:0 -15vh}
 }
-@keyframes cinema-chapter-enter{
-  from{opacity:0;transform:translate3d(0,26px,0) scale(.985)}
-  to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+@keyframes cinema-copy-scroll-in{
+  0%{opacity:0;translate:0 14vh}
+  100%{opacity:1;translate:0 0}
 }
-@keyframes cinema-visual-exit{
-  from{opacity:1;filter:blur(0)}
-  to{opacity:0;filter:blur(8px)}
+@keyframes cinema-art-scroll-out{
+  0%{opacity:1;translate:0 0;filter:blur(0)}
+  100%{opacity:0;translate:0 -19vh;filter:blur(5px)}
 }
-@keyframes cinema-visual-enter{
-  from{opacity:0;filter:blur(9px)}
-  to{opacity:1;filter:blur(0)}
+@keyframes cinema-art-scroll-in{
+  0%{opacity:0;translate:0 19vh;filter:blur(5px)}
+  100%{opacity:1;translate:0 0;filter:blur(0)}
 }
-/* A moving edge of blue light makes the mid-transition feel intentional.
-   It peaks precisely as the chapter switches, rather than showing ghost copy. */
+/* Backward navigation flips the vertical movement, not the typography. */
+.cinematic-intro .cinema-stage--backward.cinema-stage--exiting .cinema-caption-inner--active{
+  animation-name:cinema-copy-scroll-out-reverse!important;
+}
+.cinematic-intro .cinema-stage--backward.cinema-stage--entering .cinema-caption-inner--active{
+  animation-name:cinema-copy-scroll-in-reverse!important;
+}
+.cinematic-intro .cinema-stage--backward.cinema-stage--exiting .luminous-world[style*="opacity: 1"],
+.cinematic-intro .cinema-stage--backward.cinema-stage--exiting .morph-scene[style*="opacity: 1"]{
+  animation-name:cinema-art-scroll-out-reverse!important;
+}
+.cinematic-intro .cinema-stage--backward.cinema-stage--entering .luminous-world[style*="opacity: 1"],
+.cinematic-intro .cinema-stage--backward.cinema-stage--entering .morph-scene[style*="opacity: 1"]{
+  animation-name:cinema-art-scroll-in-reverse!important;
+}
+@keyframes cinema-copy-scroll-out-reverse{from{opacity:1;translate:0 0}to{opacity:0;translate:0 15vh}}
+@keyframes cinema-copy-scroll-in-reverse{from{opacity:0;translate:0 -14vh}to{opacity:1;translate:0 0}}
+@keyframes cinema-art-scroll-out-reverse{from{opacity:1;translate:0 0;filter:blur(0)}to{opacity:0;translate:0 19vh;filter:blur(5px)}}
+@keyframes cinema-art-scroll-in-reverse{from{opacity:0;translate:0 -19vh;filter:blur(5px)}to{opacity:1;translate:0 0;filter:blur(0)}}
+/* Vertical light veil travels bottom-to-top as the scene scrolls upward.
+   It reverses for upward scroll; no horizontal wipe. */
 .cinema-handoff{
   position:absolute;inset:0;z-index:6;pointer-events:none;
-  background:linear-gradient(100deg,transparent 0%,#0a1a37a8 33%,#163b7775 49%,#071027bb 68%,transparent 100%);
-  clip-path:inset(0 100% 0 0);
-  animation:cinema-light-sweep 1.65s cubic-bezier(.55,0,.25,1) both;
+  background:linear-gradient(180deg,transparent 0%,#10244b40 26%,#1a4d9670 48%,#0a1d3e96 66%,transparent 100%);
+  clip-path:inset(100% 0 0 0);
+  animation:cinema-vertical-veil 1.65s cubic-bezier(.55,0,.25,1) both;
 }
-.cinema-stage--backward .cinema-handoff{transform:scaleX(-1)}
-@keyframes cinema-light-sweep{
-  0%{clip-path:inset(0 100% 0 0);opacity:0}
-  16%{opacity:.65}
-  43%{clip-path:inset(0 0 0 0);opacity:.83}
-  57%{clip-path:inset(0 0 0 0);opacity:.65}
-  100%{clip-path:inset(0 0 0 100%);opacity:0}
+.cinema-stage--backward .cinema-handoff{animation-direction:reverse}
+@keyframes cinema-vertical-veil{
+  0%{clip-path:inset(100% 0 0 0);opacity:0}
+  17%{opacity:.48}
+  43%{clip-path:inset(0 0 0 0);opacity:.72}
+  57%{clip-path:inset(0 0 0 0);opacity:.58}
+  100%{clip-path:inset(0 0 100% 0);opacity:0}
 }
 @media(prefers-reduced-motion:reduce){
   .cinematic-intro .cinema-stage--exiting .cinema-caption-inner--active,
