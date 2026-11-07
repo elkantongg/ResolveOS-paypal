@@ -178,10 +178,10 @@ onBeforeUnmount(() => {
             <svg class="intelligence-art" viewBox="0 0 860 620" preserveAspectRatio="xMidYMid meet" focusable="false">
               <defs>
                 <radialGradient id="intelligence-sphere-fill" cx="32%" cy="25%" r="82%">
-                  <stop offset="0%" stop-color="#8bc9ff" stop-opacity=".28" />
-                  <stop offset="34%" stop-color="#3676db" stop-opacity=".18" />
-                  <stop offset="75%" stop-color="#0c2e75" stop-opacity=".12" />
-                  <stop offset="100%" stop-color="#081638" stop-opacity=".32" />
+                  <stop class="intelligence-fill-highlight" offset="0%" stop-color="#8bc9ff" stop-opacity=".28" />
+                  <stop class="intelligence-fill-mid" offset="34%" stop-color="#3676db" stop-opacity=".18" />
+                  <stop class="intelligence-fill-deep" offset="75%" stop-color="#0c2e75" stop-opacity=".12" />
+                  <stop class="intelligence-fill-edge" offset="100%" stop-color="#081638" stop-opacity=".32" />
                 </radialGradient>
                 <linearGradient id="intelligence-orbital-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stop-color="#4481f5" stop-opacity=".18" />
@@ -1150,4 +1150,17 @@ onBeforeUnmount(() => {
   border-color:#314b74;
 }
 .cinematic-intro .cinema-icon svg{stroke:currentColor}
+
+/* Light theme: deeper glass-blue spheres with defined silhouettes and orbit lines.
+   Dark mode retains its existing luminous treatment. */
+:global(html[data-theme='light']) .negotiation-scene .intelligence-fill-highlight{stop-color:#2463ba;stop-opacity:.82}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-fill-mid{stop-color:#1d4fa3;stop-opacity:.84}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-fill-deep{stop-color:#102e71;stop-opacity:.91}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-fill-edge{stop-color:#0c2459;stop-opacity:.97}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-sphere-shell{
+  stroke:#174786cf;stroke-width:1.65;filter:drop-shadow(0 8px 18px #2858a554)
+}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-sphere-inner{stroke:#9acaff5c}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-orbit-stroke{filter:drop-shadow(0 0 3px #0e3f8680)}
+:global(html[data-theme='light']) .negotiation-scene .intelligence-sphere-sheen{stroke:#b5ddffdb}
 </style>
