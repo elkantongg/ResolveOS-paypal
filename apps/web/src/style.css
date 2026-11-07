@@ -205,3 +205,46 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Runtime semantic theme palette shared by Tailwind utilities and custom components. */
+html[data-theme='dark'] {
+  --color-canvas: #0b101a;
+  --color-surface: #151c2b;
+  --color-sunken: #202a3b;
+  --color-ink: #f3f6fc;
+  --color-ink-soft: #c5d0e1;
+  --color-muted: #a3b0c3;
+  --color-faint: #8493ab;
+  --color-line: #303c50;
+  --color-line-strong: #45536a;
+  --color-primary: #82a7ff;
+  --color-primary-deep: #507ce5;
+  --color-primary-soft: #1a3054;
+  --color-primary-line: #365b93;
+  --color-accent: #4fd1b6;
+  --color-accent-bright: #65e4ca;
+  --color-accent-soft: #17392f;
+  --color-accent-line: #2c6b5b;
+  --color-buyer: #91b2ff;
+  --color-buyer-soft: #1b3157;
+  --color-merchant: #64ddc4;
+  --color-merchant-soft: #193c35;
+  --color-referee: #bbc8da;
+  --color-referee-soft: #283448;
+  --color-warn: #fbbf79;
+  --color-warn-soft: #43301b;
+  --color-warn-line: #805a2e;
+  --color-danger: #ff9895;
+  --color-danger-soft: #48252a;
+  --color-danger-line: #89434a;
+  --color-ok: #62dfab;
+  --color-ok-soft: #153c30;
+  --color-ok-line: #32765d;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.18);
+  --shadow-lift: 0 18px 45px rgb(0 0 0 / 0.35);
+  --shadow-focus: 0 0 0 4px rgb(130 167 255 / 0.24);
+}
+html[data-theme='dark'] .btn-primary { color: #081323; }
+html[data-theme='dark'] .bg-white { background-color: var(--color-surface); }
+html { transition: background-color .22s ease, color .22s ease; }
+@media (prefers-reduced-motion: reduce) { html { transition: none; } }
