@@ -6,11 +6,12 @@ import Logo from '@/components/Logo.vue';
 import { useThemePreference } from '@/lib/useThemePreference';
 
 const { currentTheme, toggleTheme } = useThemePreference();
-const scrollArea = ref<HTMLElement | null>(null);
-const progress = ref(0);
+const chapter = ref(0);
 const reducedMotion = ref(false);
-let frame = 0;
-let resizeObserver: ResizeObserver | undefined;
+let wheelAccum = 0;
+let lastWheelDirection = 0;
+let lastNavigationAt = 0;
+let touchStartY: number | null = null;
 
 const stories = [
   { kicker: '01 / THE PROBLEM', title: 'A payment went through.\nTrust did not.', detail: 'The customer says it never arrived. The seller sees delivered. Both deserve to be heard.', label: 'THE DISPUTE' },
@@ -18,13 +19,16 @@ const stories = [
   { kicker: '03 / THE SAFEGUARDS', title: 'AI proposes.\nPeople decide.', detail: 'No agent can move money. Both people must approve the exact same terms.', label: 'THE APPROVAL' },
   { kicker: '04 / THE RESOLUTION', title: 'Resolved.\nWith proof.', detail: 'Approved refunds are executed using PayPal Sandbox and recorded with a verifiable receipt.', label: 'THE OUTCOME' },
 ] as const;
-const position = computed(() => Math.min(3, Math.max(0, progress.value * 3)));
-const activeIndex = computed(() => Math.min(3, Math.floor(position.value + .5)));
+const activeIndex = computed(() => chapter.value);
+const position = computed(() => chapter.value);
+const progress = computed(() => chapter.value / (stories.length - 1));
+const story = computed(() => stories[chapter.value]!);
+
 const interpolate = (stops: number[], t: number) => {
   const i = Math.min(stops.length - 2, Math.max(0, Math.floor(t)));
   const local = Math.min(1, Math.max(0, t - i));
   const ease = local * local * (3 - 2 * local);
-  return stops[i]! + (stops[i+1]! - stops[i]!) * ease;
+  return stops[i]! + (stops[i + 1]! - stops[i]!) * ease;
 };
 const sceneStyle = computed(() => {
   const t = position.value;
@@ -37,42 +41,66 @@ const sceneStyle = computed(() => {
     '--camera-light': String(interpolate([.45,.8,1,.55],t)),
   } as Record<string,string>;
 });
-const opacityAt = (index: number) => {
-  const distance = Math.abs(position.value - index);
-  return Math.max(0, Math.min(1, (1 - distance) * 2.1));
-};
-const update = () => {
-  frame = 0;
-  if (!scrollArea.value || reducedMotion.value) return;
-  const rect = scrollArea.value.getBoundingClientRect();
-  const distance = Math.max(1, scrollArea.value.offsetHeight - window.innerHeight);
-  progress.value = Math.min(1, Math.max(0, -rect.top / distance));
-};
-const requestUpdate = () => { if (!frame) frame = requestAnimationFrame(update); };
-const jumpTo = (index: number) => {
-  if (!scrollArea.value) return;
-  const range = scrollArea.value.offsetHeight - window.innerHeight;
-  window.scrollTo({ top: window.scrollY + scrollArea.value.getBoundingClientRect().top + range * index / 3, behavior: reducedMotion.value ? 'instant' : 'smooth' });
-};
+const opacityAt = (index: number) => index === chapter.value ? 1 : 0;
+
+function jumpTo(index: number) {
+  chapter.value = Math.max(0, Math.min(stories.length - 1, index));
+  wheelAccum = 0;
+  lastNavigationAt = performance.now();
+}
+
+// A single scroll/swipe gesture moves to exactly one settled chapter.
+// There is never an idle state between two sets of copy or illustrations.
+function handleWheel(event: WheelEvent) {
+  if (event.ctrlKey) return;
+  const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1);
+  if (Math.abs(delta) < 1) return;
+  const direction = Math.sign(delta);
+  if (direction !== lastWheelDirection) wheelAccum = 0;
+  lastWheelDirection = direction;
+  const now = performance.now();
+  if (now - lastNavigationAt < 1050) return;
+  wheelAccum += delta;
+  if (Math.abs(wheelAccum) >= 50) jumpTo(chapter.value + direction);
+}
+
+function handleTouchStart(event: TouchEvent) {
+  touchStartY = event.touches[0]?.clientY ?? null;
+}
+function handleTouchEnd(event: TouchEvent) {
+  if (touchStartY === null) return;
+  const distance = touchStartY - (event.changedTouches[0]?.clientY ?? touchStartY);
+  touchStartY = null;
+  if (Math.abs(distance) > 48 && performance.now() - lastNavigationAt >= 700) {
+    jumpTo(chapter.value + Math.sign(distance));
+  }
+}
+function handleKeydown(event: KeyboardEvent) {
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  const el = event.target;
+  if (el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+  if (['ArrowDown','PageDown'].includes(event.key) || (event.key === ' ' && !event.shiftKey)) {
+    event.preventDefault(); jumpTo(chapter.value + 1);
+  } else if (['ArrowUp','PageUp'].includes(event.key) || (event.key === ' ' && event.shiftKey)) {
+    event.preventDefault(); jumpTo(chapter.value - 1);
+  } else if (event.key === 'Home') {
+    event.preventDefault(); jumpTo(0);
+  } else if (event.key === 'End') {
+    event.preventDefault(); jumpTo(stories.length - 1);
+  }
+}
 onMounted(() => {
   reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reducedMotion.value) progress.value = 0;
-  window.addEventListener('scroll', requestUpdate, { passive: true });
-  window.addEventListener('resize', requestUpdate, { passive: true });
-  resizeObserver = new ResizeObserver(requestUpdate);
-  if (scrollArea.value) resizeObserver.observe(scrollArea.value);
-  requestUpdate();
+  window.addEventListener('keydown', handleKeydown);
+  window.scrollTo(0, 0);
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', requestUpdate);
-  window.removeEventListener('resize', requestUpdate);
-  resizeObserver?.disconnect();
-  if (frame) cancelAnimationFrame(frame);
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
 <template>
-  <div class="cinematic-intro bg-canvas text-ink">
+  <div class="cinematic-intro bg-canvas text-ink" @wheel.prevent="handleWheel" @touchstart.passive="handleTouchStart" @touchend.passive="handleTouchEnd">
     <header class="cinema-header">
       <RouterLink to="/" aria-label="ResolveOS home"><Logo /></RouterLink>
       <div class="cinema-actions">
@@ -84,7 +112,7 @@ onBeforeUnmount(() => {
     </header>
 
     <main id="main">
-      <div ref="scrollArea" class="cinema-scroll" :class="{ 'cinema-reduced': reducedMotion }">
+      <div class="cinema-scroll" :class="{ 'cinema-reduced': reducedMotion }">
         <section class="cinema-sticky" :style="sceneStyle" aria-label="ResolveOS product introduction">
           <!-- The reference's luminous, rotating motion is the hero; no device mockup or tabletop. -->
           <div class="luminous-world" :style="{ opacity: Math.max(opacityAt(0),opacityAt(3)) }" aria-hidden="true">
@@ -119,12 +147,14 @@ onBeforeUnmount(() => {
             <div class="safeguard-dot dot-one"/><div class="safeguard-dot dot-two"/>
           </div>
           <div class="cinema-caption" :class="{ 'cinema-caption--final': activeIndex === 3 }">
-            <div v-for="(item,i) in stories" :key="i" class="cinema-caption-inner" :aria-hidden="activeIndex !== i" :style="{ opacity: opacityAt(i), transform: 'translateY(' + ((i-position)*17) + 'px)', pointerEvents: activeIndex === i ? 'auto' : 'none' }">
-              <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
-              <h1>{{ item.title }}</h1>
-              <p>{{ item.detail }}</p>
-              <RouterLink v-if="i === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
-            </div>
+            <Transition name="cinema-copy" mode="out-in">
+              <div :key="activeIndex" class="cinema-caption-inner">
+                <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ story.kicker }}</span>
+                <h1>{{ story.title }}</h1>
+                <p>{{ story.detail }}</p>
+                <RouterLink v-if="activeIndex === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
+              </div>
+            </Transition>
           </div>
 
           <div class="cinema-foot">
@@ -282,5 +312,25 @@ onBeforeUnmount(() => {
   .cinema-caption--final h1{font-size:clamp(28px,4.3vw,54px);margin:9px 0 10px}
   .cinema-caption--final p{font-size:clamp(12px,1vw,16px);line-height:1.4}
   .cinema-caption--final .final-proceed{margin-top:14px;padding:12px 20px}
+}
+
+/* Full-screen chapter presentation: never stop between two chapters.
+   Header stays pinned; typography is a single transitioning block. */
+.cinematic-intro{height:100svh;min-height:0;overflow:hidden;overscroll-behavior:none}
+.cinema-header{position:fixed;z-index:50;width:100%;max-width:none}
+.cinema-scroll{height:100svh!important;overflow:hidden}
+.cinema-sticky{position:relative;top:auto;height:100svh;min-height:0!important}
+.luminous-world,.morph-scene{
+  transition:opacity .72s cubic-bezier(.25,.46,.45,.94),
+             transform .92s cubic-bezier(.16,1,.3,1);
+}
+.cinema-caption-inner{transition:none}
+.cinema-copy-enter-active{transition:opacity .42s ease,transform .42s cubic-bezier(.16,1,.3,1)}
+.cinema-copy-leave-active{transition:opacity .23s ease,transform .23s ease}
+.cinema-copy-enter-from{opacity:0;transform:translateY(20px)}
+.cinema-copy-leave-to{opacity:0;transform:translateY(-12px)}
+@media(max-width:900px){.cinema-header{position:fixed;top:0;left:0;right:0}}
+@media(prefers-reduced-motion:reduce){
+  .luminous-world,.morph-scene,.cinema-copy-enter-active,.cinema-copy-leave-active{transition:none!important}
 }
 </style>
