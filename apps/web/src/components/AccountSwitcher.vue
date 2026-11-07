@@ -41,7 +41,7 @@ async function switchTo(userId: string) {
 async function signOut() {
   await session.signOut();
   open.value = false;
-  await router.push('/signin');
+  await router.replace('/');
 }
 
 function onDocClick(event: MouseEvent) {

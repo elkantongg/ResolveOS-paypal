@@ -56,7 +56,7 @@ async function resetDemo() {
   if (!confirm('Reset the demo? This deletes every case and transaction record in this local database and signs everyone out. PayPal sandbox payments themselves are not touched.')) return;
   resetting.value = true;
   try {
-    await api.post('/demo/reset');
+    await api.post('/demo/reset', { confirm: 'RESET' });
     await session.signOut().catch(() => undefined);
     await router.push('/signin');
   } catch (e) {
@@ -120,7 +120,7 @@ const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merch
       <p class="text-sm"><span class="text-muted">Median complaint → resolution </span><span class="font-semibold tabular">{{ duration(summary.measured.medianResolutionSeconds) }}</span><span class="text-xs text-muted"> ({{ summary.measured.resolvedCasesMeasured }} resolved)</span></p>
       <p class="text-sm"><span class="text-muted">Median agent negotiation </span><span class="font-semibold tabular">{{ duration(summary.measured.medianNegotiationSeconds) }}</span></p>
       <p class="text-sm"><span class="text-muted">Agent turns </span><span class="font-semibold tabular">{{ summary.measured.agentTurns }}</span><span class="text-muted"> · guardrail rejections </span><span class="font-semibold tabular">{{ summary.measured.guardrailRejections }}</span></p>
-      <p class="text-xs text-muted">PayPal’s dispute inquiry stage allows up to {{ summary.measured.paypalInquiryWindowDays }} days.</p>
+      <p class="text-xs text-muted">Observed in this app only. For context, PayPal’s dispute inquiry stage can last up to {{ summary.measured.paypalInquiryWindowDays }} days (a maximum, not an average).</p>
     </section>
 
     <div class="grid gap-6 xl:grid-cols-[1fr_360px]">

@@ -1,4 +1,5 @@
-# ResolveOS
+
+| A **deterministic eligibility screen** runs before any agent: possible unauthorised payments or account takeover, and fully refunded payments, are escalated to PayPal without negotiating. | `negotiation/eligibility.ts` |# ResolveOS
 
 **Two sides. One resolution.**
 
@@ -136,7 +137,7 @@ only the labelled demo engine is available.
 
 ```bash
 pnpm db:migrate      # create the tables
-pnpm db:seed         # demo people + 2 seeded cases (RA-1042, RA-1043)
+pnpm db:seed         # demo people + 2 seeded cases, ONLY into an empty database (never deletes)
 pnpm paypal:check    # proves your sandbox keys: OAuth + creates an unpaid $1 order
 pnpm dev             # API on :5001, web app on http://localhost:5180
 ```
@@ -180,6 +181,25 @@ cloudflared tunnel --url http://localhost:5001
 
 Without webhooks, refunds are still confirmed from PayPal's API responses, and pending ones from
 **Check with PayPal**.
+
+### Resetting demo data (destructive, explicit)
+
+`pnpm db:seed` never deletes anything: if the database already has data, it changes nothing.
+To wipe this app's records (cases, payments, refunds) and start again:
+
+```bash
+pnpm db:reset          # shows what would be deleted; changes nothing
+pnpm db:reset --yes    # deletes everything in this app's database, then re-creates the demo data
+```
+
+In the app, only the **Demo Operator** can reset, and only after confirming. Both are refused when
+`NODE_ENV=production`. PayPal itself is never touched: sandbox payments and refunds stay in PayPal.
+
+## Negotiation evaluation
+
+`createdb resolve_ai_eval && pnpm eval --engines=baseline,ai --reps=3` compares the AI agents with a
+rules-based baseline on 5 scripted scenarios (separate database). Method, results and limits are in
+[`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## Tests
 
@@ -240,6 +260,10 @@ e2e/            Playwright specs
 
 ## Known limitations
 
+- **Eligibility screen uses text patterns.** Possible unauthorised payments or account takeover are
+  sent to PayPal before any agent runs, but a claim worded differently could be missed, and an
+  ordinary complaint could be flagged. A false positive only means a person handles it.
+- **Evaluation is small.** 5 scripted scenarios, 3 AI runs each, written by us. See `docs/EVALUATION.md`.
 - **Sandbox only.** Live PayPal credentials and real money are out of scope.
 - **Authentication is demo-grade:** pick a seeded person, no passwords. The sessions are real,
   though, and roles are enforced on the server.
@@ -256,6 +280,7 @@ e2e/            Playwright specs
 ## Submission material
 
 - `docs/DEVPOST.md`: the submission text (problem, solution, measured impact, USP).
+- `docs/EVALUATION.md`: AI vs rules-based baseline on 5 scenarios, with limitations.
 - `docs/VIDEO_SCRIPT.md`: the timed script for the 3-minute demo video.
 
 ## License

@@ -21,7 +21,7 @@ export default defineConfig({
   use: { ...devices['Desktop Chrome'], channel: 'chrome', baseURL: WEB, viewport: { width: 1440, height: 900 }, trace: 'retain-on-failure', video: 'off' },
   webServer: [
     {
-      command: 'pnpm --filter server exec tsx src/db/seed.ts && pnpm --filter server exec tsx src/index.ts',
+      command: 'pnpm --filter server exec tsx src/db/reset.ts --yes && pnpm --filter server exec tsx src/index.ts',
       url: `http://localhost:${API_PORT}/api/health`,
       reuseExistingServer: false,
       timeout: 60_000,

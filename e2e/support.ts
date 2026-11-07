@@ -23,5 +23,5 @@ export async function resetDemo(page: Page) {
   if (!operator) return;
   const login = await page.request.post('/api/auth/login', { data: { userId: operator.id } });
   const { csrfToken } = (await login.json()) as { csrfToken: string };
-  await page.request.post('/api/demo/reset', { headers: { 'X-CSRF-Token': csrfToken } });
+  await page.request.post('/api/demo/reset', { headers: { 'X-CSRF-Token': csrfToken }, data: { confirm: 'RESET' } });
 }

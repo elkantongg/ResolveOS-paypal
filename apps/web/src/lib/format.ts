@@ -154,6 +154,8 @@ export function describeEvent(event: Pick<AuditEvent, 'action' | 'details'>): st
       return 'No agreement within the turn limit';
     case 'negotiation.escalated':
       return 'Escalated to a person';
+    case 'negotiation.ineligible':
+      return 'Not negotiated: this case must go to PayPal directly';
     case 'refund.initiated':
       return `Refund sent to PayPal · ${d.amount ?? ''}`;
     case 'refund.completed':

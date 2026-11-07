@@ -100,9 +100,9 @@ const timeline = computed(() => receipt.value?.timeline.filter((e) => e.action !
           </div>
         </div>
         <p class="mt-3 text-xs text-muted text-pretty">
-          For comparison, PayPal’s dispute process gives buyer and merchant up to
-          <a :href="receipt.comparison.source" target="_blank" rel="noopener" class="underline">{{ receipt.comparison.paypalInquiryWindowDays }} days</a>
-          in the inquiry stage to resolve a dispute before it can be escalated.
+          Timings for this one case only, not a typical or average time. For context, a PayPal dispute’s inquiry stage can last
+          <a :href="receipt.comparison.source" target="_blank" rel="noopener" class="underline">up to {{ receipt.comparison.paypalInquiryWindowDays }} days</a>
+          (a maximum window, not an average).
           <template v-if="receipt.metrics.guardrailRejections">The server rejected {{ receipt.metrics.guardrailRejections }} invalid agent answer{{ receipt.metrics.guardrailRejections > 1 ? 's' : '' }} along the way.</template>
         </p>
       </section>

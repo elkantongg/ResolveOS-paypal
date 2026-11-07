@@ -205,3 +205,107 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Runtime semantic theme palette shared by Tailwind utilities and custom components. */
+html[data-theme='dark'] {
+  --color-canvas: #0b101a;
+  --color-surface: #151c2b;
+  --color-sunken: #202a3b;
+  --color-ink: #f3f6fc;
+  --color-ink-soft: #c5d0e1;
+  --color-muted: #a3b0c3;
+  --color-faint: #8493ab;
+  --color-line: #303c50;
+  --color-line-strong: #45536a;
+  --color-primary: #82a7ff;
+  --color-primary-deep: #507ce5;
+  --color-primary-soft: #1a3054;
+  --color-primary-line: #365b93;
+  --color-accent: #4fd1b6;
+  --color-accent-bright: #65e4ca;
+  --color-accent-soft: #17392f;
+  --color-accent-line: #2c6b5b;
+  --color-buyer: #91b2ff;
+  --color-buyer-soft: #1b3157;
+  --color-merchant: #64ddc4;
+  --color-merchant-soft: #193c35;
+  --color-referee: #bbc8da;
+  --color-referee-soft: #283448;
+  --color-warn: #fbbf79;
+  --color-warn-soft: #43301b;
+  --color-warn-line: #805a2e;
+  --color-danger: #ff9895;
+  --color-danger-soft: #48252a;
+  --color-danger-line: #89434a;
+  --color-ok: #62dfab;
+  --color-ok-soft: #153c30;
+  --color-ok-line: #32765d;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.18);
+  --shadow-lift: 0 18px 45px rgb(0 0 0 / 0.35);
+  --shadow-focus: 0 0 0 4px rgb(130 167 255 / 0.24);
+}
+html[data-theme='dark'] .btn-primary { color: #081323; }
+html[data-theme='dark'] .bg-white { background-color: var(--color-surface); }
+html { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }
+
+/* Reveal the captured new theme through a custom sinusoidal wave. Keep the old
+   snapshot fixed underneath; browser default fades would obscure the wave. */
+html.theme-wave-active::view-transition-old(root),
+html.theme-wave-active::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-wave-active::view-transition-old(root) {
+  z-index: 1;
+}
+html.theme-wave-active::view-transition-new(root) {
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-wave-active::view-transition-old(root),
+  html.theme-wave-active::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+
+/* Intro scene palette. These must live in global CSS, NOT inside a scoped
+   Vue :global(...) prefix selector, which can drop the remaining selector. */
+html[data-theme='light'] .cinematic-intro { background:#f7faff; }
+html[data-theme='light'] .cinema-sticky {
+  background:radial-gradient(ellipse at 65% 47%,#dce9ff 0%,#edf4ff 40%,#fafcff 82%);
+  color:#12254a;
+}
+html[data-theme='light'] .cinema-sticky::after {
+  background:linear-gradient(90deg,#f8fbffb5,transparent 58%,#e7f0ff26);
+}
+html[data-theme='light'] .cinema-caption { text-shadow:none; }
+html[data-theme='light'] .cinema-caption h1 { color:#102141; }
+html[data-theme='light'] .cinema-caption p { color:#415678; }
+html[data-theme='light'] .cinema-eyebrow { color:#2458a9; }
+html[data-theme='light'] .cinema-scroll-label { color:#4b5e7e; }
+html[data-theme='light'] .cinema-progress { background:#9cb3d859; }
+html[data-theme='light'] .cinema-progress > div { background:#2d66c8; }
+html[data-theme='light'] .cinema-next { background:#ffffffb8;border-color:#99add0;color:#13326a; }
+html[data-theme='light'] .luminous-world { filter:drop-shadow(0 0 32px #397efb40); }
+html[data-theme='light'] .morph-scene { filter:drop-shadow(0 0 27px #397efb55); }
+html[data-theme='light'] .final-proceed { background:#173c85;color:#fff;box-shadow:0 12px 35px #2d62ad40; }
+/* Use the same dark scheme for the header and cinematic canvas. */
+html[data-theme='dark'] .cinema-header .cinema-icon { background:#131d31;border-color:#4d6387;color:#eaf3ff; }
+html[data-theme='dark'] .cinema-header .cinema-enter { background:#e8f2ff;color:#0e1930; }
+html[data-theme='dark'] .cinema-sticky {
+  background:radial-gradient(ellipse at 62% 48%,#132044 0%,#080d1f 39%,#02040b 78%);
+  color:#fff;
+}
+html[data-theme='dark'] .cinema-sticky::after { background:linear-gradient(90deg,#02040b80,transparent 56%,#02040b22); }
+html[data-theme='dark'] .cinema-caption h1 { color:#fff; }
+html[data-theme='dark'] .cinema-caption p { color:#cbd7ea; }
+html[data-theme='dark'] .cinema-eyebrow { color:#95bfff; }
+html[data-theme='dark'] .cinema-scroll-label { color:#b7bdcc; }
+html[data-theme='dark'] .cinema-progress { background:#ffffff42; }
+html[data-theme='dark'] .cinema-progress > div { background:#a1c7ff; }
+html[data-theme='dark'] .cinema-next { background:#10182777;border-color:#ffffff66;color:#fff; }
+html[data-theme='dark'] .luminous-world { filter:drop-shadow(0 0 38px #1361ff55); }
+html[data-theme='dark'] .morph-scene { filter:drop-shadow(0 0 32px #1778ff77); }
+html[data-theme='dark'] .final-proceed { background:#e5f1ff;color:#07142c;box-shadow:0 0 32px #4e9cff55; }

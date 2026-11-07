@@ -1,14 +1,16 @@
 
 <script setup lang="ts">
-import { BadgeCheck, CircleAlert, Cpu, CreditCard, Webhook } from 'lucide-vue-next';
+import { BadgeCheck, CircleAlert, Cpu, CreditCard, Moon, Sun, Webhook } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 import { errorMessage } from '@/api/client';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useSession } from '@/stores/session';
+import { useThemePreference } from '@/lib/useThemePreference';
 
 /** Integration readiness. Never shows a secret: only whether each piece is configured and working. */
 const session = useSession();
+const { currentTheme, setTheme } = useThemePreference();
 const error = ref<string | null>(null);
 const checking = ref(false);
 
@@ -35,6 +37,14 @@ onMounted(check);
       </div>
       <button type="button" class="btn btn-secondary btn-sm" :disabled="checking" @click="check">{{ checking ? 'Checking…' : 'Check again' }}</button>
     </div>
+    <section class="card p-5">
+      <h2 class="font-semibold">Appearance</h2>
+      <p class="mt-1 text-sm text-muted">Saved on this device.</p>
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <button type="button" class="flex items-center justify-center gap-2 rounded-xl border px-4 py-4 text-sm font-semibold" :class="currentTheme === 'light' ? 'border-primary bg-primary-soft text-primary' : 'border-line bg-surface text-ink-soft'" :aria-pressed="currentTheme === 'light'" @click="setTheme('light')"><Sun class="size-5" /> Light mode</button>
+        <button type="button" class="flex items-center justify-center gap-2 rounded-xl border px-4 py-4 text-sm font-semibold" :class="currentTheme === 'dark' ? 'border-primary bg-primary-soft text-primary' : 'border-line bg-surface text-ink-soft'" :aria-pressed="currentTheme === 'dark'" @click="setTheme('dark')"><Moon class="size-5" /> Dark mode</button>
+      </div>
+    </section>
     <ErrorNotice v-if="error" :message="error" />
 
     <ul v-if="session.status" class="space-y-3">

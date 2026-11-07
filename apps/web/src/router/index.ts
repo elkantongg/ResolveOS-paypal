@@ -6,7 +6,8 @@ const router = createRouter({
   history: createWebHistory(),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
-    { path: '/', name: 'landing', component: () => import('@/views/LandingView.vue'), meta: { public: true, bare: true } },
+    { path: '/', name: 'intro', component: () => import('@/views/IntroView.vue'), meta: { public: true, bare: true } },
+    { path: '/about', name: 'landing', component: () => import('@/views/LandingView.vue'), meta: { public: true, bare: true } },
     { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true, bare: true } },
     { path: '/dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
     { path: '/purchase', name: 'purchase', component: () => import('@/views/PurchaseView.vue') },
