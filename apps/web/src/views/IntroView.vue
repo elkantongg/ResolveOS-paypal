@@ -682,4 +682,36 @@ onBeforeUnmount(() => {
 @media (max-width:1099px){
   .cinema-headline-line{white-space:normal}
 }
+
+/* ResolveOS cinematic display typography: Manrope for premium editorial
+   headlines, Geist retained for the product UI. */
+.cinematic-intro .cinema-caption h1{
+  font-family:'Manrope','Geist',ui-sans-serif,system-ui,sans-serif;
+  font-weight:800;
+  letter-spacing:-.065em;
+  line-height:1.085;
+  font-optical-sizing:auto;
+  text-wrap:balance;
+}
+.cinematic-intro .cinema-caption p{
+  font-family:'Manrope','Geist',ui-sans-serif,system-ui,sans-serif;
+  font-weight:400;
+  letter-spacing:-.018em;
+  line-height:1.55;
+}
+.cinematic-intro .cinema-eyebrow{
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-weight:700;
+  letter-spacing:.22em;
+}
+@media(min-width:1100px){
+  .cinematic-intro .cinema-caption--problem h1{font-size:clamp(35px,2.85vw,46px)}
+  .cinematic-intro .cinema-caption--intelligence h1{font-size:clamp(43px,3.6vw,58px)}
+}
+@media(min-width:700px) and (max-width:1099px){
+  .cinematic-intro .cinema-caption h1{letter-spacing:-.055em}
+}
+@media(max-width:699px){
+  .cinematic-intro .cinema-caption h1{letter-spacing:-.055em;line-height:1.07}
+}
 </style>
