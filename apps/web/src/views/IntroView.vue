@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole, Check, Handshake } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole, Check } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
@@ -142,29 +142,35 @@ onBeforeUnmount(() => {
             <div class="luminous-particle particle-three" />
           </div>
 
+          <!-- Quiet exchange: two small endpoints, one fluid connection. -->
           <div class="morph-scene negotiation-scene" :style="{ opacity: opacityAt(1) }" aria-hidden="true">
-            <div class="negotiation-atmosphere" />
-            <div class="negotiation-channel">
-              <div class="negotiation-channel-inner" />
-              <div class="negotiation-wave negotiation-wave-one" />
-              <div class="negotiation-wave negotiation-wave-two" />
+            <div class="dialogue-glow" />
+            <svg class="dialogue-wire" viewBox="0 0 760 460" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="dialogue-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4f91ed" stop-opacity=".5" />
+                  <stop offset="50%" stop-color="#c5eaff" stop-opacity=".95" />
+                  <stop offset="100%" stop-color="#4f91ed" stop-opacity=".5" />
+                </linearGradient>
+              </defs>
+              <path class="dialogue-wire-back" d="M148 230 C286 157 474 303 612 230" />
+              <path class="dialogue-wire-front" d="M148 230 C286 157 474 303 612 230" />
+              <circle class="dialogue-packet dialogue-packet-out" r="5">
+                <animateMotion dur="12.8s" repeatCount="indefinite" keyTimes="0;0.12;0.43;0.5;1" keyPoints="0;0;1;1;1" calcMode="linear" path="M148 230 C286 157 474 303 612 230" />
+              </circle>
+              <circle class="dialogue-packet dialogue-packet-in" r="5">
+                <animateMotion dur="12.8s" repeatCount="indefinite" keyTimes="0;0.52;0.63;0.94;1" keyPoints="0;0;1;0;0" calcMode="linear" path="M148 230 C286 157 474 303 612 230" />
+              </circle>
+            </svg>
+            <div class="dialogue-endpoint dialogue-endpoint-buyer">
+              <div class="dialogue-symbol">B</div>
+              <span>BUYER AGENT</span>
             </div>
-            <div class="negotiation-node buyer-node">
-              <div class="negotiation-node-track" />
-              <div class="negotiation-node-core"><span>B</span></div>
+            <div class="dialogue-endpoint dialogue-endpoint-merchant">
+              <div class="dialogue-symbol">M</div>
+              <span>MERCHANT AGENT</span>
             </div>
-            <div class="negotiation-node merchant-node">
-              <div class="negotiation-node-track" />
-              <div class="negotiation-node-core"><span>M</span></div>
-            </div>
-            <div class="negotiation-nexus">
-              <div class="negotiation-nexus-halo" />
-              <div class="negotiation-nexus-center"><Handshake :size="31" :stroke-width="1.35" /></div>
-            </div>
-            <div class="negotiation-message negotiation-message-buyer" />
-            <div class="negotiation-message negotiation-message-merchant" />
-            <div class="negotiation-glint negotiation-glint-top" />
-            <div class="negotiation-glint negotiation-glint-bottom" />
+            <div class="dialogue-center-label">EXCHANGING PROPOSALS</div>
           </div>
           <div class="morph-scene safeguard-scene" :style="{ opacity: opacityAt(2) }" aria-hidden="true">
             <div class="approval-ambient" />
@@ -552,39 +558,31 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Page 02 only: slower 11.2-second negotiation choreography.
-   Distinct from Page 03's 6.8s approval cycle. */
-.negotiation-scene{isolation:isolate;perspective:1100px;--negotiation-cycle:11.2s}
-.negotiation-atmosphere{position:absolute;inset:10%;border-radius:50%;background:radial-gradient(ellipse at center,#286fd827 0%,#1e65b311 46%,transparent 71%);filter:blur(20px);animation:negotiation-breathe var(--negotiation-cycle) ease-in-out infinite}
-.negotiation-scene .negotiation-node{width:39%;top:30.5%;border:2px solid #b3e3ffb5;background:radial-gradient(circle at 35% 28%,#286ab488,#071c43d9 55%,#050c20f5 90%);box-shadow:inset 0 0 46px #358fff6e,0 0 34px #438de860;overflow:visible;animation:none}
-.negotiation-scene .buyer-node{left:2%;animation:negotiation-buyer-drift var(--negotiation-cycle) cubic-bezier(.45,0,.25,1) infinite}
-.negotiation-scene .merchant-node{right:2%;animation:negotiation-merchant-drift var(--negotiation-cycle) cubic-bezier(.45,0,.25,1) infinite}
-.negotiation-scene .negotiation-node:before{content:none}
-.negotiation-node-track{position:absolute;inset:-6%;border-radius:50%;border:1.5px dashed #81c6ff94;animation:negotiation-track 33s linear infinite}
-.negotiation-node-core{position:absolute;inset:18%;display:grid;place-items:center;border:1px solid #a2d8ff6b;border-radius:50%;background:radial-gradient(circle at 34% 25%,#326cb97d,transparent 75%);box-shadow:0 0 32px #428ce13d}
-.negotiation-node-core span{font-size:clamp(32px,4.6vw,70px);font-weight:650;line-height:1;letter-spacing:-.035em;color:#e9f7ff;text-shadow:0 0 22px #83c9ff9c}
-.negotiation-channel{position:absolute;left:25%;right:25%;top:48%;height:8%;z-index:0}
-.negotiation-channel-inner{position:absolute;left:0;right:0;top:50%;height:2px;background:linear-gradient(90deg,#4a8cde70,#bce5ffb0 40%,#bce5ffb0 60%,#4a8cde70);box-shadow:0 0 16px #438ce175}
-.negotiation-wave{position:absolute;inset:0;border-top:1px solid #75b8fa5e;border-radius:50%;animation:negotiation-wave-motion var(--negotiation-cycle) ease-in-out infinite}
-.negotiation-wave-two{transform:scaleY(-1);animation-delay:-5.6s}
-.negotiation-nexus{position:absolute;z-index:4;left:50%;top:50%;width:15%;aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center;animation:negotiation-nexus-cycle var(--negotiation-cycle) cubic-bezier(.4,0,.2,1) infinite}
-.negotiation-nexus-halo{position:absolute;inset:-13%;border:1px solid #bcecffae;border-radius:35%;transform:rotate(45deg);box-shadow:0 0 21px #5baafc91,inset 0 0 18px #3a86ee66}
-.negotiation-nexus-center{position:absolute;inset:6%;display:grid;place-items:center;border-radius:30%;border:1px solid #a8dfff;background:radial-gradient(circle at 33% 24%,#2869ae,#071831 75%);box-shadow:0 0 24px #539efb88;color:#ebfaff}
-.negotiation-message{position:absolute;z-index:5;top:50%;width:10px;height:10px;border-radius:50%;background:#e2f8ff;box-shadow:0 0 13px 5px #8bd5ff,0 0 27px 11px #398fff70;opacity:0}
-.negotiation-message-buyer{left:27%;animation:negotiation-offer-forward var(--negotiation-cycle) ease-in-out infinite}
-.negotiation-message-merchant{right:27%;animation:negotiation-offer-return var(--negotiation-cycle) ease-in-out infinite}
-.negotiation-glint{position:absolute;width:5px;height:5px;border-radius:50%;background:#e5faff;box-shadow:0 0 14px 5px #62aaff;animation:negotiation-glint-float var(--negotiation-cycle) ease-in-out infinite}
-.negotiation-glint-top{top:16%;left:35%}
-.negotiation-glint-bottom{bottom:15%;right:28%;animation-delay:-5.6s}
-@keyframes negotiation-breathe{0%,100%{transform:scale(.96);opacity:.65}50%{transform:scale(1.08);opacity:1}}
-@keyframes negotiation-buyer-drift{0%,100%{transform:translate(0,0) rotate(-7deg)}28%{transform:translate(6%,-3%) rotate(1deg)}52%{transform:translate(2%,1%) rotate(-3deg)}76%{transform:translate(-2%,2%) rotate(-6deg)}}
-@keyframes negotiation-merchant-drift{0%,100%{transform:translate(0,0) rotate(7deg)}28%{transform:translate(-3%,2%) rotate(4deg)}52%{transform:translate(-7%,-3%) rotate(-2deg)}76%{transform:translate(1%,0) rotate(5deg)}}
-@keyframes negotiation-track{to{transform:rotate(360deg)}}
-@keyframes negotiation-wave-motion{0%,100%{opacity:.3;scale:1 .7}50%{opacity:.85;scale:1 1.25}}
-@keyframes negotiation-nexus-cycle{0%,17%,100%{transform:translate(-50%,-50%) scale(.88);filter:brightness(.85)}32%,52%{transform:translate(-50%,-50%) scale(1.07);filter:brightness(1.6)}70%,87%{transform:translate(-50%,-50%) scale(1.12);filter:brightness(1.95)}}
-@keyframes negotiation-offer-forward{0%,12%{left:27%;opacity:0;transform:scale(.35)}20%{opacity:1;transform:scale(1)}36%{left:48.8%;opacity:1;transform:scale(.8)}42%,100%{left:50%;opacity:0;transform:scale(.15)}}
-@keyframes negotiation-offer-return{0%,52%{right:27%;opacity:0;transform:scale(.35)}59%{opacity:1;transform:scale(1)}75%{right:48.8%;opacity:1;transform:scale(.8)}82%,100%{right:50%;opacity:0;transform:scale(.15)}}
-@keyframes negotiation-glint-float{0%,100%{opacity:.2;transform:translate(0,0)}45%{opacity:.8;transform:translate(18px,-15px)}75%{opacity:.4;transform:translate(-11px,10px)}}
-@media(max-width:600px){.negotiation-nexus-center svg{width:23px;height:23px}.negotiation-message{width:7px;height:7px}.negotiation-node-core span{font-size:clamp(26px,7vw,54px)}}
-@media(prefers-reduced-motion:reduce){.negotiation-scene *{animation:none!important}.negotiation-message{display:none}}
+/* Page 02 — intentionally minimal, with a slower 12.8s exchange cycle.
+   No orbiting nodes, central badge or approval-style rings. */
+.negotiation-scene{position:absolute;isolation:isolate;aspect-ratio:760/460}
+.dialogue-glow{position:absolute;inset:20% 12%;background:radial-gradient(ellipse at center,#2862b821,transparent 65%);filter:blur(30px)}
+.dialogue-wire{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dialogue-wire-back,.dialogue-wire-front{fill:none;stroke-linecap:round}
+.dialogue-wire-back{stroke:#3976c5;stroke-opacity:.19;stroke-width:7;filter:blur(9px)}
+.dialogue-wire-front{stroke:url(#dialogue-gradient);stroke-width:1.5;stroke-opacity:.8}
+.dialogue-packet{fill:#e9f9ff;filter:drop-shadow(0 0 5px #a7e5ff) drop-shadow(0 0 12px #63aeff)}
+.dialogue-packet-out{opacity:.95}
+.dialogue-packet-in{opacity:.6}
+.dialogue-endpoint{position:absolute;top:50%;transform:translateY(-50%);width:clamp(92px,14%,124px);display:flex;align-items:center;flex-direction:column;gap:17px}
+.dialogue-endpoint-buyer{left:11%}
+.dialogue-endpoint-merchant{right:11%}
+.dialogue-symbol{width:clamp(74px,9vw,108px);aspect-ratio:1;display:grid;place-items:center;border:1px solid #98ccff99;border-radius:24%;background:linear-gradient(145deg,#14366b,#0b1b3c 68%,#0c234c);color:#d4edff;box-shadow:inset 0 0 24px #2476c83e,0 0 22px #357bd82d;font-size:clamp(28px,4vw,49px);font-weight:500;letter-spacing:-.045em}
+.dialogue-endpoint span{font-size:clamp(8px,.84vw,11px);font-weight:650;letter-spacing:.17em;color:#96b8e0;white-space:nowrap}
+.dialogue-center-label{position:absolute;left:50%;top:65%;transform:translateX(-50%);white-space:nowrap;font-size:clamp(7px,.85vw,10px);font-weight:600;letter-spacing:.23em;color:#77a8dcaa}
+@media(max-width:600px){
+ .dialogue-endpoint{gap:10px}
+ .dialogue-symbol{width:clamp(58px,15vw,82px);font-size:clamp(24px,7vw,36px)}
+ .dialogue-endpoint span{font-size:7px;letter-spacing:.09em}
+ .dialogue-center-label{top:69%;font-size:7px;letter-spacing:.12em}
+}
+@media(prefers-reduced-motion:reduce){
+ .dialogue-packet{display:none}
+ .dialogue-wire-front{stroke-opacity:1}
+}
 </style>
