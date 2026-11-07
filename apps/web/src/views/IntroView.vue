@@ -44,9 +44,14 @@ const sceneStyle = computed(() => {
 const opacityAt = (index: number) => index === chapter.value ? 1 : 0;
 
 function jumpTo(index: number) {
-  chapter.value = Math.max(0, Math.min(stories.length - 1, index));
+  const next = Math.max(0, Math.min(stories.length - 1, index));
+  if (next === chapter.value) return;
+  const now = performance.now();
+  // Allow the full visual morph and text handoff to finish before another step.
+  if (!reducedMotion.value && now - lastNavigationAt < 1650) return;
+  chapter.value = next;
   wheelAccum = 0;
-  lastNavigationAt = performance.now();
+  lastNavigationAt = now;
 }
 
 // A single scroll/swipe gesture moves to exactly one settled chapter.
@@ -59,7 +64,7 @@ function handleWheel(event: WheelEvent) {
   if (direction !== lastWheelDirection) wheelAccum = 0;
   lastWheelDirection = direction;
   const now = performance.now();
-  if (now - lastNavigationAt < 1050) return;
+  if (now - lastNavigationAt < (reducedMotion.value ? 300 : 1650)) return;
   wheelAccum += delta;
   if (Math.abs(wheelAccum) >= 50) jumpTo(chapter.value + direction);
 }
@@ -71,7 +76,7 @@ function handleTouchEnd(event: TouchEvent) {
   if (touchStartY === null) return;
   const distance = touchStartY - (event.changedTouches[0]?.clientY ?? touchStartY);
   touchStartY = null;
-  if (Math.abs(distance) > 48 && performance.now() - lastNavigationAt >= 700) {
+  if (Math.abs(distance) > 48 && performance.now() - lastNavigationAt >= (reducedMotion.value ? 300 : 1650)) {
     jumpTo(chapter.value + Math.sign(distance));
   }
 }
@@ -321,14 +326,14 @@ onBeforeUnmount(() => {
 .cinema-scroll{height:100svh!important;overflow:hidden}
 .cinema-sticky{position:relative;top:auto;height:100svh;min-height:0!important}
 .luminous-world,.morph-scene{
-  transition:opacity .72s cubic-bezier(.25,.46,.45,.94),
-             transform .92s cubic-bezier(.16,1,.3,1);
+  transition:opacity 1.45s cubic-bezier(.4,0,.2,1),
+             transform 1.55s cubic-bezier(.22,1,.36,1);
 }
 .cinema-caption-inner{transition:none}
-.cinema-copy-enter-active{transition:opacity .42s ease,transform .42s cubic-bezier(.16,1,.3,1)}
-.cinema-copy-leave-active{transition:opacity .23s ease,transform .23s ease}
-.cinema-copy-enter-from{opacity:0;transform:translateY(20px)}
-.cinema-copy-leave-to{opacity:0;transform:translateY(-12px)}
+.cinema-copy-enter-active{transition:opacity .78s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
+.cinema-copy-leave-active{transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .52s cubic-bezier(.4,0,.2,1)}
+.cinema-copy-enter-from{opacity:0;transform:translateY(26px)}
+.cinema-copy-leave-to{opacity:0;transform:translateY(-18px)}
 @media(max-width:900px){.cinema-header{position:fixed;top:0;left:0;right:0}}
 @media(prefers-reduced-motion:reduce){
   .luminous-world,.morph-scene,.cinema-copy-enter-active,.cinema-copy-leave-active{transition:none!important}
