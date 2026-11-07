@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ time: number; scroll: number; paused: boolean; dark: boolean }>();
+const props = defineProps<{ time: number; scroll: number; dark: boolean }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
 let gl: WebGLRenderingContext | null = null;
 let program: WebGLProgram | null = null;
