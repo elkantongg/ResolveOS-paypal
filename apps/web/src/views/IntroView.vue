@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
         <button type="button" class="cinema-icon" @click="toggleTheme" :aria-label="currentTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'">
           <Moon v-if="currentTheme === 'light'" :size="17" /><Sun v-else :size="17" />
         </button>
-        <RouterLink to="/signin" class="cinema-enter">Enter ResolveOS <ArrowUpRight :size="15" /></RouterLink>
+        <RouterLink to="/signin?welcome=1" class="cinema-enter">Enter ResolveOS <ArrowUpRight :size="15" /></RouterLink>
       </div>
     </header>
 
@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
               <span class="cinema-eyebrow"><span class="cinema-dot" /> {{ item.kicker }}</span>
               <h1><span v-for="(line, lineIndex) in item.title.split('\n')" :key="lineIndex" class="cinema-headline-line" :class="{ 'cinema-headline-line--accent': lineIndex === 1 }">{{ line }}</span></h1>
               <p>{{ item.detail }}</p>
-              <RouterLink v-if="i === 3" to="/signin" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
+              <RouterLink v-if="i === 3" to="/signin?welcome=1" class="final-proceed">Proceed to ResolveOS <ArrowRight :size="18" /></RouterLink>
             </div>
           </div>
 
