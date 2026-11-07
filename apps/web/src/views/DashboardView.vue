@@ -161,7 +161,33 @@ const graphPlot = computed(() => {
 
 <template>
   <div class="resolve-dashboard space-y-5" :class="{ 'dashboard-arrival': arrivingFromDemo }">
-    <div class="dashboard-ambient" aria-hidden="true"><span /><span /><span /></div>
+    <div class="dashboard-ambient" aria-hidden="true">
+      <span /><span /><span />
+      <svg class="dashboard-ambient-waves" viewBox="0 0 1440 1050" preserveAspectRatio="xMidYMid slice" focusable="false">
+        <defs>
+          <linearGradient id="dash-wave-one" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1764d7" stop-opacity="0" />
+            <stop offset="35%" stop-color="#438dff" stop-opacity=".18" />
+            <stop offset="66%" stop-color="#55c7ff" stop-opacity=".34" />
+            <stop offset="100%" stop-color="#2968ec" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="dash-wave-two" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#287de9" stop-opacity="0" />
+            <stop offset="44%" stop-color="#2265ce" stop-opacity=".24" />
+            <stop offset="78%" stop-color="#39d6cc" stop-opacity=".22" />
+            <stop offset="100%" stop-color="#287de9" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <g class="dashboard-wave-layer dashboard-wave-layer--back">
+          <path d="M-250 310 C100 35 345 660 710 345 S1230 135 1730 390" fill="none" stroke="url(#dash-wave-one)" stroke-width="140" />
+          <path d="M-250 345 C100 70 345 695 710 380 S1230 170 1730 425" fill="none" stroke="#4b9df0" stroke-opacity=".18" stroke-width="1.5" />
+        </g>
+        <g class="dashboard-wave-layer dashboard-wave-layer--front">
+          <path d="M-240 780 C150 450 370 1110 780 740 S1330 460 1700 700" fill="none" stroke="url(#dash-wave-two)" stroke-width="175" />
+          <path d="M-240 765 C150 435 370 1095 780 725 S1330 445 1700 685" fill="none" stroke="#69b6ff" stroke-opacity=".14" stroke-width="1.3" />
+        </g>
+      </svg>
+    </div>
     <header class="dashboard-greeting flex flex-wrap items-center justify-between gap-4">
       <h1 class="text-2xl font-bold tracking-tight sm:text-[29px]">Welcome back, {{ greeting }}</h1>
       <div class="flex flex-wrap gap-2.5">
@@ -379,15 +405,48 @@ const graphPlot = computed(() => {
 @media(max-width:620px){.dashboard-greeting{padding-block:17px}.dashboard-attention,.dashboard-ai-card{padding:16px}.dashboard-alert-icon{width:48px;height:48px}.dashboard-review-btn{width:100%}.dashboard-stats{gap:8px}.dashboard-stat{gap:8px;padding:10px;min-height:66px}.dashboard-stat-icon{width:32px;height:32px}.dashboard-stat-icon svg{width:17px;height:17px}.dashboard-stat p:last-child{font-size:17px}.dashboard-ai-metrics>div{padding-inline:6px}}
 @media(prefers-reduced-motion:reduce){.dashboard-arrival{animation:none}}
 
-/* Ambient lighting is deliberately behind the cards, not the controls. */
+/* Ambient motion behind the data surface; no pointer input or layout reflow. */
 .resolve-dashboard{position:relative;isolation:isolate}
 .resolve-dashboard> :not(.dashboard-ambient){position:relative;z-index:1}
-.dashboard-ambient{position:absolute!important;inset:-35px -30px 0;z-index:0!important;overflow:hidden;pointer-events:none;border-radius:22px}
-.dashboard-ambient span{position:absolute;width:45%;aspect-ratio:1;border-radius:50%;filter:blur(90px);opacity:.12;animation:dashboard-drift 21s ease-in-out infinite alternate}
-.dashboard-ambient span:nth-child(1){top:-15%;left:4%;background:#317ff1}
-.dashboard-ambient span:nth-child(2){top:24%;right:-17%;background:#20abc5;animation-duration:27s;animation-delay:-9s}
-.dashboard-ambient span:nth-child(3){top:65%;left:18%;background:#4369db;animation-duration:31s;animation-delay:-14s}
-@keyframes dashboard-drift{0%{transform:translate3d(-5%,0,0) scale(.8)}50%{transform:translate3d(9%,10%,0) scale(1.1)}100%{transform:translate3d(-2%,-7%,0) scale(.95)}}
+.dashboard-ambient{
+ position:absolute!important;inset:-45px -25px 0;z-index:0!important;
+ overflow:hidden;pointer-events:none;border-radius:22px;
+ background:radial-gradient(ellipse at 72% 12%,#2264c718,transparent 45%),
+            radial-gradient(ellipse at 15% 85%,#2371d810,transparent 50%);
+}
+.dashboard-ambient span{
+ position:absolute;width:55%;aspect-ratio:1;border-radius:50%;
+ filter:blur(72px);opacity:.31;will-change:transform;
+ animation:dashboard-drift 23s ease-in-out infinite alternate;
+ background:radial-gradient(circle,#367af15c 0%,#236be72c 35%,transparent 70%);
+}
+.dashboard-ambient span:nth-child(1){top:-23%;left:-18%}
+.dashboard-ambient span:nth-child(2){
+ top:10%;right:-22%;background:radial-gradient(circle,#1baac060 0%,#3e85e52d 38%,transparent 70%);
+ animation-duration:28s;animation-delay:-12s
+}
+.dashboard-ambient span:nth-child(3){
+ top:48%;left:9%;background:radial-gradient(circle,#3b6fe358 0%,#285dd725 37%,transparent 70%);
+ animation-duration:33s;animation-delay:-17s
+}
+.dashboard-ambient-waves{
+ position:absolute;inset:-8% -12%;width:124%;height:116%;
+ opacity:.78;overflow:hidden;filter:blur(2px);will-change:transform;
+}
+.dashboard-wave-layer{transform-origin:center;will-change:transform;animation:dashboard-wave-flow 22s ease-in-out infinite alternate}
+.dashboard-wave-layer--back{animation-duration:25s}
+.dashboard-wave-layer--front{animation-duration:32s;animation-direction:alternate-reverse;animation-delay:-11s}
+@keyframes dashboard-drift{
+ 0%{transform:translate3d(-9%,4%,0) scale(.88)}
+ 50%{transform:translate3d(15%,-11%,0) scale(1.22)}
+ 100%{transform:translate3d(1%,14%,0) scale(.96)}
+}
+@keyframes dashboard-wave-flow{
+ 0%{transform:translate3d(-10%,3%,0) rotate(-7deg) scale(1)}
+ 50%{transform:translate3d(7%,-4%,0) rotate(5deg) scale(1.08)}
+ 100%{transform:translate3d(-4%,7%,0) rotate(-3deg) scale(1.02)}
+}
+:global(html[data-theme='light']) .dashboard-ambient{opacity:.48}
 .resolve-dashboard .card{transition:border-color .26s ease,box-shadow .3s ease,transform .3s cubic-bezier(.2,.7,.25,1)}
 @media(hover:hover){
  .resolve-dashboard .card:hover{border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-line));box-shadow:0 9px 28px #317ff11a,0 0 0 1px #317ff112;transform:translateY(-2px)}
@@ -415,5 +474,5 @@ const graphPlot = computed(() => {
 .dashboard-history-event-dot{position:absolute;left:-5px;top:13px;width:9px;height:9px;border-radius:50%;background:#69a4ff;box-shadow:0 0 0 4px #69a4ff24}
 .dashboard-history-events li:nth-child(3n) .dashboard-history-event-dot{background:#49d9b8}
 .dashboard-history-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 25px;border-top:1px solid var(--color-line);color:var(--color-muted);font-size:12px}
-@media(prefers-reduced-motion:reduce){.dashboard-ambient span,.dashboard-history-dialog{animation:none!important}.resolve-dashboard .card,.resolve-dashboard .btn,.resolve-dashboard .dashboard-stat-icon{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.dashboard-ambient span,.dashboard-wave-layer,.dashboard-history-dialog{animation:none!important}.resolve-dashboard .card,.resolve-dashboard .btn,.resolve-dashboard .dashboard-stat-icon{transition:none!important}}
 </style>
