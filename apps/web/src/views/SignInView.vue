@@ -17,6 +17,7 @@ const error = ref<string | null>(null);
 const busy = ref<string | null>(null);
 const welcomeMode = ref<'welcome' | 'launch' | null>(route.query.welcome === '1' ? 'welcome' : null);
 const chosenName = ref('');
+const welcomeLeaving = ref(false);
 let welcomeTimeout: ReturnType<typeof setTimeout> | null = null;
 let launchTimeout: ReturnType<typeof setTimeout> | null = null;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,11 +25,15 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 onMounted(() => {
   session.loadAccounts().catch((e) => (error.value = errorMessage(e)));
   if (welcomeMode.value === 'welcome') {
-    // Keep the existing demo sign-in flow; this is purely an arrival animation.
+    // The welcome screen holds briefly, then eases away into the account picker.
     welcomeTimeout = setTimeout(() => {
-      welcomeMode.value = null;
-      welcomeTimeout = null;
-    }, reducedMotion() ? 120 : 1750);
+      welcomeLeaving.value = true;
+      welcomeTimeout = setTimeout(() => {
+        welcomeMode.value = null;
+        welcomeLeaving.value = false;
+        welcomeTimeout = null;
+      }, reducedMotion() ? 0 : 430);
+    }, reducedMotion() ? 60 : 1430);
   }
 });
 onBeforeUnmount(() => {
@@ -40,22 +45,35 @@ async function choose(id: string) {
   busy.value = id;
   error.value = null;
   chosenName.value = session.accounts.find((account) => account.id === id)?.name ?? '';
+  welcomeLeaving.value = false;
   welcomeMode.value = 'launch';
-  // Start the animation immediately on click while sign-in runs underneath.
+  // Start the animation on click, while authentication proceeds beneath it.
+  // Never route before both the animation and actual sign-in have completed.
   const animation = new Promise<void>((resolve) => {
     launchTimeout = setTimeout(() => {
       launchTimeout = null;
       resolve();
-    }, reducedMotion() ? 120 : 1500);
+    }, reducedMotion() ? 120 : 1700);
   });
   try {
     await session.signIn(id);
     const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/dashboard';
     await animation;
-    if (next === '/dashboard') sessionStorage.setItem('resolveos-dashboard-entrance', '1');
+    if (next === '/dashboard') {
+      try { sessionStorage.setItem('resolveos-dashboard-entrance', '1'); } catch { /* restricted storage */ }
+    }
     await router.push(next);
   } catch (e) {
-    welcomeMode.value = null;
+    if (launchTimeout) {
+      clearTimeout(launchTimeout);
+      launchTimeout = null;
+    }
+    welcomeLeaving.value = true;
+    welcomeTimeout = setTimeout(() => {
+      welcomeMode.value = null;
+      welcomeLeaving.value = false;
+      welcomeTimeout = null;
+    }, reducedMotion() ? 0 : 430);
     error.value = errorMessage(e);
   } finally {
     busy.value = null;
@@ -71,7 +89,7 @@ const roleCopy = {
 
 <template>
   <div class="grid min-h-screen place-items-center px-4 py-12">
-    <WelcomeCinematic v-if="welcomeMode" :key="welcomeMode" :mode="welcomeMode" :name="chosenName" />
+    <WelcomeCinematic v-if="welcomeMode" :key="welcomeMode" :mode="welcomeMode" :name="chosenName" :leaving="welcomeLeaving" />
     <div class="w-full max-w-lg">
       <RouterLink to="/" class="mb-8 inline-block"><Logo /></RouterLink>
       <h1 class="text-2xl font-semibold tracking-tight">Choose a demo person</h1>
