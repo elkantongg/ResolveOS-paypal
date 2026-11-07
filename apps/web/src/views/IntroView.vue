@@ -152,6 +152,10 @@ onBeforeUnmount(() => {
             <div class="approval-orbit approval-orbit-inner" />
             <div class="approval-path approval-path-left" />
             <div class="approval-path approval-path-right" />
+            <div class="approval-signal approval-signal-left" />
+            <div class="approval-signal approval-signal-right" />
+            <div class="approval-burst approval-burst-one" />
+            <div class="approval-burst approval-burst-two" />
             <div class="approval-seal">
               <div class="approval-seal-ring" />
               <div class="approval-seal-core"><LockKeyhole :size="60" :stroke-width="1.15" /></div>
@@ -384,5 +388,123 @@ onBeforeUnmount(() => {
 @media(max-width:900px){.cinema-header{position:fixed;top:0;left:0;right:0}}
 @media(prefers-reduced-motion:reduce){
   .luminous-world,.morph-scene,.cinema-copy-enter-active,.cinema-copy-leave-active{transition:none!important}
+}
+
+/* Ch.03: a deliberate seven-second approval cycle.
+   The seals approach, transmit approval packets, and activate the central vault. */
+.safeguard-scene{perspective:1100px}
+.safeguard-scene .approval-ambient{animation:approval-breathe 6.8s ease-in-out infinite}
+.safeguard-scene .approval-orbit-outer{
+  animation:approval-orbit-a 15s linear infinite;
+  border-top:2px solid #d0eeff;
+  border-bottom:2px solid #68aeff;
+}
+.safeguard-scene .approval-orbit-inner{
+  animation:approval-orbit-b 12s linear infinite;
+  border-left:2px solid #bdeaff;
+}
+.safeguard-scene .approval-seal{
+  animation:approval-vault-cycle 6.8s cubic-bezier(.45,0,.22,1) infinite;
+}
+.safeguard-scene .approval-seal-ring{
+  animation:approval-ring-cycle 6.8s cubic-bezier(.3,0,.2,1) infinite;
+}
+.safeguard-scene .approval-seal-core{
+  animation:approval-core-glow 6.8s ease-in-out infinite;
+}
+.safeguard-scene .approval-seal-core svg{
+  animation:approval-lock-gesture 6.8s ease-in-out infinite;
+  transform-origin:center;
+}
+.safeguard-scene .approval-buyer{
+  animation:approval-buyer-cycle 6.8s cubic-bezier(.45,0,.2,1) infinite;
+}
+.safeguard-scene .approval-merchant{
+  animation:approval-merchant-cycle 6.8s cubic-bezier(.45,0,.2,1) infinite;
+}
+.safeguard-scene .approval-party-icon{
+  animation:approval-icon-pulse 6.8s ease-in-out infinite;
+}
+.safeguard-scene .approval-particle-one{
+  animation:approval-spark-a 6.8s ease-in-out infinite;
+}
+.safeguard-scene .approval-particle-two{
+  animation:approval-spark-b 6.8s ease-in-out infinite;
+}
+.approval-signal{position:absolute;z-index:3;top:50%;width:10px;height:10px;border-radius:50%;background:#f3fcff;box-shadow:0 0 12px 4px #7acaff,0 0 28px 12px #489dff77;opacity:0;pointer-events:none}
+.approval-signal-left{left:24%;animation:approval-signal-left 6.8s ease-in-out infinite}
+.approval-signal-right{right:24%;animation:approval-signal-right 6.8s ease-in-out infinite}
+.approval-burst{position:absolute;z-index:1;inset:29%;border-radius:50%;border:2px solid #a9e3ff;box-shadow:0 0 17px #8dceff;opacity:0;pointer-events:none}
+.approval-burst-one{animation:approval-shockwave 6.8s ease-out infinite}
+.approval-burst-two{animation:approval-shockwave 6.8s ease-out -0.20s infinite}
+@keyframes approval-buyer-cycle{
+  0%,12%,100%{transform:translate(0,0) rotate(-8deg)}
+  25%,38%{transform:translate(17%, -5%) rotate(3deg)}
+  50%,63%{transform:translate(17%, -5%) rotate(3deg)}
+  78%,92%{transform:translate(-4%, 3%) rotate(-8deg)}
+}
+@keyframes approval-merchant-cycle{
+  0%,12%,100%{transform:translate(0,0) rotate(8deg)}
+  25%,38%{transform:translate(-17%, 5%) rotate(-3deg)}
+  50%,63%{transform:translate(-17%, 5%) rotate(-3deg)}
+  78%,92%{transform:translate(4%, -3%) rotate(8deg)}
+}
+@keyframes approval-signal-left{
+  0%,33%{left:25%;opacity:0;transform:scale(.5)}
+  39%{opacity:1;transform:scale(1.25)}
+  56%{left:47%;opacity:1;transform:scale(.85)}
+  61%,100%{left:49%;opacity:0;transform:scale(.2)}
+}
+@keyframes approval-signal-right{
+  0%,33%{right:25%;opacity:0;transform:scale(.5)}
+  39%{opacity:1;transform:scale(1.25)}
+  56%{right:47%;opacity:1;transform:scale(.85)}
+  61%,100%{right:49%;opacity:0;transform:scale(.2)}
+}
+@keyframes approval-vault-cycle{
+  0%,35%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 22px #448fff77)}
+  55%{transform:translateY(-8px) scale(.94) rotateY(14deg)}
+  66%{transform:translateY(-8px) scale(1.09) rotateY(0);filter:drop-shadow(0 0 44px #a4e7ff)}
+  85%{transform:translateY(0) scale(1.02)}
+}
+@keyframes approval-ring-cycle{
+  0%,35%,100%{transform:rotate(45deg)}
+  55%{transform:rotate(110deg)}
+  72%{transform:rotate(220deg);border-color:#f7fdff}
+  92%{transform:rotate(405deg)}
+}
+@keyframes approval-core-glow{
+  0%,45%,100%{box-shadow:inset 0 0 30px #4b9fff77,0 0 25px #74bfff77}
+  60%,76%{box-shadow:inset 0 0 58px #bbf1ff,0 0 60px #b8edff,0 0 90px #64b6ff}
+}
+@keyframes approval-lock-gesture{
+  0%,47%,100%{transform:scale(1)}
+  60%{transform:scale(.8) rotate(-10deg)}
+  69%{transform:scale(1.18) rotate(0)}
+  80%{transform:scale(1)}
+}
+@keyframes approval-icon-pulse{
+  0%,33%,100%{filter:brightness(1);transform:scale(1)}
+  40%,58%{filter:brightness(1.9);transform:scale(1.18)}
+  68%{transform:scale(1)}
+}
+@keyframes approval-shockwave{
+  0%,59%{opacity:0;transform:scale(.6)}
+  63%{opacity:.85}
+  86%,100%{opacity:0;transform:scale(2.65)}
+}
+@keyframes approval-spark-a{
+  0%,100%{transform:translate(0,0);opacity:.3}
+  40%{transform:translate(55px,-26px);opacity:1}
+  75%{transform:translate(92px,54px);opacity:.4}
+}
+@keyframes approval-spark-b{
+  0%,100%{transform:translate(0,0);opacity:.3}
+  40%{transform:translate(-55px,26px);opacity:1}
+  75%{transform:translate(-92px,-54px);opacity:.4}
+}
+@media(prefers-reduced-motion:reduce){
+  .safeguard-scene *{animation:none!important}
+  .approval-signal,.approval-burst{display:none}
 }
 </style>
