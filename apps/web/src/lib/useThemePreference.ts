@@ -33,18 +33,18 @@ function setTheme(value: ThemeChoice) {
   commitTheme(value);
 }
 
-/** A continuous advancing boundary, with its leading edge displaced in a sine wave.
- * The wave expands from the clicked control, revealing the *full new-page snapshot*
- * rather than fading individual elements at different times.
+/** Build a low-complexity, fixed wavy edge. The compositor interpolates
+ * between just two polygons instead of processing 1,665 animated vertices.
+ * Keeping the same point count at each end avoids expensive shape rebuilding.
  */
 function revealShape(front: number, width: number, height: number, phase: number) {
-  const amplitude = Math.min(43, Math.max(14, width * .028));
-  const period = Math.max(150, height * .36);
+  const amplitude = Math.min(24, Math.max(10, width * .016));
+  const period = Math.max(180, height * .48);
   const points: string[] = [];
-  for (let i = 0; i <= 44; i++) {
-    const y = height * i / 44;
-    const wave = Math.sin(y / period * 2 * Math.PI + phase) * amplitude;
-    points.push(`${(front + wave).toFixed(1)}px ${y.toFixed(1)}px`);
+  for (let i = 0; i <= 10; i++) {
+    const y = height * i / 10;
+    const edge = front + Math.sin((y / period) * Math.PI * 2 + phase) * amplitude;
+    points.push(`${edge.toFixed(1)}px ${y.toFixed(1)}px`);
   }
   return `polygon(0px 0px, ${points.join(', ')}, 0px ${height}px)`;
 }
@@ -77,20 +77,16 @@ async function toggleTheme(event?: MouseEvent) {
     const bounds = target instanceof Element ? target.getBoundingClientRect() : null;
     // The reveal always travels left-to-right, with a phase aligned to the toggle.
     const phase = bounds ? bounds.top / Math.max(1, height) * Math.PI * 2 : 0;
-    const amplitude = Math.min(43, Math.max(14, width * .028));
-    const from = -amplitude - 4;
-    const to = width + amplitude + 4;
-    const keyframes = Array.from({ length: 37 }, (_, i) => {
-      const t = i / 36;
-      const eased = t * t * (3 - 2 * t);
-      return {
-        clipPath: revealShape(from + (to - from) * eased, width, height, phase + t * Math.PI * 1.4),
-        offset: t,
-      };
-    });
+    const amplitude = Math.min(24, Math.max(10, width * .016));
+    // Only two compositor-friendly keyframes. The ripple remains in the edge
+    // silhouette as it travels; there is no repeated JS geometry per frame.
+    const keyframes = [
+      { clipPath: revealShape(-amplitude - 3, width, height, phase) },
+      { clipPath: revealShape(width + amplitude + 3, width, height, phase) },
+    ];
     const animation = document.documentElement.animate(keyframes, {
-      duration: 1450,
-      easing: 'linear',
+      duration: 920,
+      easing: 'cubic-bezier(.42,0,.24,1)',
       fill: 'both',
       pseudoElement: '::view-transition-new(root)',
     });
