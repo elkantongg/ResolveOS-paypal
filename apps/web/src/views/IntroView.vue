@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronDown, Moon, Sun, ShieldCheck, Sparkles, LockKeyhole, Handshake } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
@@ -20,7 +20,6 @@ const stories = [
 ] as const;
 const position = computed(() => Math.min(3, Math.max(0, progress.value * 3)));
 const activeIndex = computed(() => Math.min(3, Math.floor(position.value + .5)));
-const story = computed(() => stories[activeIndex.value]!);
 const interpolate = (stops: number[], t: number) => {
   const i = Math.min(stops.length - 2, Math.max(0, Math.floor(t)));
   const local = Math.min(1, Math.max(0, t - i));
