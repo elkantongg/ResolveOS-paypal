@@ -312,6 +312,10 @@ onBeforeUnmount(() => {
 /* Keep the last CTA in normal text flow at every viewport size: it can never
    cover the description because it follows the paragraph in the same column. */
 .cinema-caption--final .cinema-caption-inner{justify-content:center}
+/* The caption is intentionally non-interactive for other chapters, but the
+   final CTA must be allowed to receive pointer input. */
+.cinema-caption--final{pointer-events:auto}
+.cinema-caption--final .final-proceed{pointer-events:auto;cursor:pointer}
 @media (max-height:680px){
   .cinema-caption--final{height:clamp(230px,48svh,315px)}
   .cinema-caption--final h1{font-size:clamp(28px,4.3vw,54px);margin:9px 0 10px}
