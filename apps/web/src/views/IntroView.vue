@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleCheck, CreditCard, FileSearch, Moon, Pause, Play, ShieldCheck, Sparkles, Sun } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleCheck, CreditCard, FileSearch, Moon, ShieldCheck, Sparkles, Sun } from 'lucide-vue-next';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
 import CinematicSculpture from '@/components/CinematicSculpture.vue';
@@ -10,27 +10,18 @@ const { currentTheme, toggleTheme } = useThemePreference();
 const chapter = ref(0);
 const progress = ref(0);
 const reduceMotion = ref(false);
-const cinematicPaused = ref(false);
 const cinematicDuration = 14;
 const cinematicElapsed = ref(0);
 let cinematicRaf = 0;
 let cinematicPrevious = 0;
 function tickCinematic(time: number) {
   if (!cinematicPrevious) cinematicPrevious = time;
-  if (!cinematicPaused.value && !reduceMotion.value) {
+  if (!reduceMotion.value) {
     cinematicElapsed.value = (cinematicElapsed.value + (time - cinematicPrevious) / 1000) % cinematicDuration;
   }
   cinematicPrevious = time;
   cinematicRaf = requestAnimationFrame(tickCinematic);
 }
-function toggleCinematic() {
-  cinematicPaused.value = !cinematicPaused.value;
-}
-function seekCinematic(event: Event) {
-  const input = event.target as HTMLInputElement;
-  cinematicElapsed.value = (Number(input.value) / 100) * cinematicDuration;
-}
-
 const storyEl = ref<HTMLElement | null>(null);
 let frame = 0;
 let targetProgress = 0;
@@ -60,7 +51,6 @@ const chapters = [
   },
 ] as const;
 
-const progressLabel = computed(() => String(chapter.value + 1).padStart(2, '0'));
 // Scroll remains native; only the decorative parallax follows with eased inertia.
 function updateProgress() {
   if (!storyEl.value) return;
@@ -89,15 +79,11 @@ function animateProgress(now: number) {
 function onScroll() {
   updateProgress();
 }
-function jumpTo(index: number) {
-  document.getElementById('story-' + index)?.scrollIntoView({ behavior: reduceMotion.value ? 'auto' : 'smooth', block: 'center' });
-}
 onMounted(() => {
   reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
   updateProgress();
-  cinematicPaused.value = reduceMotion.value;
   cinematicRaf = requestAnimationFrame(tickCinematic);
 });
 onBeforeUnmount(() => {
@@ -128,12 +114,6 @@ onBeforeUnmount(() => {
 
     <main id="main">
       <div ref="storyEl" class="story-stage">
-        <div class="story-progress" aria-label="Introduction chapters">
-          <span class="progress-copy">{{ progressLabel }} <span>/ 03</span></span>
-          <div class="progress-track"><div class="progress-fill" :style="{ transform: 'scaleY(' + Math.max(.02, progress) + ')' }" /></div>
-          <button v-for="(item, index) in chapters" :key="item.number" type="button" class="progress-button" :class="{ selected: chapter === index }" :aria-label="'Go to '+item.label.toLowerCase()" @click="jumpTo(index)">{{ item.number }}</button>
-        </div>
-
         <!-- The object stays in place while the story and its environment change around it. -->
         <div class="product-stage" aria-label="Animated ResolveOS payment resolution illustration">
           <div class="sculpture-backdrop" aria-hidden="true" />
@@ -142,26 +122,8 @@ onBeforeUnmount(() => {
             class="premium-webgl"
             :time="cinematicElapsed"
             :scroll="progress"
-            :paused="cinematicPaused"
             :dark="currentTheme === 'dark'"
           />
-          <div class="sculpture-label" aria-hidden="true">
-            <span class="label-sparkle">✦</span>
-            <span>THE ART OF RESOLUTION</span>
-            <span class="label-index">R / 01</span>
-          </div>
-          <div class="cinematic-playback" aria-label="Sculpture animation controls">
-            <button type="button" class="cinematic-toggle" :aria-label="cinematicPaused ? 'Play hero animation' : 'Pause hero animation'" @click="toggleCinematic">
-              <Play v-if="cinematicPaused" :size="14" fill="currentColor" />
-              <Pause v-else :size="14" fill="currentColor" />
-            </button>
-            <input class="cinematic-scrub" type="range" min="0" max="100" step="0.1"
-              :value="(cinematicElapsed / cinematicDuration) * 100"
-              :style="{ '--played': ((cinematicElapsed / cinematicDuration) * 100) + '%' }"
-              aria-label="Animation progress" @input="seekCinematic" />
-            <span class="cinematic-time">{{ String(Math.floor(cinematicElapsed)).padStart(2, '0') }} / {{ cinematicDuration }}s</span>
-          </div>
-          <div class="product-caption"><span class="caption-led" /> RESOLVE / INTELLIGENCE LAYER <span class="caption-number">00{{ chapter + 1 }}</span></div>
         </div>
 
         <div class="story-copy">
@@ -200,11 +162,6 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <section class="studio-footer">
-        <span>AN INDEPENDENT HACKATHON CONCEPT</span>
-        <span>PAYPAL SANDBOX · TEST MONEY ONLY</span>
-        <RouterLink to="/signin">ENTER APPLICATION <ArrowUpRight :size="15" /></RouterLink>
-      </section>
     </main>
   </div>
 </template>
@@ -280,16 +237,6 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
 .floating-annotation.visible {opacity:1;transform:translateY(0) scale(1);animation:annotation-float 5s ease-in-out infinite}
 .annotation-one {top:25%;left:0}.annotation-two {top:24%;right:-1%}.annotation-three {bottom:23%;left:4%}
 .annotation-indicator {width:7px;height:7px;border-radius:50%}.annotation-indicator.amber {background:#ffaf54}.annotation-indicator.blue {background:#3978ed}.annotation-indicator.green {background:#30b99c}
-.product-caption {position:absolute;bottom:13%;left:15%;right:15%;display:flex;align-items:center;gap:9px;color:#738ab1;font:600 9px var(--font-mono,monospace);letter-spacing:.13em}
-.caption-led {height:5px;width:5px;border-radius:50%;background:#44c6b4}.caption-number {margin-left:auto}
-.story-progress {position:fixed;z-index:28;top:43%;left:clamp(10px,3vw,43px);display:flex;flex-direction:column;align-items:center;gap:16px}
-.progress-copy {font:700 11px var(--font-mono,monospace);color:#44658f}.progress-copy span {opacity:.45}
-.progress-track {height:115px;width:1px;background:#bad0ec;position:relative;overflow:hidden}
-.progress-fill {position:absolute;inset:0;background:#3877e5;transform-origin:top;transition:transform .1s linear}
-.progress-button {font:650 11px var(--font-mono,monospace);color:#a4b7cd;cursor:pointer;transition:color .2s,transform .2s}
-.progress-button.selected {color:#265eb7;transform:scale(1.15)}
-.studio-footer {position:relative;z-index:15;max-width:1600px;margin:auto;padding:50px clamp(24px,9vw,145px) 60px;border-top:1px solid #cbdcf080;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font:650 10px var(--font-mono,monospace);letter-spacing:.12em;color:#8194ac}
-.studio-footer a {color:#315d9a;display:flex;align-items:center;gap:8px}
 @keyframes orb-breathe {50% {transform:scale(1.035) rotate(-5deg);border-radius:53% 47% 48% 52% / 49% 53% 47% 51%}}
 @keyframes orbit-turn {50% {transform:rotate(-17deg) scale(1.035)}}
 @keyframes orbit-turn-reverse {50% {transform:rotate(65deg) scale(.96)}}
@@ -307,23 +254,9 @@ filter:blur(18px);transition:background .7s ease}
 background:radial-gradient(ellipse,#817ac74a 0%,#a0b6e329 33%,transparent 69%);
 filter:blur(25px);pointer-events:none}
 .premium-webgl {position:absolute;inset:0;width:100%;height:100%;z-index:3;filter:drop-shadow(0 18px 32px #6664b02a)}
-.sculpture-label {position:absolute;z-index:9;left:17%;right:17%;bottom:15%;display:flex;align-items:center;gap:10px;font:600 10px var(--font-mono,monospace);letter-spacing:.17em;color:#7185a5;pointer-events:none}
-.label-sparkle {color:#7e70bb;font-size:16px}
-.label-index {margin-left:auto;color:#9c9eba}
-.cinematic-playback {position:absolute;bottom:7%;left:18%;right:18%;z-index:15;display:flex;align-items:center;gap:13px;padding:9px 13px;border-radius:999px;border:1px solid #ffffffb8;background:#ffffffa6;box-shadow:0 12px 40px #536ea028;backdrop-filter:blur(18px);pointer-events:auto}
-.cinematic-toggle {width:27px;height:27px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;background:#244776;color:#fff;cursor:pointer}
-.cinematic-scrub {flex:1;min-width:40px;appearance:none;height:4px;border-radius:999px;background:linear-gradient(to right,#8f58f5 var(--played),#bac9e0 var(--played));cursor:pointer}
-.cinematic-scrub::-webkit-slider-thumb {appearance:none;width:10px;height:10px;background:#7b50ed;border-radius:50%;box-shadow:0 0 0 4px #926bff30}
-.cinematic-scrub::-moz-range-thumb {width:10px;height:10px;background:#7b50ed;border:0;border-radius:50%}
-.cinematic-time {font:650 10px var(--font-mono,monospace);white-space:nowrap;color:#5b6b87}
 .theme-dark .sculpture-backdrop {background:radial-gradient(ellipse at 48% 46%,#4e469f6c 0%,#324e834f 40%,transparent 74%)}
 .theme-dark .sculpture-platform {background:radial-gradient(ellipse,#222a8066 0%,transparent 65%)}
-.theme-dark .cinematic-playback {background:#1b2d4dcc;border-color:#587097}
-.theme-dark .cinematic-time {color:#d4e3fd}
-.theme-dark .cinematic-toggle {background:#bbd6ff;color:#162a50}
-.theme-dark .sculpture-label {color:#becde6}
-.theme-dark .label-index {color:#9faede}
-@media (max-width:1100px) {
+.theme-dark .theme-dark .theme-dark .theme-dark .theme-dark @media (max-width:1100px) {
  .story-copy {width:53%;padding-left:clamp(32px,7vw,90px)} .product-stage {width:47%}
  .chapter-title {font-size:clamp(42px,5vw,70px)}
  .floating-annotation {font-size:8px;padding:10px}.floating-annotation strong {font-size:11px}
@@ -338,14 +271,9 @@ filter:blur(25px);pointer-events:none}
  .chapter-inner {filter:none;opacity:.5;transform:translateY(15px)}
  .chapter-title {font-size:clamp(43px,10vw,68px);max-width:580px}
  .chapter-description {font-size:15px}
- .story-progress {display:none}
- .cinematic-playback {bottom:1%;left:14%;right:14%;padding:6px 9px}
- .cinematic-time {font-size:8px}
- .sculpture-label {bottom:15%;left:10%;right:10%;font-size:8px}
- .premium-webgl {inset:0}
+     .premium-webgl {inset:0}
  .case-mini {margin-top:26px}
- .studio-footer {padding:36px 24px 44px}
-}
+ }
 @media(max-width:390px) {
  .chapter-title {font-size:41px}.product-stage {height:38svh}.story-chapter {min-height:110svh}
 }
@@ -374,8 +302,7 @@ filter:blur(25px);pointer-events:none}
 .theme-dark .studio-light-left {background:#3864b7;opacity:.26}
 .theme-dark .studio-light-right {background:#427ddb;opacity:.33}
 .theme-dark .premium-nav-center,.theme-dark .progress-copy,
-.theme-dark .product-caption {color:#b4c9e5}
-.theme-dark .premium-theme {background:#213452;border-color:#557096;color:#eaf3ff}
+.theme-dark .theme-dark .premium-theme {background:#213452;border-color:#557096;color:#eaf3ff}
 .theme-dark .premium-theme:hover {background:#31496e}
 .theme-dark .premium-nav-link,.theme-dark .action-primary {
   background:#dceaff;color:#14294c;
@@ -401,13 +328,7 @@ filter:blur(25px);pointer-events:none}
 .theme-dark .core-halo-two {border-color:#7ca8ea32}
 .theme-dark .floating-annotation {background:#1d3254ec;border-color:#5877a5;box-shadow:0 18px 42px #02071373;color:#c0d5f3}
 .theme-dark .floating-annotation strong {color:#f4f8ff}
-.theme-dark .progress-track {background:#53739d}
-.theme-dark .progress-fill {background:#94c2ff}
-.theme-dark .progress-button {color:#809cc5}
-.theme-dark .progress-button.selected {color:#c7e2ff}
-.theme-dark .studio-footer {border-color:#47628a88;color:#b2c5dd}
-.theme-dark .studio-footer a {color:#bbd5ff}
-@media(prefers-reduced-motion:reduce) {
+.theme-dark .theme-dark .theme-dark .theme-dark .theme-dark .theme-dark @media(prefers-reduced-motion:reduce) {
   .premium-intro {transition:none}
 }
 </style>
