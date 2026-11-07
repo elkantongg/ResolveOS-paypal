@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="premium-intro min-h-screen" :style="{ '--scroll': progress }">
+  <div class="premium-intro min-h-screen" :class="{ 'theme-dark': currentTheme === 'dark' }" :style="{ '--scroll': progress }">
     <div class="studio-lines" aria-hidden="true" />
     <div class="studio-light studio-light-left" aria-hidden="true" />
     <div class="studio-light studio-light-right" aria-hidden="true" />
@@ -309,20 +309,59 @@ filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
  .core-orb,.core-orbit,.scroll-hint svg,.floating-annotation {animation:none!important}
  .floating-annotation.visible {transform:none}
 }
-:global(html[data-theme='dark']) .premium-intro {
- --premium-text:#e9f0ff;--premium-muted:#b2c3dd;--premium-line:rgba(145,172,219,.15);--premium-glass:rgba(21,35,61,.76);
- background:linear-gradient(120deg,#0c1423,#172b4c 60%,#0b1a2d)
+/* Component-local theme states prevent the intro's hard-coded light palette from
+   overriding the app-wide theme. All decorative elements share the same toggle. */
+.premium-intro {
+  transition:background .55s ease,color .4s ease;
 }
-:global(html[data-theme='dark']) .premium-intro .chapter-eyebrow,
-:global(html[data-theme='dark']) .premium-intro .chapter-tag {color:#a1bff6}
-:global(html[data-theme='dark']) .premium-intro .case-mini {border-color:#536a8e65}
-:global(html[data-theme='dark']) .premium-intro .case-mini-row {border-color:#667b9d3a}
-:global(html[data-theme='dark']) .premium-intro .case-mini-top,
-:global(html[data-theme='dark']) .premium-intro .case-mini-row span,
-:global(html[data-theme='dark']) .premium-intro .progress-copy {color:#a6bddd}
-:global(html[data-theme='dark']) .premium-intro .case-mini-row strong {color:#e8f1ff}
-:global(html[data-theme='dark']) .premium-intro .chapter-tag {background:#213957b0;border-color:#46648b}
-:global(html[data-theme='dark']) .premium-intro .premium-theme {background:#263b59;color:#fff}
-:global(html[data-theme='dark']) .premium-intro .floating-annotation {background:#213451e8;border-color:#5876a1}
-:global(html[data-theme='dark']) .premium-intro .floating-annotation strong {color:#eaf3ff}
+.premium-intro.theme-dark {
+  --premium-text:#eef5ff;
+  --premium-muted:#b5c5de;
+  --premium-line:rgba(149,178,222,.24);
+  --premium-glass:rgba(23,38,65,.76);
+  color:var(--premium-text);
+  background:linear-gradient(118deg,#090f1c 0%,#12203a 40%,#182e50 68%,#0a1426 100%);
+}
+.theme-dark .studio-lines {
+  background:repeating-linear-gradient(90deg,transparent 0 115px,rgba(157,189,235,.075) 116px,transparent 117px);
+}
+.theme-dark .studio-light-left {background:#3864b7;opacity:.26}
+.theme-dark .studio-light-right {background:#427ddb;opacity:.33}
+.theme-dark .premium-nav-center,.theme-dark .progress-copy,
+.theme-dark .product-caption {color:#b4c9e5}
+.theme-dark .premium-theme {background:#213452;border-color:#557096;color:#eaf3ff}
+.theme-dark .premium-theme:hover {background:#31496e}
+.theme-dark .premium-nav-link,.theme-dark .action-primary {
+  background:#dceaff;color:#14294c;
+}
+.theme-dark .premium-nav-link:hover,.theme-dark .action-primary:hover {
+  background:#ffffff;color:#0d2244;
+}
+.theme-dark .chapter-eyebrow,.theme-dark .scroll-hint,
+.theme-dark .chapter-tag {color:#a6c5f8}
+.theme-dark .chapter-description {color:var(--premium-muted)}
+.theme-dark .eyebrow-line {background:#8fb8f3}
+.theme-dark .chapter-tag {background:rgba(31,53,86,.72);border-color:#4b6c9d}
+.theme-dark .case-mini {background:var(--premium-glass);border-color:#4b6489;box-shadow:0 24px 60px #02091566}
+.theme-dark .case-mini-top,.theme-dark .case-mini-row span {color:#b0c2dc}
+.theme-dark .case-mini-row {border-color:rgba(153,179,221,.22)}
+.theme-dark .case-mini-row strong {color:#f3f7ff}
+.theme-dark .ok-color {color:#69dfbc}
+.theme-dark .action-secondary {background:#20385c;color:#d7e8ff;border-color:#57749b}
+.theme-dark .action-secondary:hover {background:#2d4b74}
+.theme-dark .stage-ground {background:radial-gradient(ellipse,#4074cb4d,transparent 65%)}
+.theme-dark .stage-disc {border-color:#5278ac80;box-shadow:0 0 0 28px #456eac18,0 0 0 100px #5780c30b}
+.theme-dark .core-halo {border-color:#75b8ff5b}
+.theme-dark .core-halo-two {border-color:#7ca8ea32}
+.theme-dark .floating-annotation {background:#1d3254ec;border-color:#5877a5;box-shadow:0 18px 42px #02071373;color:#c0d5f3}
+.theme-dark .floating-annotation strong {color:#f4f8ff}
+.theme-dark .progress-track {background:#53739d}
+.theme-dark .progress-fill {background:#94c2ff}
+.theme-dark .progress-button {color:#809cc5}
+.theme-dark .progress-button.selected {color:#c7e2ff}
+.theme-dark .studio-footer {border-color:#47628a88;color:#b2c5dd}
+.theme-dark .studio-footer a {color:#bbd5ff}
+@media(prefers-reduced-motion:reduce) {
+  .premium-intro {transition:none}
+}
 </style>
