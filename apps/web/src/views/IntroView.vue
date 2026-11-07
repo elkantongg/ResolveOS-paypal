@@ -1,243 +1,316 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, Moon, Sun, ShieldCheck, Sparkles, PackageX, Handshake, LockKeyhole } from 'lucide-vue-next';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleCheck, CreditCard, FileSearch, Moon, ShieldCheck, Sparkles, Sun } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
 import { useThemePreference } from '@/lib/useThemePreference';
 
 const { currentTheme, toggleTheme } = useThemePreference();
-const activeIndex = ref(0);
+const chapter = ref(0);
 const progress = ref(0);
-const reducedMotion = ref(false);
-const storytelling = ref<HTMLElement | null>(null);
+const reduceMotion = ref(false);
+const storyEl = ref<HTMLElement | null>(null);
+let frame = 0;
+
 const chapters = [
   {
-    eyebrow: '01 / THE PROBLEM',
+    number: '01',
+    label: 'THE PROBLEM',
     title: 'A payment went through.\nTrust did not.',
-    description: 'A customer says the parcel never arrived. The seller sees “delivered.” Neither has the complete picture. A disagreement begins.',
-    micro: 'One payment. Two perspectives.',
+    description: 'A customer says the package never arrived. The merchant sees “delivered”. Two versions of the same transaction. Neither side has the complete picture.',
+    caption: 'ONE PAYMENT / TWO PERSPECTIVES',
   },
   {
-    eyebrow: '02 / THE INTELLIGENCE',
-    title: 'Two perspectives.\nOne conversation.',
-    description: 'A buyer agent and a merchant agent evaluate evidence, work within private limits, and exchange proposals. No agent can approve a deal or move money.',
-    micro: 'Intelligence with boundaries.',
+    number: '02',
+    label: 'THE INTELLIGENCE',
+    title: 'From conflicting stories\nto clearer decisions.',
+    description: 'ResolveOS examines evidence, brings each perspective into focus, and helps the parties explore possible resolutions—without inventing facts or moving money.',
+    caption: 'EVIDENCE FIRST / PEOPLE IN CONTROL',
   },
   {
-    eyebrow: '03 / THE RESOLUTION',
-    title: 'Agreement is earned.\nNot assumed.',
-    description: 'Both people review the same exact terms. Only after both approve can the protected payment service request a PayPal Sandbox refund.',
-    micro: 'Two approvals. One verified outcome.',
+    number: '03',
+    label: 'THE RESOLUTION',
+    title: 'A resolution you\ncan actually verify.',
+    description: 'Both parties review the exact proposed settlement. Once they approve, the payment service can initiate a PayPal Sandbox refund and show its verified status.',
+    caption: 'APPROVAL / EXECUTION / PROOF',
   },
 ] as const;
 
-const scrollPercent = computed(() => Math.round(progress.value * 100));
-let observer: IntersectionObserver | null = null;
-let raf = 0;
-
-function updateScroll() {
-  if (!storytelling.value) return;
-  const rect = storytelling.value.getBoundingClientRect();
-  const available = Math.max(1, storytelling.value.offsetHeight - window.innerHeight);
-  progress.value = Math.max(0, Math.min(1, -rect.top / available));
-  if (!observer) activeIndex.value = Math.min(2, Math.floor(progress.value * 3));
+const progressLabel = computed(() => String(chapter.value + 1).padStart(2, '0'));
+function updateProgress() {
+  if (!storyEl.value) return;
+  const bounds = storyEl.value.getBoundingClientRect();
+  const distance = Math.max(1, storyEl.value.offsetHeight - window.innerHeight);
+  progress.value = Math.max(0, Math.min(1, -bounds.top / distance));
+  const positions = [...storyEl.value.querySelectorAll<HTMLElement>('[data-story-chapter]')];
+  let best = 0;
+  let shortest = Infinity;
+  positions.forEach((el, index) => {
+    const center = el.getBoundingClientRect().top + el.offsetHeight / 2;
+    const gap = Math.abs(center - window.innerHeight / 2);
+    if (gap < shortest) { shortest = gap; best = index; }
+  });
+  chapter.value = best;
 }
 function onScroll() {
-  if (raf) return;
-  raf = requestAnimationFrame(() => { raf = 0; updateScroll(); });
+  if (frame) return;
+  frame = requestAnimationFrame(() => { frame = 0; updateProgress(); });
 }
-function goToChapter(index: number) {
-  const element = document.getElementById(`intro-chapter-${index}`);
-  element?.scrollIntoView({ behavior: reducedMotion.value ? 'instant' : 'smooth', block: 'center' });
+function jumpTo(index: number) {
+  document.getElementById('story-' + index)?.scrollIntoView({ behavior: reduceMotion.value ? 'auto' : 'smooth', block: 'center' });
 }
-onMounted(async () => {
-  reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  await nextTick();
-  const chaptersElements = document.querySelectorAll<HTMLElement>('[data-intro-chapter]');
-  if ('IntersectionObserver' in window) {
-    observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (visible) activeIndex.value = Number((visible.target as HTMLElement).dataset.introChapter ?? 0);
-    }, { rootMargin: '-22% 0px -22% 0px', threshold: [0, .2, .4, .6, .8, 1] });
-    chaptersElements.forEach(element => observer?.observe(element));
-  }
+onMounted(() => {
+  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
-  updateScroll();
+  updateProgress();
 });
 onBeforeUnmount(() => {
-  observer?.disconnect();
   window.removeEventListener('scroll', onScroll);
   window.removeEventListener('resize', onScroll);
-  if (raf) cancelAnimationFrame(raf);
+  if (frame) cancelAnimationFrame(frame);
 });
 </script>
 
 <template>
-  <div class="intro-shell relative min-h-screen bg-canvas text-ink" :style="{ '--story-progress': String(progress) }">
-    <div class="intro-ambient fixed inset-0 pointer-events-none" aria-hidden="true">
-      <div class="intro-orb intro-orb-one" />
-      <div class="intro-orb intro-orb-two" />
-      <div class="intro-grid absolute inset-0" />
-    </div>
+  <div class="premium-intro min-h-screen" :style="{ '--scroll': progress }">
+    <div class="studio-lines" aria-hidden="true" />
+    <div class="studio-light studio-light-left" aria-hidden="true" />
+    <div class="studio-light studio-light-right" aria-hidden="true" />
 
-    <header class="intro-header relative z-30 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-9">
-      <Logo />
-      <div class="flex items-center gap-2">
-        <button type="button" class="btn btn-secondary btn-sm" @click="toggleTheme" :aria-label="currentTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
-          <Moon v-if="currentTheme === 'light'" class="size-4" /><Sun v-else class="size-4" />
-          <span class="hidden sm:inline">{{ currentTheme === 'light' ? 'Dark' : 'Light' }} mode</span>
+    <header class="premium-nav">
+      <RouterLink to="/" aria-label="ResolveOS home" class="premium-brand"><Logo /></RouterLink>
+      <div class="premium-nav-center"><span class="nav-dot" /> PAYMENTS, REIMAGINED</div>
+      <div class="premium-nav-actions">
+        <button type="button" class="premium-theme" @click="toggleTheme" :aria-label="currentTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
+          <Moon v-if="currentTheme === 'light'" :size="17" /><Sun v-else :size="17" />
         </button>
-        <RouterLink to="/signin" class="btn btn-ghost btn-sm">Skip intro <ArrowUpRight class="size-4" /></RouterLink>
+        <RouterLink to="/signin" class="premium-nav-link">Launch app <ArrowUpRight :size="16" /></RouterLink>
       </div>
     </header>
 
-    <main id="main" class="relative z-10">
-      <div ref="storytelling" class="intro-story mx-auto max-w-7xl px-5 sm:px-9">
-        <div class="intro-story-grid">
-          <div class="intro-chapters">
-            <section
-              v-for="(chapter, index) in chapters"
-              :id="`intro-chapter-${index}`"
-              :key="chapter.eyebrow"
-              :data-intro-chapter="index"
-              class="intro-chapter flex flex-col justify-center"
-              :class="{ 'intro-chapter-active': activeIndex === index }"
-              :aria-label="chapter.eyebrow"
-            >
-              <div class="intro-chapter-content">
-                <p class="eyebrow mb-6 flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-accent" /> {{ chapter.eyebrow }}</p>
-                <h1 v-if="index === 0" class="intro-heading whitespace-pre-line text-balance text-[clamp(3rem,5.5vw,6.1rem)] font-semibold leading-[1.04] tracking-[-0.075em]">{{ chapter.title }}</h1>
-                <h2 v-else class="intro-heading whitespace-pre-line text-balance text-[clamp(3rem,5.5vw,6.1rem)] font-semibold leading-[1.04] tracking-[-0.075em]">{{ chapter.title }}</h2>
-                <p class="mt-7 max-w-lg text-[1.06rem] leading-[1.8] text-ink-soft">{{ chapter.description }}</p>
-                <div class="mt-7 inline-flex items-center gap-2 rounded-full border border-line bg-surface/75 px-3.5 py-2 text-xs font-medium text-muted backdrop-blur">
-                  <Sparkles class="size-3.5 text-accent" /> {{ chapter.micro }}
-                </div>
-                <div v-if="index === 0" class="mt-10 flex items-center gap-3 text-sm font-medium text-muted">
-                  <span class="intro-scroll-icon grid size-9 place-items-center rounded-full border border-line"><ArrowDown class="size-4" /></span>
-                  Scroll to explore
-                </div>
-                <div v-if="index === 2" class="mt-10 flex flex-wrap items-center gap-3">
-                  <RouterLink to="/signin" class="btn btn-primary btn-lg">Enter ResolveOS <ArrowRight class="size-4" /></RouterLink>
-                  <RouterLink to="/about" class="btn btn-secondary btn-lg">Explore the product</RouterLink>
-                </div>
-              </div>
-            </section>
-          </div>
+    <main id="main">
+      <div ref="storyEl" class="story-stage">
+        <div class="story-progress" aria-label="Introduction chapters">
+          <span class="progress-copy">{{ progressLabel }} <span>/ 03</span></span>
+          <div class="progress-track"><div class="progress-fill" :style="{ transform: 'scaleY(' + Math.max(.02, progress) + ')' }" /></div>
+          <button v-for="(item, index) in chapters" :key="item.number" type="button" class="progress-button" :class="{ selected: chapter === index }" :aria-label="'Go to '+item.label.toLowerCase()" @click="jumpTo(index)">{{ item.number }}</button>
+        </div>
 
-          <div class="intro-visual-column">
-            <div class="intro-visual-sticky flex items-center justify-center" aria-label="Animated illustration of the resolution journey">
-              <div class="intro-ring intro-ring-one absolute rounded-full border border-primary-line/60" aria-hidden="true" />
-              <div class="intro-ring intro-ring-two absolute rounded-full border border-line-strong/60" aria-hidden="true" />
-              <div class="intro-parallax relative z-10 w-full max-w-[490px]">
-                <Transition name="intro-scene" mode="out-in">
-                  <div :key="activeIndex" class="intro-scene-card">
-                    <template v-if="activeIndex === 0">
-                      <div class="intro-glass mx-auto w-[92%] rounded-[28px] p-6 shadow-2xl sm:p-8">
-                        <div class="flex items-center justify-between"><span class="rounded-full bg-warn-soft px-3 py-1 text-xs font-semibold text-warn">Delivery disputed</span><PackageX class="size-6 text-warn" /></div>
-                        <p class="mt-7 text-xs font-medium uppercase tracking-[.18em] text-muted">Everyday jacket · Order #1042</p>
-                        <p class="mt-2 text-4xl font-semibold tracking-tight">$180.00</p>
-                        <div class="mt-7 grid gap-3 sm:grid-cols-2">
-                          <div class="intro-stagger rounded-2xl border border-primary-line bg-primary-soft p-4"><p class="text-xs font-semibold text-buyer">BUYER</p><p class="mt-2 text-sm font-medium text-ink">“I never received it.”</p></div>
-                          <div class="intro-stagger rounded-2xl border border-accent-line bg-accent-soft p-4"><p class="text-xs font-semibold text-merchant">MERCHANT</p><p class="mt-2 text-sm font-medium text-ink">“Tracking says delivered.”</p></div>
-                        </div>
-                        <div class="mt-5 flex items-center gap-2 border-t border-line pt-5 text-xs text-muted"><span class="h-2 w-2 animate-pulse rounded-full bg-warn" /> Conflicting information. Unresolved.</div>
-                      </div>
-                    </template>
-                    <template v-else-if="activeIndex === 1">
-                      <div class="intro-glass rounded-[28px] p-6 shadow-2xl sm:p-8">
-                        <div class="flex items-center justify-between"><span class="text-xs font-semibold uppercase tracking-[.16em] text-muted">Negotiation room</span><span class="flex items-center gap-1.5 text-xs text-accent"><span class="h-2 w-2 animate-pulse rounded-full bg-accent" /> Illustrative</span></div>
-                        <div class="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                          <div class="intro-stagger rounded-2xl border border-primary-line bg-primary-soft p-5 text-center"><div class="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-primary text-white"><Sparkles class="size-5" /></div><p class="text-sm font-semibold text-buyer">Buyer agent</p><p class="mt-1 text-xs text-muted">Evidence & needs</p></div>
-                          <div class="intro-connection"><Handshake class="size-6 text-primary" /></div>
-                          <div class="intro-stagger rounded-2xl border border-accent-line bg-accent-soft p-5 text-center"><div class="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-accent text-white"><Sparkles class="size-5" /></div><p class="text-sm font-semibold text-merchant">Merchant agent</p><p class="mt-1 text-xs text-muted">Policies & costs</p></div>
-                        </div>
-                        <div class="mt-6 flex items-center gap-2 rounded-xl border border-line bg-sunken p-4 text-sm text-ink-soft"><LockKeyhole class="size-5 shrink-0 text-primary" /> Each side's private limits stay private.</div>
-                        <div class="mt-3 flex items-center justify-between text-xs text-muted"><span>Investigate → propose → evaluate</span><span>Server guarded</span></div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="intro-glass mx-auto w-[92%] rounded-[28px] p-6 shadow-2xl sm:p-8">
-                        <div class="mx-auto mb-5 grid size-16 place-items-center rounded-3xl bg-ok-soft text-ok"><ShieldCheck class="size-9" /></div>
-                        <p class="text-center text-xs font-semibold uppercase tracking-[.15em] text-muted">Settlement protocol</p>
-                        <p class="mt-2 text-center text-3xl font-semibold tracking-tight">Both sides decide.</p>
-                        <div class="mt-7 space-y-3">
-                          <div v-for="person in ['Buyer approval','Merchant approval']" :key="person" class="intro-stagger flex items-center justify-between rounded-xl border border-line bg-sunken p-4"><span class="text-sm font-medium">{{ person }}</span><span class="flex items-center gap-1.5 text-sm font-semibold text-ok"><Check class="size-4" /> Required</span></div>
-                        </div>
-                        <div class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-ok-soft p-3 text-sm font-semibold text-ok"><ShieldCheck class="size-5" /> PayPal-confirmed settlement</div>
-                        <p class="mt-3 text-center text-xs text-muted">Illustrative flow. Actual results appear in the app.</p>
-                      </div>
-                    </template>
-                  </div>
-                </Transition>
+        <!-- The object stays in place while the story and its environment change around it. -->
+        <div class="product-stage" aria-label="Animated ResolveOS payment resolution illustration">
+          <div class="stage-ground" aria-hidden="true" />
+          <div class="stage-disc" aria-hidden="true" />
+          <div class="core-system" :class="'core-chapter-' + chapter" aria-hidden="true">
+            <div class="core-shadow" />
+            <div class="core-halo core-halo-one" />
+            <div class="core-halo core-halo-two" />
+            <div class="core-orb">
+              <div class="core-glow" />
+              <div class="core-shine" />
+              <div class="core-contour core-contour-one" />
+              <div class="core-contour core-contour-two" />
+            </div>
+            <div class="core-orbit core-orbit-one" />
+            <div class="core-orbit core-orbit-two" />
+            <div class="core-orbit core-orbit-three" />
+          </div>
+          <div class="floating-annotation annotation-one" :class="{ visible: chapter === 0 }">
+            <span class="annotation-indicator amber" />
+            <span>PAYMENT FLAGGED</span>
+            <strong>$180.00</strong>
+          </div>
+          <div class="floating-annotation annotation-two" :class="{ visible: chapter === 1 }">
+            <span class="annotation-indicator blue" />
+            <span>EVIDENCE REVIEW</span>
+            <strong>3 sources</strong>
+          </div>
+          <div class="floating-annotation annotation-three" :class="{ visible: chapter === 2 }">
+            <span class="annotation-indicator green" />
+            <span>PAYPAL SANDBOX</span>
+            <strong>Verified status</strong>
+          </div>
+          <div class="product-caption"><span class="caption-led" /> RESOLVE / INTELLIGENCE LAYER <span class="caption-number">00{{ chapter + 1 }}</span></div>
+        </div>
+
+        <div class="story-copy">
+          <section v-for="(item, index) in chapters" :key="item.number" :id="'story-' + index" :data-story-chapter="index" class="story-chapter" :class="{ 'story-chapter-active': chapter === index }">
+            <div class="chapter-inner">
+              <p class="chapter-eyebrow"><span class="eyebrow-line" /> {{ item.number }} — {{ item.label }}</p>
+              <h1 v-if="index === 0" class="chapter-title">{{ item.title }}</h1>
+              <h2 v-else class="chapter-title">{{ item.title }}</h2>
+              <p class="chapter-description">{{ item.description }}</p>
+              <div class="chapter-tag"><Sparkles :size="14" /> {{ item.caption }}</div>
+
+              <div v-if="index === 0" class="case-mini">
+                <div class="case-mini-top"><span><span class="tiny-amber" /> DELIVERY DISPUTED</span><span>ORDER #1042</span></div>
+                <div class="case-mini-row"><span>Buyer</span><strong>“It never arrived.”</strong></div>
+                <div class="case-mini-row"><span>Merchant</span><strong>“Tracking says delivered.”</strong></div>
+              </div>
+              <div v-if="index === 1" class="case-mini">
+                <div class="case-mini-top"><span><FileSearch :size="13" /> INVESTIGATION</span><span>ILLUSTRATIVE</span></div>
+                <div class="case-mini-row"><span>PAYPAL</span><strong>Transaction verified</strong><CircleCheck :size="15" class="ok-color" /></div>
+                <div class="case-mini-row"><span>MERCHANT</span><strong>Tracking record provided</strong></div>
+                <div class="case-mini-row"><span>UNRESOLVED</span><strong>No recipient signature</strong></div>
+              </div>
+              <div v-if="index === 2" class="case-mini">
+                <div class="case-mini-top"><span><ShieldCheck :size="13" /> CONTROLLED SETTLEMENT</span><span>SANDBOX</span></div>
+                <div class="case-mini-row"><span>01</span><strong>Both parties approve</strong><Check :size="15" class="ok-color" /></div>
+                <div class="case-mini-row"><span>02</span><strong>PayPal refund requested</strong><CreditCard :size="15" /></div>
+                <div class="case-mini-row"><span>03</span><strong>Real transaction status tracked</strong><CircleCheck :size="15" class="ok-color" /></div>
+              </div>
+              <div v-if="index === 0" class="scroll-hint"><ArrowDown :size="17" /> SCROLL TO EXPLORE</div>
+              <div v-if="index === 2" class="final-actions">
+                <RouterLink to="/signin" class="action-primary">Enter ResolveOS <ArrowUpRight :size="19" /></RouterLink>
+                <RouterLink to="/about" class="action-secondary">Explore the product <ArrowRight :size="17" /></RouterLink>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
-      <nav class="intro-progress-nav fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur-xl" aria-label="Story chapters">
-        <button v-for="(chapter, index) in chapters" :key="chapter.eyebrow" type="button"
-          class="intro-dot h-1.5 rounded-full transition-all duration-300"
-          :class="activeIndex === index ? 'w-12 bg-primary' : 'w-6 bg-line-strong hover:bg-accent'"
-          :aria-label="`Scroll to chapter ${index + 1}: ${chapter.eyebrow}`"
-          :aria-current="activeIndex === index ? 'step' : undefined"
-          @click="goToChapter(index)"
-        />
-        <span class="ml-2 font-mono text-xs text-muted">{{ String(activeIndex + 1).padStart(2, '0') }} / 03</span>
-      </nav>
-
-      <div class="intro-end relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 pb-28 pt-14 sm:px-9">
-        <p class="text-xs text-muted">Independent hackathon prototype · PayPal Sandbox · Test money only</p>
-        <span class="font-mono text-xs text-muted">STORY EXPLORED {{ scrollPercent }}%</span>
-      </div>
+      <section class="studio-footer">
+        <span>AN INDEPENDENT HACKATHON CONCEPT</span>
+        <span>PAYPAL SANDBOX · TEST MONEY ONLY</span>
+        <RouterLink to="/signin">ENTER APPLICATION <ArrowUpRight :size="15" /></RouterLink>
+      </section>
     </main>
   </div>
 </template>
 
 <style scoped>
-.intro-shell { isolation: isolate; }
-.intro-ambient { z-index: 0; overflow: hidden; }
-.intro-grid { background-image: linear-gradient(var(--color-line) 1px,transparent 1px),linear-gradient(90deg,var(--color-line) 1px,transparent 1px); background-size: 72px 72px; opacity: .17; mask-image: radial-gradient(ellipse at 70% 40%,black,transparent 70%); }
-.intro-orb { position:absolute; width:42vw; height:42vw; min-width:360px; min-height:360px; border-radius:50%; filter:blur(95px); opacity:.16; pointer-events:none; animation:orb-drift 13s ease-in-out infinite alternate; will-change:transform; }
-.intro-orb-one { top:0; right:-10%; background:var(--color-primary); }
-.intro-orb-two { bottom:-20%; left:30%; background:var(--color-accent); animation-delay:-5s; }
-.intro-story-grid { display:grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap:clamp(2rem,5vw,5rem); }
-.intro-chapter { min-height:100svh; padding:6rem 0; scroll-margin-top:3rem; }
-.intro-chapter-content { opacity:.28; transform:translateY(38px) scale(.97); filter:blur(3px); transition:opacity .65s ease,transform .8s cubic-bezier(.2,.8,.2,1),filter .65s ease; }
-.intro-chapter-active .intro-chapter-content { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
-.intro-visual-column { position:relative; }
-.intro-visual-sticky { position:sticky; top:0; height:100svh; min-height:480px; overflow:hidden; }
-.intro-ring { width:min(38vw,520px); height:min(38vw,520px); min-width:360px; min-height:360px; transform:translateY(calc(var(--story-progress) * -30px)) rotate(calc(var(--story-progress) * 25deg)); transition:border-color .5s ease; }
-.intro-ring-two { width:min(30vw,385px); height:min(30vw,385px); min-width:260px; min-height:260px; transform:translateY(calc(var(--story-progress) * 40px)) rotate(calc(var(--story-progress) * -32deg)); }
-.intro-parallax { transform:translateY(calc((.5 - var(--story-progress)) * 46px)); will-change:transform; }
-.intro-glass { background:color-mix(in srgb,var(--color-surface) 91%,transparent); border:1px solid var(--color-line); backdrop-filter:blur(22px); }
-.intro-scene-enter-active,.intro-scene-leave-active { transition:opacity .55s ease,transform .65s cubic-bezier(.2,.8,.2,1),filter .5s ease; }
-.intro-scene-enter-from { opacity:0;transform:translateY(46px) scale(.94) rotate(1.5deg);filter:blur(10px); }
-.intro-scene-leave-to { opacity:0;transform:translateY(-36px) scale(1.04) rotate(-1deg);filter:blur(8px); }
-.intro-stagger { animation:card-appear .75s both; }
-.intro-stagger:nth-child(2) { animation-delay:.13s; }
-.intro-connection { animation:connection-pulse 2s ease-in-out infinite; }
-.intro-scroll-icon { animation:scroll-nudge 1.8s ease-in-out infinite; }
-@keyframes orb-drift { to { transform:translate(7%,-8%); } }
-@keyframes connection-pulse { 50% { transform:scale(1.16);opacity:.55; } }
-@keyframes scroll-nudge { 50% { transform:translateY(6px); } }
-@keyframes card-appear { from { opacity:0;transform:translateY(18px); } to { opacity:1;transform:translateY(0); } }
-@media(max-width:767px) {
-  .intro-story-grid { display:flex; flex-direction:column-reverse; gap:0; }
-  .intro-visual-column { position:sticky; top:0; z-index:12; height:42svh; margin:0 -1.25rem; pointer-events:none; }
-  .intro-visual-sticky { height:42svh; min-height:0; padding:0 1.25rem; }
-  .intro-parallax { max-width:370px; transform:scale(.76) translateY(calc((.5 - var(--story-progress)) * 16px)); }
-  .intro-ring { width:340px; height:340px; min-width:0; min-height:0; }
-  .intro-ring-two { width:260px;height:260px;min-width:0;min-height:0; }
-  .intro-chapter { min-height:66svh; padding:2.5rem 0 5rem; }
-  .intro-chapter-content { opacity:.48; filter:none; transform:translateY(18px); }
-  .intro-header { position:relative; }
+.premium-intro {
+  --premium-text:#14223b; --premium-muted:#62718a; --premium-line:rgba(79,111,159,.15);
+  --premium-glass:rgba(255,255,255,.62);
+  position:relative; isolation:isolate; overflow:clip; color:var(--premium-text);
+  background:linear-gradient(119deg,#f7faff 0%,#eff5ff 37%,#e2eeff 65%,#f6faff 100%);
 }
-@media(prefers-reduced-motion:reduce) {
-  .intro-orb,.intro-connection,.intro-scroll-icon,.intro-stagger { animation:none; }
-  .intro-chapter-content { opacity:1; filter:none;transform:none; }
-  .intro-parallax,.intro-ring,.intro-ring-two { transform:none; }
-  .intro-scene-enter-active,.intro-scene-leave-active { transition:none; }
+.studio-lines {position:absolute;inset:0;z-index:-1;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 115px,rgba(70,110,170,.055) 116px,transparent 117px);mask-image:linear-gradient(90deg,transparent,#000 35%,#000 85%,transparent)}
+.studio-light {position:absolute;border-radius:50%;pointer-events:none;filter:blur(85px);opacity:.68;z-index:-1}
+.studio-light-left {width:65vw;height:65vw;left:-40vw;top:25vh;background:#fff}
+.studio-light-right {width:55vw;height:55vw;right:-30vw;top:65vh;background:#9bc4ff}
+.premium-nav {position:absolute;z-index:30;top:0;left:0;width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:27px clamp(24px,5vw,78px)}
+.premium-brand {display:flex;align-items:center}
+.premium-nav-center {font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.22em;color:#657690;display:flex;gap:11px;align-items:center}
+.nav-dot {width:7px;height:7px;border-radius:100%;background:#43c6bb;box-shadow:0 0 0 4px #43c6bb24}
+.premium-nav-actions {display:flex;align-items:center;gap:14px}
+.premium-theme {border:1px solid #c7d8ed;border-radius:50%;background:#ffffffad;width:39px;height:39px;display:grid;place-items:center;cursor:pointer;color:#263e65}
+.premium-nav-link {padding:12px 20px;background:#172a47;color:#fff;border-radius:100px;font-size:12px;font-weight:650;display:flex;gap:12px;align-items:center;transition:transform .2s,background .2s}
+.premium-nav-link:hover,.action-primary:hover {transform:translateY(-2px);background:#264e91}
+.story-stage {position:relative;max-width:1600px;margin:auto;min-height:300svh}
+.story-copy {position:relative;z-index:12;width:49%;padding-left:clamp(24px,9vw,145px)}
+.story-chapter {min-height:100svh;display:flex;align-items:center;padding:100px 0 80px;scroll-margin-top:0}
+.chapter-inner {max-width:580px;opacity:.22;transform:translateY(34px);filter:blur(4px);transition:opacity .7s ease,transform .7s ease,filter .7s ease}
+.story-chapter-active .chapter-inner {opacity:1;transform:none;filter:none}
+.chapter-eyebrow {font-family:var(--font-mono,monospace);display:flex;align-items:center;gap:12px;color:#5277b5;font-size:11px;letter-spacing:.2em;font-weight:650}
+.eyebrow-line {width:30px;height:1px;background:#699ade}
+.chapter-title {white-space:pre-line;font-size:clamp(44px,5.2vw,90px);line-height:1.055;letter-spacing:-.068em;font-weight:680;margin:24px 0}
+.chapter-description {font-size:clamp(15px,1.3vw,18px);line-height:1.75;color:var(--premium-muted);max-width:510px}
+.chapter-tag {display:inline-flex;align-items:center;gap:9px;margin-top:26px;padding:9px 12px;border:1px solid #c8d9ee;border-radius:40px;color:#5876a0;background:#ffffff75;font:600 10px var(--font-mono,monospace);letter-spacing:.07em}
+.case-mini {margin-top:36px;padding:21px 24px;width:min(100%,455px);background:var(--premium-glass);border:1px solid rgba(255,255,255,.95);box-shadow:0 24px 65px #456ba51a,0 1px 0 #ffffffa8 inset;border-radius:20px;backdrop-filter:blur(18px)}
+.case-mini-top {display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;font:650 10px var(--font-mono,monospace);letter-spacing:.09em;color:#587294}
+.case-mini-top span:first-child {display:inline-flex;align-items:center;gap:7px}
+.tiny-amber {height:7px;width:7px;background:#ffac53;border-radius:100%}
+.case-mini-row {display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #cad9ec89;font-size:13px}
+.case-mini-row span {min-width:85px;color:#7890ad;font:600 10px var(--font-mono,monospace);text-transform:uppercase}
+.case-mini-row strong {font-weight:600;flex:1}
+.ok-color {color:#169782}
+.scroll-hint {margin-top:40px;display:flex;align-items:center;gap:14px;color:#55759e;font:650 10px var(--font-mono,monospace);letter-spacing:.15em}
+.scroll-hint svg {animation:scroll-indicate 1.8s ease-in-out infinite}
+.final-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:36px}
+.action-primary,.action-secondary {display:inline-flex;align-items:center;gap:15px;padding:17px 24px;border-radius:100px;font-size:14px;font-weight:650;transition:transform .25s,background .25s}
+.action-primary {color:#fff;background:#172a47;box-shadow:0 10px 30px #172a472a}
+.action-secondary {color:#284b7d;background:#ffffffaa;border:1px solid #cbdcf0}
+.action-secondary:hover {transform:translateY(-2px);background:#fff}
+.product-stage {position:sticky;z-index:5;top:0;height:100svh;float:right;width:51%;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:visible}
+.stage-ground {position:absolute;width:min(64vw,830px);height:clamp(180px,19vw,265px);bottom:7%;left:50%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#8db9ed42,transparent 65%);filter:blur(18px)}
+.stage-disc {position:absolute;width:min(39vw,560px);height:min(39vw,560px);border:1px solid #d9e7faba;border-radius:50%;transform:rotateX(68deg) translateY(28%);box-shadow:0 0 0 28px #e6effb45,0 0 0 100px #d7e5f51b}
+.core-system {width:min(34vw,490px);aspect-ratio:1;position:relative;transform-style:preserve-3d;transform:translateY(calc(24px - var(--scroll)*55px)) rotate(calc(var(--scroll)*35deg));transition:filter .8s ease}
+.core-orb {position:absolute;inset:12%;z-index:3;border-radius:48% 52% 53% 47% / 50% 48% 52% 50%;background:
+ radial-gradient(ellipse at 27% 20%,#ffffffed 0%,#d2f4ffca 8%,transparent 32%),
+ radial-gradient(ellipse at 68% 78%,#4424d5 0%,#6c45f7 21%,transparent 58%),
+ radial-gradient(ellipse at 35% 44%,#57caff 0%,#0076f3 42%,#1847c7 74%,#161979 100%);
+box-shadow:inset 18px 25px 40px #ffffff80,inset -18px -30px 42px #161675bb,0 30px 70px #135cd14d,0 0 100px #4e93fc30;
+filter:saturate(1.12);animation:orb-breathe 7s ease-in-out infinite}
+.core-glow {position:absolute;inset:8%;border-radius:50%;background:radial-gradient(ellipse at 30% 25%,#d4fbff7f,transparent 38%)}
+.core-shine {position:absolute;inset:6% 11% auto 12%;height:43%;border-top:3px solid #ffffffab;border-radius:100%;transform:rotate(-20deg);filter:blur(2px)}
+.core-contour {position:absolute;inset:20% -6%;border:2px solid #d4faff9c;border-radius:50%;transform:rotate(-36deg);box-shadow:0 0 17px #60dfff88}
+.core-contour-two {inset:7% 35%;transform:rotate(30deg);border-color:#ffffff8c}
+.core-orbit {position:absolute;z-index:6;left:0;top:21%;width:100%;height:58%;border:clamp(6px,1vw,14px) solid transparent;border-top-color:#b8eaffd9;border-bottom-color:#2367d8cc;border-radius:50%;transform:rotate(-37deg);box-shadow:0 -4px 12px #d9faff66;animation:orbit-turn 16s linear infinite}
+.core-orbit-two {z-index:4;top:8%;left:19%;width:62%;height:87%;border-width:clamp(5px,.8vw,11px);border-top-color:#d6e7ffb5;border-bottom-color:#2b71c7a6;transform:rotate(38deg);animation:orbit-turn-reverse 20s linear infinite}
+.core-orbit-three {z-index:7;top:39%;left:-7%;width:114%;height:23%;border-width:clamp(3px,.65vw,8px);border-top-color:#c8f6ffb9;border-bottom-color:#426af5b7;transform:rotate(18deg);animation:orbit-turn 22s linear infinite}
+.core-shadow {position:absolute;bottom:0;left:20%;width:60%;height:15%;background:#2752aa58;filter:blur(35px);border-radius:50%}
+.core-halo {position:absolute;inset:-12%;border-radius:50%;border:1px solid #80afe847}
+.core-halo-two {inset:-28%;border-color:#a7c8f33b}
+.core-chapter-1 .core-orb {filter:hue-rotate(17deg) saturate(1.2)}
+.core-chapter-2 .core-orb {filter:hue-rotate(-18deg) saturate(.9)}
+.floating-annotation {position:absolute;z-index:9;display:flex;align-items:center;gap:9px;background:#ffffffd9;border:1px solid white;border-radius:13px;padding:13px 16px;box-shadow:0 18px 35px #4b6d9d30;font:650 10px var(--font-mono,monospace);letter-spacing:.08em;color:#607796;opacity:0;transform:translateY(23px) scale(.93);transition:opacity .6s,transform .6s;backdrop-filter:blur(20px);white-space:nowrap}
+.floating-annotation strong {color:#203a65;font:700 13px var(--font-sans,sans-serif);letter-spacing:0}
+.floating-annotation.visible {opacity:1;transform:translateY(0) scale(1);animation:annotation-float 5s ease-in-out infinite}
+.annotation-one {top:25%;left:0}.annotation-two {top:24%;right:-1%}.annotation-three {bottom:23%;left:4%}
+.annotation-indicator {width:7px;height:7px;border-radius:50%}.annotation-indicator.amber {background:#ffaf54}.annotation-indicator.blue {background:#3978ed}.annotation-indicator.green {background:#30b99c}
+.product-caption {position:absolute;bottom:13%;left:15%;right:15%;display:flex;align-items:center;gap:9px;color:#738ab1;font:600 9px var(--font-mono,monospace);letter-spacing:.13em}
+.caption-led {height:5px;width:5px;border-radius:50%;background:#44c6b4}.caption-number {margin-left:auto}
+.story-progress {position:fixed;z-index:28;top:43%;left:clamp(10px,3vw,43px);display:flex;flex-direction:column;align-items:center;gap:16px}
+.progress-copy {font:700 11px var(--font-mono,monospace);color:#44658f}.progress-copy span {opacity:.45}
+.progress-track {height:115px;width:1px;background:#bad0ec;position:relative;overflow:hidden}
+.progress-fill {position:absolute;inset:0;background:#3877e5;transform-origin:top;transition:transform .1s linear}
+.progress-button {font:650 11px var(--font-mono,monospace);color:#a4b7cd;cursor:pointer;transition:color .2s,transform .2s}
+.progress-button.selected {color:#265eb7;transform:scale(1.15)}
+.studio-footer {position:relative;z-index:15;max-width:1600px;margin:auto;padding:50px clamp(24px,9vw,145px) 60px;border-top:1px solid #cbdcf080;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font:650 10px var(--font-mono,monospace);letter-spacing:.12em;color:#8194ac}
+.studio-footer a {color:#315d9a;display:flex;align-items:center;gap:8px}
+@keyframes orb-breathe {50% {transform:scale(1.035) rotate(-5deg);border-radius:53% 47% 48% 52% / 49% 53% 47% 51%}}
+@keyframes orbit-turn {50% {transform:rotate(-17deg) scale(1.035)}}
+@keyframes orbit-turn-reverse {50% {transform:rotate(65deg) scale(.96)}}
+@keyframes annotation-float {50% {translate:0 -9px}}
+@keyframes scroll-indicate {50% {transform:translateY(7px)}}
+@media (max-width:1100px) {
+ .story-copy {width:53%;padding-left:clamp(32px,7vw,90px)} .product-stage {width:47%}
+ .chapter-title {font-size:clamp(42px,5vw,70px)}
+ .floating-annotation {font-size:8px;padding:10px}.floating-annotation strong {font-size:11px}
+ .core-system {width:40vw}
 }
+@media(max-width:760px) {
+ .premium-nav {padding:18px 20px}.premium-nav-center {display:none}.premium-nav-link {padding:11px 14px}
+ .story-stage {display:flex;flex-direction:column;min-height:0}
+ .product-stage {position:sticky;top:75px;order:0;float:none;width:100%;height:43svh;min-height:285px;overflow:hidden;z-index:16}
+ .story-copy {order:1;width:100%;padding:0 23px}
+ .story-chapter {min-height:76svh;padding:45px 0 100px;align-items:flex-start;scroll-margin-top:36vh}
+ .chapter-inner {filter:none;opacity:.5;transform:translateY(15px)}
+ .chapter-title {font-size:clamp(43px,10vw,68px);max-width:580px}
+ .chapter-description {font-size:15px}
+ .core-system {width:260px;transform:translateY(calc(18px - var(--scroll)*28px)) rotate(calc(var(--scroll)*35deg))}
+ .stage-disc {width:340px;height:340px}
+ .stage-ground {bottom:-20%}.product-caption {bottom:4%;left:20%;right:20%;font-size:7px}
+ .floating-annotation {font-size:7px;padding:9px;gap:5px}.floating-annotation strong {font-size:10px}
+ .annotation-one {top:10%;left:4%}.annotation-two {top:12%;right:2%}.annotation-three {bottom:13%;left:3%}
+ .story-progress {display:none}
+ .case-mini {margin-top:26px}
+ .studio-footer {padding:36px 24px 44px}
+}
+@media(max-width:390px) {
+ .chapter-title {font-size:41px}.product-stage {height:38svh}.story-chapter {min-height:80svh}
+}
+@media (prefers-reduced-motion:reduce) {
+ .chapter-inner {opacity:1;transform:none;filter:none}
+ .core-system {transform:none}
+ .core-orb,.core-orbit,.scroll-hint svg,.floating-annotation {animation:none!important}
+ .floating-annotation.visible {transform:none}
+}
+:global(html[data-theme='dark']) .premium-intro {
+ --premium-text:#e9f0ff;--premium-muted:#b2c3dd;--premium-line:rgba(145,172,219,.15);--premium-glass:rgba(21,35,61,.76);
+ background:linear-gradient(120deg,#0c1423,#172b4c 60%,#0b1a2d)
+}
+:global(html[data-theme='dark']) .premium-intro .chapter-eyebrow,
+:global(html[data-theme='dark']) .premium-intro .chapter-tag {color:#a1bff6}
+:global(html[data-theme='dark']) .premium-intro .case-mini {border-color:#536a8e65}
+:global(html[data-theme='dark']) .premium-intro .case-mini-row {border-color:#667b9d3a}
+:global(html[data-theme='dark']) .premium-intro .case-mini-top,
+:global(html[data-theme='dark']) .premium-intro .case-mini-row span,
+:global(html[data-theme='dark']) .premium-intro .progress-copy {color:#a6bddd}
+:global(html[data-theme='dark']) .premium-intro .case-mini-row strong {color:#e8f1ff}
+:global(html[data-theme='dark']) .premium-intro .chapter-tag {background:#213957b0;border-color:#46648b}
+:global(html[data-theme='dark']) .premium-intro .premium-theme {background:#263b59;color:#fff}
+:global(html[data-theme='dark']) .premium-intro .floating-annotation {background:#213451e8;border-color:#5876a1}
+:global(html[data-theme='dark']) .premium-intro .floating-annotation strong {color:#eaf3ff}
 </style>
