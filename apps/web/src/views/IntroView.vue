@@ -8,6 +8,10 @@ import { useThemePreference } from '@/lib/useThemePreference';
 const { currentTheme, toggleTheme } = useThemePreference();
 const chapter = ref(0);
 const reducedMotion = ref(false);
+const transitionPhase = ref<'idle' | 'out' | 'in'>('idle');
+const transitionDirection = ref(1);
+let transitionSwap: ReturnType<typeof setTimeout> | null = null;
+let transitionFinish: ReturnType<typeof setTimeout> | null = null;
 let wheelAccum = 0;
 let lastWheelDirection = 0;
 let lastNavigationAt = 0;
@@ -45,13 +49,28 @@ const opacityAt = (index: number) => index === chapter.value ? 1 : 0;
 
 function jumpTo(index: number) {
   const next = Math.max(0, Math.min(stories.length - 1, index));
-  if (next === chapter.value) return;
+  if (next === chapter.value || transitionPhase.value !== 'idle') return;
   const now = performance.now();
-  // Allow the full visual morph and text handoff to finish before another step.
-  if (!reducedMotion.value && now - lastNavigationAt < 1650) return;
-  chapter.value = next;
+  if (!reducedMotion.value && now - lastNavigationAt < 1700) return;
   wheelAccum = 0;
   lastNavigationAt = now;
+  if (reducedMotion.value) {
+    chapter.value = next;
+    return;
+  }
+  transitionDirection.value = Math.sign(next - chapter.value) || 1;
+  transitionPhase.value = 'out';
+  // Change the chapter only once the outgoing scene is completely gone.
+  // Keeping the scenes mounted preserves their animation phase.
+  transitionSwap = setTimeout(() => {
+    chapter.value = next;
+    transitionPhase.value = 'in';
+    transitionSwap = null;
+  }, 690);
+  transitionFinish = setTimeout(() => {
+    transitionPhase.value = 'idle';
+    transitionFinish = null;
+  }, 1650);
 }
 
 // A single scroll/swipe gesture moves to exactly one settled chapter.
@@ -64,7 +83,7 @@ function handleWheel(event: WheelEvent) {
   if (direction !== lastWheelDirection) wheelAccum = 0;
   lastWheelDirection = direction;
   const now = performance.now();
-  if (now - lastNavigationAt < (reducedMotion.value ? 300 : 1650)) return;
+  if (transitionPhase.value !== 'idle' || now - lastNavigationAt < (reducedMotion.value ? 300 : 1700)) return;
   wheelAccum += delta;
   if (Math.abs(wheelAccum) >= 50) jumpTo(chapter.value + direction);
 }
@@ -76,7 +95,7 @@ function handleTouchEnd(event: TouchEvent) {
   if (touchStartY === null) return;
   const distance = touchStartY - (event.changedTouches[0]?.clientY ?? touchStartY);
   touchStartY = null;
-  if (Math.abs(distance) > 48 && performance.now() - lastNavigationAt >= (reducedMotion.value ? 300 : 1650)) {
+  if (Math.abs(distance) > 48 && transitionPhase.value === 'idle' && performance.now() - lastNavigationAt >= (reducedMotion.value ? 300 : 1700)) {
     jumpTo(chapter.value + Math.sign(distance));
   }
 }
@@ -101,6 +120,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
+  if (transitionSwap) clearTimeout(transitionSwap);
+  if (transitionFinish) clearTimeout(transitionFinish);
 });
 </script>
 
@@ -118,7 +139,17 @@ onBeforeUnmount(() => {
 
     <main id="main">
       <div class="cinema-scroll" :class="{ 'cinema-reduced': reducedMotion }">
-        <section class="cinema-sticky" :style="sceneStyle" aria-label="ResolveOS product introduction">
+        <section
+          class="cinema-sticky"
+          :class="{
+            'cinema-stage--exiting': transitionPhase === 'out',
+            'cinema-stage--entering': transitionPhase === 'in',
+            'cinema-stage--backward': transitionDirection < 0
+          }"
+          :style="sceneStyle"
+          aria-label="ResolveOS product introduction"
+        >
+          <div v-if="transitionPhase !== 'idle'" class="cinema-handoff" aria-hidden="true" />
           <!-- The reference's luminous, rotating motion is the hero; no device mockup or tabletop. -->
           <div class="luminous-world" :style="{ opacity: Math.max(opacityAt(0),opacityAt(3)) }" aria-hidden="true">
             <div class="luminous-halo halo-outer" />
@@ -1030,5 +1061,64 @@ onBeforeUnmount(() => {
 .cinematic-intro .luminous-world[style*="opacity: 1"],
 .cinematic-intro .morph-scene[style*="opacity: 1"] {
   visibility:visible;
+}
+
+/* Cinematic 1.65s chapter handoff — a single stage, never two chapters
+   superimposed. 0–690ms exit, switch behind light sweep, 690–1650ms enter. */
+.cinematic-intro .cinema-stage--exiting .cinema-caption-inner--active{
+  animation:cinema-chapter-exit .69s cubic-bezier(.42,0,.8,.5) both!important;
+  pointer-events:none;
+}
+.cinematic-intro .cinema-stage--entering .cinema-caption-inner--active{
+  animation:cinema-chapter-enter .88s cubic-bezier(.18,.72,.25,1) both!important;
+}
+.cinematic-intro .cinema-stage--exiting .luminous-world[style*="opacity: 1"],
+.cinematic-intro .cinema-stage--exiting .morph-scene[style*="opacity: 1"]{
+  animation:cinema-visual-exit .69s cubic-bezier(.42,0,.8,.5) both!important;
+}
+.cinematic-intro .cinema-stage--entering .luminous-world[style*="opacity: 1"],
+.cinematic-intro .cinema-stage--entering .morph-scene[style*="opacity: 1"]{
+  animation:cinema-visual-enter .94s cubic-bezier(.18,.72,.25,1) both!important;
+}
+@keyframes cinema-chapter-exit{
+  from{opacity:1;transform:translate3d(0,0,0) scale(1)}
+  to{opacity:0;transform:translate3d(0,-24px,0) scale(.985)}
+}
+@keyframes cinema-chapter-enter{
+  from{opacity:0;transform:translate3d(0,26px,0) scale(.985)}
+  to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes cinema-visual-exit{
+  from{opacity:1;filter:blur(0)}
+  to{opacity:0;filter:blur(8px)}
+}
+@keyframes cinema-visual-enter{
+  from{opacity:0;filter:blur(9px)}
+  to{opacity:1;filter:blur(0)}
+}
+/* A moving edge of blue light makes the mid-transition feel intentional.
+   It peaks precisely as the chapter switches, rather than showing ghost copy. */
+.cinema-handoff{
+  position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:linear-gradient(100deg,transparent 0%,#0a1a37a8 33%,#163b7775 49%,#071027bb 68%,transparent 100%);
+  clip-path:inset(0 100% 0 0);
+  animation:cinema-light-sweep 1.65s cubic-bezier(.55,0,.25,1) both;
+}
+.cinema-stage--backward .cinema-handoff{transform:scaleX(-1)}
+@keyframes cinema-light-sweep{
+  0%{clip-path:inset(0 100% 0 0);opacity:0}
+  16%{opacity:.65}
+  43%{clip-path:inset(0 0 0 0);opacity:.83}
+  57%{clip-path:inset(0 0 0 0);opacity:.65}
+  100%{clip-path:inset(0 0 0 100%);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .cinematic-intro .cinema-stage--exiting .cinema-caption-inner--active,
+  .cinematic-intro .cinema-stage--entering .cinema-caption-inner--active,
+  .cinematic-intro .cinema-stage--exiting .luminous-world,
+  .cinematic-intro .cinema-stage--entering .luminous-world,
+  .cinematic-intro .cinema-stage--exiting .morph-scene,
+  .cinematic-intro .cinema-stage--entering .morph-scene{animation:none!important}
+  .cinema-handoff{display:none}
 }
 </style>
