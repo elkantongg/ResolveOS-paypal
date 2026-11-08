@@ -92,9 +92,13 @@ async function toggleTheme(event?: MouseEvent) {
       fill: 'none',
       pseudoElement: '::view-transition-new(root)',
     });
-    await activeAnimation.finished;
-    // The animation has revealed the entire new theme. Dismiss both captured
-    // page snapshots immediately so they cannot linger as a pale overlay.
+    // Never wait indefinitely for the browser compositor to report completion.
+    // A stalled View Transition was leaving a near-white snapshot over the page.
+    // The deadline is slightly longer than the 1120ms wave; cleanup runs either way.
+    await Promise.race([
+      activeAnimation.finished.catch(() => undefined),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 1400)),
+    ]);
     transition.skipTransition();
   } catch {
     // The browser may cancel a transition during navigation or tab switching.
@@ -104,6 +108,9 @@ async function toggleTheme(event?: MouseEvent) {
     transition?.skipTransition();
     activeAnimation?.cancel();
     document.documentElement.classList.remove('theme-wave-active');
+    // Remove any temporarily retained inline snapshot styles after interruption.
+    document.documentElement.style.removeProperty('opacity');
+    document.documentElement.style.removeProperty('filter');
     isThemeChanging.value = false;
   }
 }
