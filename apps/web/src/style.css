@@ -253,8 +253,16 @@ html[data-theme='dark'] { color-scheme: dark; }
    snapshot fixed underneath; browser default fades would obscure the wave. */
 html.theme-wave-active::view-transition-old(root),
 html.theme-wave-active::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
+  animation: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+html.theme-wave-active::view-transition-image-pair(root) {
+  isolation: isolate;
+}
+html.theme-wave-active::view-transition-group(root) {
+  animation: none !important;
 }
 html.theme-wave-active::view-transition-old(root) {
   z-index: 1;
