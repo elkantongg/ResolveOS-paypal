@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { Activity, AlertTriangle, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShieldCheck, ShoppingCart, Sparkles, Timer, Wallet } from 'lucide-vue-next';
+import { Activity, AlertTriangle, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShieldCheck, ShoppingCart, Sparkles, Timer, Wallet, Target, Layers, Zap, ChevronRight } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
@@ -18,6 +18,7 @@ const session = useSession();
 const router = useRouter();
 const summary = ref<DashboardSummary | null>(null);
 const cases = ref<CaseSummary[] | null>(null);
+const allCases = ref<CaseSummary[]>([]);
 const activity = ref<(AuditEvent & { reference: string; title: string })[]>([]);
 const error = ref<string | null>(null);
 const historyOpen = ref(false);
@@ -54,6 +55,7 @@ onBeforeUnmount(() => {
   document.body.style.overflow = '';
   window.removeEventListener('keydown', handleHistoryKeydown);
   if (debounce) clearTimeout(debounce);
+  if (refreshHandle) clearInterval(refreshHandle);
 });
 const query = ref('');
 const status = ref<'ALL' | CaseStatus>('ALL');
@@ -65,6 +67,26 @@ async function loadCases() {
   if (query.value.trim()) params.set('q', query.value.trim());
   cases.value = (await api.get<{ cases: CaseSummary[] }>(`/cases?${params}`)).cases;
 }
+async function loadPriorityCases() {
+  allCases.value = (await api.get<{ cases: CaseSummary[] }>('/cases?status=ALL')).cases;
+}
+let refreshHandle: ReturnType<typeof setInterval> | null = null;
+let isRefreshing = false;
+async function refreshDashboard() {
+  if (isRefreshing || document.visibilityState !== 'visible') return;
+  isRefreshing = true;
+  try {
+    const [nextSummary, nextActivity] = await Promise.all([
+      api.get<DashboardSummary>('/dashboard/summary'),
+      api.get<{ activity: (AuditEvent & { reference: string; title: string })[] }>('/dashboard/activity'),
+      loadCases(),
+      loadPriorityCases(),
+    ]);
+    summary.value = nextSummary;
+    activity.value = nextActivity.activity;
+  } catch { /* preserve last valid data during a temporary outage */ }
+  finally { isRefreshing = false; }
+}
 
 async function load() {
   error.value = null;
@@ -73,6 +95,7 @@ async function load() {
       api.get<DashboardSummary>('/dashboard/summary'),
       api.get<{ activity: (AuditEvent & { reference: string; title: string })[] }>('/dashboard/activity'),
       loadCases(),
+      loadPriorityCases(),
     ]);
     summary.value = s;
     activity.value = a.activity;
@@ -83,6 +106,7 @@ async function load() {
 onMounted(() => {
   if (arrivingFromDemo.value) window.sessionStorage.removeItem('resolveos-dashboard-entrance');
   void load();
+  refreshHandle = setInterval(() => { if (!historyOpen.value) void refreshDashboard(); }, 15000);
 });
 
 let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -112,37 +136,66 @@ const chart = computed(() => {
   return { days, peak };
 });
 const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merchant?.businessName ?? 'Merchant' : session.user?.name.split(' ')[0]));
-const priorityCase = computed(() => {
-  const list = cases.value ?? [];
-  const order: Record<CaseStatus, number> = {
-    AWAITING_APPROVAL: 0, ESCALATED: 1, NO_AGREEMENT: 2,
-    PAYMENT_PROCESSING: 3, IN_NEGOTIATION: 4, OPEN: 5, RESOLVED: 6,
+/* Explainable ranking based on real case status, money and recency.
+   No deadlines or agent capabilities are fabricated. Human approval is never automated. */
+const rank = (item: CaseSummary) => {
+  const statusWeight: Record<CaseStatus, number> = {
+    ESCALATED: 108, AWAITING_APPROVAL: 100, NO_AGREEMENT: 94,
+    PAYMENT_PROCESSING: 66, OPEN: 47, IN_NEGOTIATION: 34, RESOLVED: -1000,
   };
-  return [...list].filter((item) => item.status !== 'RESOLVED')
-    .sort((a, b) => order[a.status] - order[b.status])[0] ?? null;
-});
+  const ageHours = Math.max(0, (Date.now() - new Date(item.updatedAt).getTime()) / 3_600_000);
+  const amountWeight = Math.min(22, Math.log10(1 + item.amountMinor / 100) * 8);
+  const ageWeight = Math.min(14, ageHours / 24 * 3);
+  return statusWeight[item.status] + amountWeight + ageWeight;
+};
+const activeCases = computed(() => allCases.value.filter((item) => item.status !== 'RESOLVED'));
+const priorityCase = computed(() => [...activeCases.value].sort((a,b) => rank(b) - rank(a) || a.reference.localeCompare(b.reference))[0] ?? null);
+const inNegotiation = computed(() => activeCases.value.filter(item => item.status === 'IN_NEGOTIATION').length);
+const awaitingApproval = computed(() => activeCases.value.filter(item => item.status === 'AWAITING_APPROVAL').length);
+const openCount = computed(() => activeCases.value.filter(item => item.status === 'OPEN').length);
 const priorityHeadline = computed(() => {
-  if (!priorityCase.value) return 'Your cases are up to date';
-  if (priorityCase.value.status === 'AWAITING_APPROVAL') return 'A settlement needs your approval';
-  if (priorityCase.value.status === 'NO_AGREEMENT') return 'A dispute needs your attention';
-  if (priorityCase.value.status === 'ESCALATED') return 'A dispute needs human review';
-  if (priorityCase.value.status === 'PAYMENT_PROCESSING') return 'A refund is being processed';
-  if (priorityCase.value.status === 'IN_NEGOTIATION') return 'Your AI agents are negotiating';
-  return 'A case is ready for review';
+  const item = priorityCase.value;
+  if (!item) return 'You’re all caught up';
+  if (item.status === 'AWAITING_APPROVAL') return `Review ${item.reference} now`;
+  if (item.status === 'ESCALATED') return `Review escalated case ${item.reference}`;
+  if (item.status === 'NO_AGREEMENT') return `Review next steps for ${item.reference}`;
+  if (item.status === 'PAYMENT_PROCESSING') return `Check payment status · ${item.reference}`;
+  if (item.status === 'IN_NEGOTIATION') return `Track negotiation · ${item.reference}`;
+  return `Review new case ${item.reference}`;
 });
 const priorityDescription = computed(() => {
   const item = priorityCase.value;
-  if (!item) return 'No unresolved cases to review right now.';
-  if (item.status === 'NO_AGREEMENT') return `${item.reference} ended without an agreement. Review the outcome and available next steps.`;
-  if (item.status === 'AWAITING_APPROVAL') return `${item.reference} has a proposed settlement awaiting review. Check the terms before approving.`;
-  if (item.status === 'ESCALATED') return `${item.reference} requires a person to review the dispute.`;
-  return `${item.reference} · ${item.title} · ${STATUS_LABEL[item.status]}`;
+  if (!item) return 'No active disputes require a next step.';
+  const phrases: Record<CaseStatus, string> = {
+    AWAITING_APPROVAL: 'A settlement proposal is awaiting review',
+    ESCALATED: 'Human review is required',
+    NO_AGREEMENT: 'Negotiation ended without agreement',
+    PAYMENT_PROCESSING: 'Refund processing needs monitoring',
+    IN_NEGOTIATION: 'AI-assisted negotiation is underway',
+    OPEN: 'The dispute needs initial review',
+    RESOLVED: 'Resolved',
+  };
+  return `${phrases[item.status]} · ${money(item.amountMinor, item.currency)} case value`;
+});
+const priorityRationale = computed(() => {
+  const item = priorityCase.value;
+  if (!item) return 'When a case needs attention, its recommended next step will appear here.';
+  const inputs: string[] = [];
+  if (['AWAITING_APPROVAL','ESCALATED','NO_AGREEMENT'].includes(item.status)) inputs.push('action required at this dispute stage');
+  else inputs.push('current dispute stage');
+  if (item.amountMinor >= 10_000) inputs.push('financial exposure');
+  inputs.push('time since last update');
+  return `Prioritized using ${inputs.join(', ')}. No deadline has been assumed.`;
+});
+const resolutionRate = computed(() => {
+  const total = summary.value?.totalCases ?? 0;
+  return total ? Math.round((summary.value?.resolved ?? 0) / total * 100) : 0;
 });
 const statTiles = computed(() => summary.value ? [
   { label: 'Total cases', value: String(summary.value.totalCases), icon: FileStack, tone: 'indigo' },
   { label: 'Open', value: String(summary.value.openCases), icon: FolderOpen, tone: 'blue' },
   { label: 'Awaiting approval', value: String(summary.value.awaitingApproval), icon: Clock3, tone: 'violet' },
-  { label: 'Resolved', value: String(summary.value.resolved), icon: CheckCircle2, tone: 'green' },
+  { label: 'Resolved (Closed)', value: String(summary.value.resolved), icon: CheckCircle2, tone: 'green' },
   { label: 'Refunded via PayPal', value: money(refundTotal.value, 'USD'), icon: Wallet, tone: 'cyan' },
 ] : []);
 const graphPlot = computed(() => {
@@ -179,32 +232,45 @@ const graphPlot = computed(() => {
 
     <ErrorNotice v-if="error" :message="error" @retry="load" />
 
-    <div class="dashboard-feature-grid grid gap-4 lg:grid-cols-[1.52fr_1fr]">
-      <section class="dashboard-attention card" aria-label="Case attention">
-        <div class="dashboard-alert-icon"><AlertTriangle class="size-8" /></div>
-        <div class="dashboard-attention-copy">
-          <h2 class="text-lg font-bold tracking-tight">{{ priorityHeadline }}</h2>
-          <p class="mt-1 text-sm text-muted">{{ priorityDescription }}</p>
+    <div class="dashboard-feature-grid grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+      <section class="dashboard-action-centre" aria-label="Action Centre">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="dashboard-action-emblem"><Zap class="size-6" /></span>
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">Action Centre</h2>
+              <p class="text-sm text-muted">Your next step in dispute resolution</p>
+            </div>
+          </div>
+          <span class="dashboard-agent-label"><Sparkles class="size-3.5" /> Smart priority</span>
         </div>
-        <RouterLink v-if="priorityCase" :to="`/cases/${priorityCase.id}`" class="btn dashboard-review-btn">
-          Review case <ArrowRight class="size-4" />
-        </RouterLink>
-        <div class="dashboard-light-arc" aria-hidden="true" />
+        <div v-if="summary" class="dashboard-next-step mt-5">
+          <span class="dashboard-next-icon"><Layers class="size-6" /></span>
+          <div class="min-w-0 flex-1">
+            <p class="dashboard-next-eyebrow"><Sparkles class="size-3.5" /> Best next step · Ranked #1</p>
+            <h3 class="mt-1 text-[22px] font-bold leading-tight tracking-tight">{{ priorityHeadline }}</h3>
+            <p class="mt-1 text-sm text-ink-soft">{{ priorityDescription }}</p>
+            <p class="mt-2 text-xs italic text-muted">{{ priorityRationale }}</p>
+          </div>
+          <RouterLink v-if="priorityCase" :to="`/cases/${priorityCase.id}`" class="btn dashboard-review-btn">Review case <ArrowRight class="size-4" /></RouterLink>
+        </div>
+        <div v-else class="mt-5"><Skeleton :lines="3" /></div>
+        <div class="dashboard-next-glow" aria-hidden="true" />
       </section>
-      <section class="card dashboard-ai-card" aria-label="AI resolution insight">
-        <div class="flex items-start gap-3">
-          <Sparkles class="mt-0.5 size-6 shrink-0 text-accent" />
-          <div>
-            <h2 class="font-bold">AI resolution insight</h2>
-            <p class="text-xs text-muted">AI suggests, people approve, PayPal executes.</p>
+      <section class="card dashboard-overview-card" aria-label="Resolution Overview">
+        <div class="flex items-center gap-3">
+          <span class="dashboard-overview-icon"><Target class="size-6" /></span>
+          <div><h2 class="text-lg font-bold">Resolution Overview</h2><p class="text-sm text-muted">How your disputes are progressing</p></div>
+        </div>
+        <div v-if="summary" class="dashboard-overview-body mt-5">
+          <div class="dashboard-resolution-ring" :style="{ '--progress': `${resolutionRate}%` }"><div><strong>{{ resolutionRate }}%</strong><small>Resolution rate</small></div></div>
+          <div class="dashboard-overview-list">
+            <div><Timer class="size-4 text-primary" /><span>Median time to resolution</span><strong>{{ duration(summary.measured.medianResolutionSeconds) }}</strong></div>
+            <div><Layers class="size-4 text-primary" /><span>Active cases (in progress)</span><strong>{{ activeCases.length }}</strong></div>
+            <div><CheckCircle2 class="size-4 text-ok" /><span>Closed cases (resolved)</span><strong>{{ summary.resolved }}</strong></div>
           </div>
         </div>
-        <div v-if="summary" class="dashboard-ai-metrics mt-4 grid grid-cols-3">
-          <div><Activity class="size-4 text-primary" /><strong class="tabular">{{ summary.measured.agentTurns }}</strong><span>Agent turns</span></div>
-          <div><Timer class="size-4 text-accent" /><strong class="tabular">{{ duration(summary.measured.medianNegotiationSeconds) }}</strong><span>Median negotiation</span></div>
-          <div><ShieldCheck class="size-4 text-accent" /><strong class="tabular">{{ summary.measured.guardrailRejections }}</strong><span>Guardrail rejections</span></div>
-        </div>
-        <div v-else class="mt-4"><Skeleton :lines="2" /></div>
+        <div v-else class="mt-5"><Skeleton :lines="3" /></div>
       </section>
     </div>
 
@@ -350,20 +416,27 @@ const graphPlot = computed(() => {
 @keyframes dashboard-arrival{from{opacity:0;transform:translateY(24px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
 .resolve-dashboard{--dash-blue:#69a4ff}
 .dashboard-greeting{padding-block:30px 24px}
-.dashboard-attention,.dashboard-ai-card{position:relative;min-height:118px;overflow:hidden;padding:17px 21px}
-.dashboard-attention{display:flex;align-items:center;gap:18px;border-color:#498eefba;background:linear-gradient(112deg,var(--color-surface),var(--color-surface) 58%,color-mix(in srgb,var(--color-primary) 13%,var(--color-surface)));box-shadow:inset 0 1px 0 #63a9ff10}
-.dashboard-alert-icon{display:grid;place-items:center;flex:none;width:60px;height:60px;border-radius:17px;color:#46d6f1;background:#11a2d318;box-shadow:inset 0 0 20px #15b8e51b,0 0 20px #2383d323}
-.dashboard-attention-copy{z-index:1;min-width:0;flex:1}
-.dashboard-attention-copy p{max-width:490px}
+.dashboard-action-centre{position:relative;overflow:hidden;isolation:isolate;min-height:235px;padding:10px 15px 12px 8px}
+.dashboard-action-emblem,.dashboard-overview-icon{display:grid;place-items:center;flex:none;width:51px;height:51px;border-radius:50%;background:#0d7ab32b;color:#62dfff;box-shadow:0 0 24px #137cda18}
+.dashboard-agent-label{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid #36d7c982;border-radius:99px;background:#08a7a415;color:#5cfee3;font-size:11px;font-weight:650;white-space:nowrap}
+.dashboard-next-step{position:relative;display:flex;align-items:center;gap:18px;z-index:1;min-height:138px;padding:12px 6px}
+.dashboard-next-icon{display:grid;place-items:center;flex:none;width:76px;height:76px;border:1px solid #988cffb0;border-radius:50%;background:radial-gradient(circle,#544eff66,#2635b520 65%,transparent 75%);color:#c3c1ff;box-shadow:0 0 24px #785bff85,inset 0 0 20px #7662ff4d;animation:next-orb-breathe 6s ease-in-out infinite}
+.dashboard-next-eyebrow{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;padding:4px 10px;border:1px solid #a98cff82;border-radius:99px;background:#6f54de27;color:#d4c5ff;font-size:11px;font-weight:650}
+.dashboard-next-glow{position:absolute;right:8%;bottom:-80px;width:60%;height:150px;border-radius:50%;transform:rotate(-9deg);background:radial-gradient(ellipse,#7c4eff42,#364dd51b 44%,transparent 75%);filter:blur(22px);z-index:0;pointer-events:none}
 .dashboard-review-btn{z-index:1;flex:none;background:#77e6f9;color:#08203f;box-shadow:0 0 16px #39c9f933;font-weight:700}
 .dashboard-review-btn:hover{background:#a1f5ff}
-.dashboard-light-arc{position:absolute;right:20%;top:-70%;width:160px;height:290px;transform:rotate(42deg);border-right:5px solid #3fc6fa60;border-radius:50%;filter:drop-shadow(0 0 12px #2dbeff);pointer-events:none}
-.dashboard-ai-card{padding:17px 19px}
-.dashboard-ai-metrics>div{display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:2px;align-items:center;min-width:0;padding-inline:12px;border-right:1px solid var(--color-line)}
-.dashboard-ai-metrics>div:first-child{padding-left:0}
-.dashboard-ai-metrics>div:last-child{border-right:0;padding-right:0}
-.dashboard-ai-metrics strong{font-size:14px;white-space:nowrap}
-.dashboard-ai-metrics span{grid-column:1/-1;font-size:10px;color:var(--color-muted)}
+@keyframes next-orb-breathe{0%,100%{box-shadow:0 0 20px #785bff65,inset 0 0 18px #7662ff44}50%{box-shadow:0 0 38px #785bffaa,inset 0 0 26px #7662ff65}}
+.dashboard-overview-card{padding:17px 19px}
+.dashboard-overview-body{display:flex;align-items:center;gap:20px}
+.dashboard-resolution-ring{flex:none;width:128px;height:128px;padding:13px;border-radius:50%;background:conic-gradient(#7c93ff var(--progress),#293956 var(--progress) 100%);transform:rotate(-90deg)}
+.dashboard-resolution-ring>div{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:var(--color-surface);transform:rotate(90deg)}
+.dashboard-resolution-ring strong{font-size:24px;font-weight:750}
+.dashboard-resolution-ring small{font-size:10px;color:var(--color-muted)}
+.dashboard-overview-list{flex:1;min-width:0}
+.dashboard-overview-list>div{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--color-line);font-size:11px}
+.dashboard-overview-list>div:last-child{border-bottom:0}
+.dashboard-overview-list span{flex:1;color:var(--color-muted)}
+.dashboard-overview-list strong{white-space:nowrap;font-size:13px}
 .dashboard-stat{display:flex;align-items:center;gap:13px;min-width:0;min-height:70px;padding:12px 15px}
 .dashboard-stat-icon{display:grid;place-items:center;width:43px;height:43px;flex:none;border-radius:50%;background:#4178dd1a;color:#679afd}
 .dashboard-stat--violet .dashboard-stat-icon{background:#8969ff1b;color:#a18bff}
@@ -383,9 +456,10 @@ const graphPlot = computed(() => {
 .dashboard-timeline-dot{position:absolute;left:-6px;top:5px;width:11px;height:11px;border-radius:50%;background:#6293fa;box-shadow:0 0 0 4px #4286ff19}
 .dashboard-timeline li:nth-child(3n) .dashboard-timeline-dot{background:#42d7b6}
 .dashboard-measured{opacity:.85}
-@media(max-width:1100px){.dashboard-feature-grid{grid-template-columns:1fr}.dashboard-attention{flex-wrap:wrap}.dashboard-content-grid{grid-template-columns:1fr}}
-@media(max-width:620px){.dashboard-greeting{padding-block:17px}.dashboard-attention,.dashboard-ai-card{padding:16px}.dashboard-alert-icon{width:48px;height:48px}.dashboard-review-btn{width:100%}.dashboard-stats{gap:8px}.dashboard-stat{gap:8px;padding:10px;min-height:66px}.dashboard-stat-icon{width:32px;height:32px}.dashboard-stat-icon svg{width:17px;height:17px}.dashboard-stat p:last-child{font-size:17px}.dashboard-ai-metrics>div{padding-inline:6px}}
-@media(prefers-reduced-motion:reduce){.dashboard-arrival{animation:none}}
+@media(max-width:1100px){.dashboard-feature-grid{grid-template-columns:1fr}.dashboard-content-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.dashboard-next-step{flex-wrap:wrap}.dashboard-next-step .dashboard-review-btn{margin-left:94px}.dashboard-overview-body{flex-wrap:wrap}}
+@media(max-width:620px){.dashboard-greeting{padding-block:17px}.dashboard-action-centre,.dashboard-overview-card{padding:15px}.dashboard-alert-icon{width:48px;height:48px}.dashboard-review-btn{width:100%}.dashboard-stats{gap:8px}.dashboard-stat{gap:8px;padding:10px;min-height:66px}.dashboard-stat-icon{width:32px;height:32px}.dashboard-stat-icon svg{width:17px;height:17px}.dashboard-stat p:last-child{font-size:17px}.dashboard-next-icon{width:58px;height:58px}.dashboard-next-step .dashboard-review-btn{margin-left:0;width:100%}}
+@media(prefers-reduced-motion:reduce){.dashboard-arrival,.dashboard-next-icon{animation:none}}
 
 /* Quiet, continuous ambient lighting behind content; no visible wave geometry. */
 .resolve-dashboard{position:relative;isolation:isolate}
