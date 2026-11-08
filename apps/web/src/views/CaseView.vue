@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, BadgeCheck, ChevronDown, FileText, Plus, ReceiptText, Sparkles, CheckCircle2, Clock3, AlertCircle, ShieldCheck, MessageSquareText } from 'lucide-vue-next';
+import { ArrowLeft, ArrowRight, BadgeCheck, ChevronDown, FileText, Plus, ReceiptText, Sparkles, CheckCircle2, Clock3, AlertCircle, MessageSquareText } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
