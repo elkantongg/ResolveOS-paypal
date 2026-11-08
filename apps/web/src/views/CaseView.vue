@@ -48,6 +48,22 @@ const timeline = computed(() => (detail.value?.timeline ?? []).filter((e) => e.a
 
 const proposal = computed(() => settlement.value?.proposal ?? null);
 const approvalCount = computed(() => settlement.value?.approvals.filter(a => a.validForCurrentTerms && a.decision === 'APPROVE').length ?? 0);
+const refund = computed(() => settlement.value?.refund ?? null);
+const isResolved = computed(() => kase.value?.currentStatus === 'RESOLVED');
+const isRefundSettlement = computed(() => proposal.value?.settlementType === 'FULL_REFUND' || proposal.value?.settlementType === 'PARTIAL_REFUND');
+const confirmedCaseRefund = computed(() => refund.value?.status === 'COMPLETED' ? refund.value.amountMinor : null);
+const caseRefundLabel = computed(() => {
+  if (!proposal.value) return 'Refunded on transaction';
+  if (!isRefundSettlement.value) return 'Settlement outcome';
+  return confirmedCaseRefund.value !== null ? 'This case · confirmed refund' : isResolved.value ? 'This case · agreed refund' : 'Proposed refund';
+});
+const resolutionAmount = computed(() => confirmedCaseRefund.value ?? proposal.value?.refundAmountMinor ?? txn.value?.amountRefundedMinor ?? 0);
+const resolutionCaption = computed(() => {
+  if (!proposal.value) return 'Total refunds recorded on transaction';
+  if (!isRefundSettlement.value) return proposal.value.settlementType.replaceAll('_', ' ').toLowerCase();
+  if (confirmedCaseRefund.value !== null) return 'PayPal refund completed';
+  return isResolved.value ? 'Agreed settlement · check receipt for payment status' : 'Pending final confirmation · not yet paid';
+});
 const actionContent = computed(() => {
   switch (kase.value?.currentStatus) {
     case 'OPEN': return { title: 'Prepare this case', description: 'Review the complaint and evidence before starting a negotiation.', action: 'Go to negotiation', target: 'negotiate' };
@@ -143,43 +159,61 @@ async function saveLimits() {
         <p class="text-xs text-muted">Opened {{ dateTime(kase.createdAt) }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <RouterLink v-if="kase.currentStatus === 'RESOLVED'" :to="`/cases/${caseId}/receipt`" class="btn btn-secondary"><ReceiptText class="size-4" /> View receipt</RouterLink>
-        <RouterLink :to="`/cases/${caseId}/negotiate`" class="btn btn-secondary"><MessageSquareText class="size-4" /> Negotiation room</RouterLink>
+        <RouterLink :to="`/cases/${caseId}/negotiate`" class="btn btn-secondary"><MessageSquareText class="size-4" /> Negotiation history</RouterLink>
       </div>
     </header>
 
-    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Case financial overview">
-      <div class="card p-5">
-        <p class="eyebrow">Original payment</p>
-        <p class="mt-2 text-2xl font-semibold tabular text-ink">{{ money(txn.originalAmountMinor, txn.currency) }}</p>
-        <p class="mt-1 text-sm text-muted">{{ txn.description }}</p>
-      </div>
-      <div class="card p-5">
-        <p class="eyebrow">{{ proposal ? 'Proposed settlement' : 'Refunded so far' }}</p>
-        <p class="mt-2 text-2xl font-semibold tabular" :class="proposal ? 'text-accent' : 'text-ink'">{{ money(proposal ? proposal.refundAmountMinor : txn.amountRefundedMinor, txn.currency) }}</p>
-        <p class="mt-1 text-sm text-muted">{{ proposal ? (proposal.settlementType.replace('_', ' ').toLowerCase() + ' · not necessarily paid') : 'Confirmed transaction record' }}</p>
-      </div>
-      <div class="card p-5 sm:col-span-2 lg:col-span-1">
-        <p class="eyebrow">Current status</p>
-        <div class="mt-3"><StatusBadge :status="kase.currentStatus" /></div>
-        <p class="mt-2 text-sm text-muted">{{ approvalCount }} of 2 settlement approvals recorded</p>
-        <p v-if="txn.sourceType === 'DEMO_SEED'" class="mt-2 inline-flex items-center gap-1.5 text-xs text-warn"><AlertCircle class="size-3.5" /> Demo case · no PayPal refund can run</p>
-      </div>
-    </section>
-
-    <section class="rounded-2xl border border-primary-line bg-primary-soft/50 p-5 sm:p-6" aria-labelledby="case-next-action">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="max-w-2xl">
-          <p class="eyebrow mb-2 text-primary">Next step</p>
-          <h2 id="case-next-action" class="text-lg font-semibold text-ink">{{ actionContent.title }}</h2>
-          <p class="mt-2 text-sm leading-6 text-ink-soft">{{ actionContent.description }}</p>
+    <!-- One financial story instead of three competing cards. Amounts are derived from existing settlement/payment records. -->
+    <section class="case-summary overflow-hidden rounded-2xl border border-line bg-surface" aria-label="Case financial overview">
+      <div class="flex flex-wrap items-start justify-between gap-4 border-b border-line px-5 py-5 sm:px-7 sm:py-6">
+        <div class="flex items-start gap-3">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl" :class="isResolved ? 'bg-ok-soft text-ok' : 'bg-primary-soft text-primary'">
+            <CheckCircle2 v-if="isResolved" class="size-5" />
+            <Clock3 v-else class="size-5" />
+          </span>
+          <div class="space-y-1">
+            <p class="text-xs font-semibold uppercase tracking-wider" :class="isResolved ? 'text-ok' : 'text-primary'">{{ isResolved ? 'Resolution complete' : 'Case at a glance' }}</p>
+            <h2 class="text-lg font-semibold leading-snug text-ink">{{ isResolved ? 'Case resolved' : actionContent.title }}</h2>
+            <p class="max-w-xl text-sm leading-6 text-ink-soft">{{ isResolved ? 'The case has reached a final outcome. Review the settlement and verified payment information below.' : actionContent.description }}</p>
+          </div>
         </div>
-        <RouterLink :to="`/cases/${caseId}/${actionContent.target}`" class="btn btn-primary shrink-0 self-start">{{ actionContent.action }} <ArrowRight class="size-4" /></RouterLink>
+        <RouterLink v-if="isResolved" :to="`/cases/${caseId}/receipt`" class="btn btn-primary shrink-0">
+          <ReceiptText class="size-4" /> View receipt <ArrowRight class="size-4" />
+        </RouterLink>
+        <RouterLink v-else :to="`/cases/${caseId}/${actionContent.target}`" class="btn btn-primary shrink-0">
+          {{ actionContent.action }} <ArrowRight class="size-4" />
+        </RouterLink>
+      </div>
+      <div class="grid gap-px bg-line sm:grid-cols-3">
+        <div class="bg-surface px-5 py-5 sm:px-7">
+          <p class="text-xs font-medium text-muted">Original payment</p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight tabular text-ink">{{ money(txn.originalAmountMinor, txn.currency) }}</p>
+          <p class="mt-1 text-sm leading-5 text-ink-soft">{{ txn.description }}</p>
+        </div>
+        <div class="bg-surface px-5 py-5 sm:px-7">
+          <p class="text-xs font-medium text-muted">{{ caseRefundLabel }}</p>
+          <p v-if="proposal && !isRefundSettlement" class="mt-2 text-xl font-semibold capitalize text-ink">{{ proposal.settlementType.replaceAll('_', ' ').toLowerCase() }}</p>
+          <p v-else class="mt-2 text-2xl font-semibold tracking-tight tabular" :class="confirmedCaseRefund !== null ? 'text-ok' : 'text-ink'">{{ money(resolutionAmount, txn.currency) }}</p>
+          <p class="mt-1 text-sm leading-5 text-ink-soft">{{ resolutionCaption }}</p>
+        </div>
+        <div class="bg-surface px-5 py-5 sm:px-7">
+          <p class="text-xs font-medium text-muted">Total refunded · transaction</p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight tabular text-ink">{{ money(txn.amountRefundedMinor, txn.currency) }}</p>
+          <p class="mt-1 text-sm leading-5 text-ink-soft">Cumulative amount across refunds, not just this case</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-sunken/40 px-5 py-3 sm:px-7">
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <StatusBadge :status="kase.currentStatus" />
+          <span v-if="proposal" class="text-ink-soft">{{ approvalCount }} of 2 approvals recorded</span>
+        </div>
+        <span v-if="txn.sourceType === 'DEMO_SEED'" class="inline-flex items-center gap-2 text-xs font-medium text-warn"><AlertCircle class="size-4" /> Demo case · no real PayPal refund</span>
+        <span v-else class="inline-flex items-center gap-2 text-xs font-medium text-ok"><BadgeCheck class="size-4" /> PayPal sandbox transaction</span>
       </div>
     </section>
 
     <section class="card px-5 py-5" aria-label="Case progress">
-      <h2 class="mb-4 text-sm font-semibold text-ink">Case progress</h2>
+      <h2 class="mb-4 text-base font-semibold text-ink">Case progress</h2>
       <ol class="grid grid-cols-5 gap-2">
         <li v-for="(step, index) in progressSteps" :key="index" class="min-w-0" :aria-current="step.state === 'current' ? 'step' : undefined">
           <div class="mb-2 h-1.5 rounded-full" :class="step.state === 'done' ? 'bg-accent' : step.state === 'current' ? 'bg-primary' : 'bg-sunken'"></div>
@@ -239,7 +273,7 @@ async function saveLimits() {
                   <span class="mono w-12 shrink-0 text-xs font-semibold text-muted">{{ item.code }}</span>
                   <span class="min-w-0 flex-1">
                     <span class="block font-medium text-ink">{{ item.title }}</span>
-                    <span class="mt-1 block text-xs text-muted">{{ item.verificationStatus === 'VERIFIED_PAYPAL' ? 'Verified from PayPal' : item.sourceParty.toLowerCase() + '-provided · not independently verified' }}</span>
+                    <span class="mt-1 block text-sm text-muted">{{ item.verificationStatus === 'VERIFIED_PAYPAL' ? 'Verified from PayPal' : item.sourceParty.toLowerCase() + '-provided · not independently verified' }}</span>
                   </span>
                   <ChevronDown class="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" />
                 </summary>
@@ -263,7 +297,7 @@ async function saveLimits() {
           <dl class="space-y-3 text-sm">
             <div class="flex justify-between gap-3"><dt class="text-muted">Payment status</dt><dd class="capitalize text-right">{{ txn.paymentStatus.replace('_', ' ').toLowerCase() }}</dd></div>
             <div class="flex justify-between gap-3"><dt class="text-muted">Refunded so far</dt><dd class="tabular text-right">{{ money(txn.amountRefundedMinor, txn.currency) }}</dd></div>
-            <div class="flex justify-between gap-3"><dt class="text-muted">PayPal order</dt><dd class="mono max-w-[58%] truncate text-right" :title="txn.paypalOrderId ?? ''">{{ txn.paypalOrderId ?? '—' }}</dd></div>
+            <div class="flex justify-between gap-3"><dt class="text-muted">PayPal order</dt><dd class="mono max-w-[58%] truncate text-right text-sm" :title="txn.paypalOrderId ?? ''">{{ txn.paypalOrderId ?? '—' }}</dd></div>
             <div class="flex justify-between gap-3"><dt class="text-muted">PayPal capture</dt><dd class="mono max-w-[58%] truncate text-right" :title="txn.paypalCaptureId ?? ''">{{ txn.paypalCaptureId ?? '—' }}</dd></div>
           </dl>
         </section>
@@ -292,13 +326,13 @@ async function saveLimits() {
         <section class="card p-5 sm:p-6">
           <div class="mb-4 flex items-center justify-between">
             <h2 class="flex items-center gap-2 font-semibold"><FileText class="size-4" /> Recent activity</h2>
-            <span class="text-xs text-muted">{{ timeline.length }} events</span>
+            <span class="text-sm text-muted">{{ timeline.length }} events</span>
           </div>
           <ol v-if="timeline.length" class="space-y-4 border-l border-line pl-4">
             <li v-for="event in visibleTimeline" :key="event.id" class="relative">
               <span class="absolute -left-[21px] top-1 size-2 rounded-full bg-primary"></span>
               <p class="text-sm leading-6 text-ink-soft">{{ describeEvent(event) }}</p>
-              <p class="mt-1 text-xs text-muted">{{ dateTime(event.createdAt) }}</p>
+              <p class="mt-1 text-sm text-muted">{{ dateTime(event.createdAt) }}</p>
             </li>
           </ol>
           <p v-else class="text-sm text-muted">No activity recorded yet.</p>
