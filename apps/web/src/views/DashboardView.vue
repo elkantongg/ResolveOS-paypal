@@ -211,7 +211,7 @@ const graphPlot = computed(() => {
 
 <template>
   <div class="resolve-dashboard space-y-5" :class="{ 'dashboard-arrival': arrivingFromDemo }">
-    <div class="dashboard-ambient" aria-hidden="true">
+    <div class="dashboard-ambient dashboard-ambient--neon" aria-hidden="true">
       <span class="dashboard-glow dashboard-glow--one" />
       <span class="dashboard-glow dashboard-glow--two" />
       <span class="dashboard-glow dashboard-glow--three" />
@@ -230,7 +230,7 @@ const graphPlot = computed(() => {
     <ErrorNotice v-if="error" :message="error" @retry="load" />
 
     <div class="dashboard-feature-grid grid gap-5 lg:grid-cols-[1.6fr_1fr]">
-      <section class="dashboard-action-centre" aria-label="Action Centre">
+      <section class="dashboard-action-centre dashboard-action-centre--neon" aria-label="Action Centre">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="flex items-center gap-3">
             <span class="dashboard-action-emblem"><Zap class="size-6" /></span>
@@ -242,7 +242,7 @@ const graphPlot = computed(() => {
           <span class="dashboard-agent-label"><Sparkles class="size-3.5" /> Smart priority</span>
         </div>
         <div v-if="summary" class="dashboard-next-step mt-5">
-          <span class="dashboard-next-icon"><Layers class="size-6" /></span>
+          <span class="dashboard-next-icon"><Layers class="size-7" /></span>
           <div class="min-w-0 flex-1">
             <p class="dashboard-next-eyebrow"><Sparkles class="size-3.5" /> Best next step · Ranked #1</p>
             <h3 class="mt-1 text-[22px] font-bold leading-tight tracking-tight">{{ priorityHeadline }}</h3>
@@ -254,7 +254,7 @@ const graphPlot = computed(() => {
         <div v-else class="mt-5"><Skeleton :lines="3" /></div>
         <div class="dashboard-next-glow" aria-hidden="true" />
       </section>
-      <section class="card dashboard-overview-card" aria-label="Resolution Overview">
+      <section class="card dashboard-overview-card dashboard-overview-card--neon" aria-label="Resolution Overview">
         <div class="flex items-center gap-3">
           <span class="dashboard-overview-icon"><Target class="size-6" /></span>
           <div><h2 class="text-lg font-bold">Resolution Overview</h2><p class="text-sm text-muted">How your disputes are progressing</p></div>
@@ -271,7 +271,7 @@ const graphPlot = computed(() => {
       </section>
     </div>
 
-    <div class="dashboard-stats grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <div class="dashboard-stats dashboard-stats--neon grid grid-cols-2 gap-3 lg:grid-cols-5">
       <template v-if="summary">
         <div v-for="tile in statTiles" :key="tile.label" class="card dashboard-stat" :class="'dashboard-stat--' + tile.tone">
           <div class="dashboard-stat-icon"><component :is="tile.icon" class="size-5" /></div>
@@ -285,7 +285,7 @@ const graphPlot = computed(() => {
     </div>
 
     <div class="dashboard-content-grid grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
-      <section class="card dashboard-cases overflow-hidden">
+      <section class="card dashboard-cases dashboard-panel--neon overflow-hidden">
         <div class="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3.5">
           <h2 class="mr-auto flex items-center gap-2.5 font-bold"><FolderOpen class="size-5 text-primary" /> Cases</h2>
           <label class="relative">
@@ -328,17 +328,20 @@ const graphPlot = computed(() => {
         </div>
       </section>
 
-      <aside class="space-y-4">
-        <section class="card dashboard-sidebar-card">
+      <aside class="dashboard-sidebar space-y-4">
+        <section class="card dashboard-sidebar-card dashboard-panel--neon">
           <h2 class="flex items-center gap-2 font-bold"><BarChart3 class="size-5 text-primary" /> Last 14 days</h2>
           <p class="mt-1 text-xs text-muted">Cases opened and resolved, from the audit log</p>
           <div v-if="chart.days.length" class="mt-4">
-            <svg class="dashboard-chart w-full" preserveAspectRatio="xMidYMid meet" viewBox="0 0 560 138" role="img" :aria-label="`Cases opened and resolved across ${chart.days.length} days`">
+            <svg class="dashboard-chart dashboard-chart--neon w-full" preserveAspectRatio="xMidYMid meet" viewBox="0 0 560 138" role="img" :aria-label="`Cases opened and resolved across ${chart.days.length} days`">
+              <defs><linearGradient id="resolveos-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#23e6c3" stop-opacity=".26"/><stop offset="100%" stop-color="#23e6c3" stop-opacity="0"/></linearGradient><filter id="resolveos-chart-glow" x="-25%" y="-50%" width="150%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
               <g v-for="tick in graphPlot.ticks" :key="tick.y">
                 <line x1="26" :y1="tick.y" x2="534" :y2="tick.y" stroke="var(--color-line)" stroke-width="1" />
               </g>
-              <polyline :points="graphPlot.opened" fill="none" stroke="#6293fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-              <polyline :points="graphPlot.resolved" fill="none" stroke="#42d7b6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              <polygon :points="`26,110 ${graphPlot.resolved} 534,110`" fill="url(#resolveos-chart-fill)" stroke="none" />
+              <polyline :points="graphPlot.opened" fill="none" stroke="#6293fa" stroke-opacity=".3" stroke-width="6" filter="url(#resolveos-chart-glow)" />
+              <polyline :points="graphPlot.opened" fill="none" stroke="#6293fa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+              <polyline :points="graphPlot.resolved" fill="none" stroke="#42d7b6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
               <g v-for="(day, i) in chart.days" :key="day.day">
                 <circle :cx="chart.days.length < 2 ? 280 : 26 + i / (chart.days.length - 1) * 508" :cy="110 - day.opened / chart.peak * 90" r="3.2" fill="#6293fa"><title>{{ day.day }}: {{ day.opened }} opened</title></circle>
                 <circle :cx="chart.days.length < 2 ? 280 : 26 + i / (chart.days.length - 1) * 508" :cy="110 - day.resolved / chart.peak * 90" r="3.2" fill="#42d7b6"><title>{{ day.day }}: {{ day.resolved }} resolved</title></circle>
@@ -516,4 +519,154 @@ const graphPlot = computed(() => {
 .dashboard-history-events li:nth-child(3n) .dashboard-history-event-dot{background:#49d9b8}
 .dashboard-history-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 25px;border-top:1px solid var(--color-line);color:var(--color-muted);font-size:12px}
 @media(prefers-reduced-motion:reduce){.dashboard-glow,.dashboard-history-dialog{animation:none!important}.resolve-dashboard .card,.resolve-dashboard .btn,.resolve-dashboard .dashboard-stat-icon{transition:none!important}}
+
+/* Approved neon visual system — styling only; all values remain API-driven. */
+.resolve-dashboard {
+  --neon-cyan: #40e4f6;
+  --neon-blue: #549eff;
+  --neon-violet: #8e68ff;
+  --neon-border: #3767aa;
+  padding-bottom: 20px;
+}
+.resolve-dashboard .dashboard-greeting {padding-block: 18px 14px}
+.resolve-dashboard .dashboard-greeting h1 {font-size:clamp(27px,2.35vw,36px);line-height:1.15;letter-spacing:-.035em}
+.dashboard-ambient--neon{
+  inset:-30px -22px -35px!important;
+  border-radius:22px;
+  background:
+    radial-gradient(ellipse 43% 26% at 47% 11%,#1551b150,transparent 94%),
+    radial-gradient(ellipse 43% 36% at 49% 94%,#174dbd4a,transparent 90%),
+    linear-gradient(165deg,#071a37 0%,#08152d 42%,#06172f 74%,#061b41 100%);
+}
+.dashboard-ambient--neon .dashboard-glow{filter:blur(115px);opacity:.23}
+.dashboard-ambient--neon .dashboard-glow--one{width:590px;height:480px;top:-110px;right:15%;background:radial-gradient(ellipse,#2869e66a,transparent 72%)}
+.dashboard-ambient--neon .dashboard-glow--two{width:620px;height:500px;left:14%;bottom:-180px;background:radial-gradient(ellipse,#294de679,transparent 70%);opacity:.2}
+.dashboard-ambient--neon .dashboard-glow--three{width:480px;height:390px;top:37%;left:29%;background:radial-gradient(ellipse,#1d78b85f,transparent 72%);opacity:.18}
+.dashboard-action-centre--neon{
+  min-height:232px;
+  padding:8px 12px 12px 13px;
+  overflow:visible;
+}
+.dashboard-action-centre--neon .dashboard-action-emblem {
+  width:56px;height:56px;
+  background:radial-gradient(circle at 35% 30%,#0b9ab76b,#03528f5b 62%,#0a3f74a8);
+  color:#5df2ff;
+  box-shadow:0 0 24px #009dff4c,0 0 46px #0273cb20,inset 0 0 14px #05c5e927
+}
+.dashboard-action-centre--neon .dashboard-agent-label {
+  padding:7px 15px;border-color:#15c8b58c;color:#5bffdf;
+  background:#014d4945;box-shadow:0 0 15px #06b9ac22
+}
+.dashboard-action-centre--neon .dashboard-next-step{
+  min-height:136px;gap:22px;
+  padding:10px 4px 15px 16px;
+  isolation:isolate
+}
+.dashboard-action-centre--neon .dashboard-next-step::before{
+  content:"";position:absolute;z-index:-1;left:24%;right:10%;bottom:-5px;height:38px;
+  background:radial-gradient(ellipse at 50% 110%,#8452ff65,#6957ed29 44%,transparent 73%);
+  filter:blur(16px);pointer-events:none
+}
+.dashboard-action-centre--neon .dashboard-next-step::after{
+  content:"";position:absolute;z-index:-1;left:24%;right:12%;bottom:4px;height:80px;
+  border-bottom:1.5px solid #9166ffbf;border-radius:0 0 90% 50%;
+  transform:rotate(-4deg);filter:drop-shadow(0 0 7px #9855ff);
+  pointer-events:none
+}
+.dashboard-action-centre--neon .dashboard-next-icon{
+  width:81px;height:81px;border-color:#aa8cff;
+  background:radial-gradient(circle at 40% 36%,#5059e4a3,#162665d6 60%,#091b42 100%);
+  box-shadow:0 0 18px #7255ffab,0 0 48px #6b45ff7a,inset 0 0 20px #715aff55;
+  color:#b8beff
+}
+.dashboard-action-centre--neon .dashboard-next-eyebrow{
+  background:#553c9577;border-color:#ae8cff;box-shadow:0 0 12px #9363fd6e;
+  color:#e7d8ff
+}
+.dashboard-action-centre--neon .dashboard-next-step h3{
+  font-size:clamp(23px,2.1vw,30px);letter-spacing:-.035em
+}
+.dashboard-action-centre--neon .dashboard-review-btn{
+  padding-inline:22px;min-height:44px;border:1px solid #85f2ff;
+  background:linear-gradient(110deg,#48e9fb,#67bfff);
+  box-shadow:0 0 22px #1ee4f874,0 0 42px #25a2f82e;
+  color:#051c37;font-size:13px
+}
+.dashboard-action-centre--neon .dashboard-review-btn:hover{box-shadow:0 0 32px #25e8ffc7,0 0 54px #387cff65}
+.dashboard-action-centre--neon .dashboard-next-glow{
+  height:120px;bottom:-27px;right:0%;width:76%;opacity:.68;
+  background:radial-gradient(ellipse at 55% 100%,#8f57ff3f,#3844bb18 47%,transparent 80%);
+  filter:blur(26px)
+}
+.dashboard-overview-card--neon{
+  border:1px solid #4065b2c7;
+  background:linear-gradient(145deg,#102a5194,#111d397d 72%,#0b21418c);
+  box-shadow:0 3px 20px #256bef1b,inset 0 0 21px #1d58bb1a;
+  padding:18px 21px;min-height:230px
+}
+.dashboard-overview-card--neon .dashboard-overview-icon{
+  background:#018dba40;color:#4ce7ef;box-shadow:0 0 15px #04a9df45
+}
+.dashboard-overview-card--neon .dashboard-overview-body{gap:21px}
+.dashboard-overview-card--neon .dashboard-resolution-ring{
+  width:134px;height:134px;
+  background:conic-gradient(#59c4ff 0%,#6b8dff calc(var(--progress) * .65),#9476ff var(--progress),#253b5f var(--progress) 100%);
+  box-shadow:0 0 18px #507eff38
+}
+.dashboard-overview-card--neon .dashboard-overview-list>div{font-size:12px}
+.dashboard-overview-card--neon .dashboard-overview-list strong{font-size:14px}
+.dashboard-stats--neon{gap:12px}
+.dashboard-stats--neon .dashboard-stat{
+  min-height:83px;padding:13px 17px;
+  border:1px solid #5c73cbaa;
+  border-radius:13px;
+  background:linear-gradient(145deg,#10274b,#101c35 63%,#13264a);
+  box-shadow:0 0 15px #304cd327,inset 0 1px 0 #b3c3ff0d
+}
+.dashboard-stats--neon .dashboard-stat-icon{
+  width:49px;height:49px;background:#176ac04b;color:#58caff;
+  box-shadow:0 0 19px #1376fd30
+}
+.dashboard-stats--neon .dashboard-stat--violet .dashboard-stat-icon{background:#5930ad69;color:#d29dff;box-shadow:0 0 20px #8957ff30}
+.dashboard-stats--neon .dashboard-stat--green .dashboard-stat-icon{background:#027f6669;color:#40f1bd;box-shadow:0 0 20px #05d7ad35}
+.dashboard-stats--neon .dashboard-stat--cyan .dashboard-stat-icon{background:#036e8d64;color:#22ebf8}
+.dashboard-stats--neon .dashboard-stat p:last-child{font-size:22px;letter-spacing:-.02em}
+.dashboard-panel--neon{
+  border:1px solid #3b6bbb9e;
+  border-radius:14px;
+  background:linear-gradient(153deg,#0f2545ef,#101e39ef 68%,#0d254bee);
+  box-shadow:0 0 16px #1160df1b,inset 0 0 30px #1164dc0d;
+}
+.dashboard-cases.dashboard-panel--neon{min-height:350px}
+.dashboard-cases.dashboard-panel--neon h2,.dashboard-sidebar-card.dashboard-panel--neon h2{font-size:16px}
+.dashboard-cases.dashboard-panel--neon .dashboard-case-table th{
+  color:#c2d1e9;font-size:10px;border-bottom-color:#30496d
+}
+.dashboard-cases.dashboard-panel--neon .dashboard-case-table td{border-bottom-color:#294263}
+.dashboard-cases.dashboard-panel--neon .dashboard-case-table tbody tr:hover{background:#3b83ff18}
+.dashboard-sidebar-card.dashboard-panel--neon{padding:18px 21px}
+.dashboard-sidebar-card.dashboard-panel--neon .dashboard-chart--neon{max-height:155px;filter:drop-shadow(0 0 4px #2a8cfb30)}
+.dashboard-panel--neon .dashboard-timeline-dot{box-shadow:0 0 0 4px #3784ff26,0 0 13px #529bff}
+.dashboard-panel--neon .dashboard-timeline li:nth-child(3n) .dashboard-timeline-dot{box-shadow:0 0 0 4px #37e2b426,0 0 13px #35e0ba}
+.dashboard-sidebar-card.dashboard-panel--neon .dashboard-history-trigger{border-color:#3d68a3;color:#8fc9ff}
+:global(html[data-theme='light']) .dashboard-ambient--neon{background:linear-gradient(145deg,#f1f6ff,#e9f2ff)}
+:global(html[data-theme='light']) .dashboard-stats--neon .dashboard-stat,
+:global(html[data-theme='light']) .dashboard-panel--neon,
+:global(html[data-theme='light']) .dashboard-overview-card--neon{
+  background:var(--color-surface);border-color:#8caadb;box-shadow:0 0 20px #3779cc12
+}
+:global(html[data-theme='light']) .dashboard-stats--neon .dashboard-stat{color:var(--color-ink)}
+@media(max-width:1100px){.dashboard-action-centre--neon{min-height:0}.dashboard-overview-card--neon{min-height:0}}
+@media(max-width:760px){.dashboard-action-centre--neon .dashboard-next-step{flex-wrap:wrap;gap:12px}.dashboard-action-centre--neon .dashboard-review-btn{margin-left:102px}}
+@media(max-width:620px){
+ .dashboard-ambient--neon{inset:-15px -10px 0!important}
+ .dashboard-action-centre--neon .dashboard-next-step{padding:12px 0;gap:12px}
+ .dashboard-action-centre--neon .dashboard-next-icon{width:56px;height:56px}
+ .dashboard-action-centre--neon .dashboard-review-btn{margin-left:0;width:100%}
+ .dashboard-stats--neon .dashboard-stat{padding:10px;min-height:75px}
+ .dashboard-stats--neon .dashboard-stat-icon{width:35px;height:35px}
+ .dashboard-stats--neon .dashboard-stat p:last-child{font-size:18px}
+ .dashboard-overview-card--neon .dashboard-resolution-ring{width:116px;height:116px}
+}
+
 </style>
