@@ -92,7 +92,9 @@ async function toggleTheme(event?: MouseEvent) {
       pseudoElement: '::view-transition-new(root)',
     });
     await activeAnimation.finished;
-    await transition.finished;
+    // The animation has revealed the entire new theme. Dismiss both captured
+    // page snapshots immediately so they cannot linger as a pale overlay.
+    transition.skipTransition();
   } catch {
     // The browser may cancel a transition during navigation or tab switching.
     if (!committed) commitTheme(next);
