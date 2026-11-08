@@ -247,14 +247,18 @@ const graphPlot = computed(() => {
               <th>Case ID</th><th>Dispute title</th><th>Counterparty</th><th>Amount</th><th>Status</th><th>Last update</th><th><span class="sr-only">Open</span></th>
             </tr></thead>
             <tbody>
-              <tr v-for="item in cases" :key="item.id">
-                <td><RouterLink class="font-semibold text-primary hover:underline" :to="`/cases/${item.id}`">{{ item.reference }}</RouterLink></td>
-                <td><RouterLink class="font-medium hover:text-primary" :to="`/cases/${item.id}`">{{ item.title }}</RouterLink><div class="mt-1 sm:hidden"><SourceBadge :source="item.sourceType" :capture-id="item.sourceType === 'PAYPAL_SANDBOX' ? 'yes' : null" /></div></td>
+              <tr v-for="item in cases" :key="item.id" tabindex="0" role="link" :aria-label="`Open case ${item.reference}: ${item.title}`"
+                class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                @click="router.push(`/cases/${item.id}`)"
+                @keydown.enter.prevent="router.push(`/cases/${item.id}`)"
+                @keydown.space.prevent="router.push(`/cases/${item.id}`)">
+                <td><span class="font-semibold text-primary">{{ item.reference }}</span></td>
+                <td><span class="font-medium">{{ item.title }}</span><div class="mt-1 sm:hidden"><SourceBadge :source="item.sourceType" :capture-id="item.sourceType === 'PAYPAL_SANDBOX' ? 'yes' : null" /></div></td>
                 <td class="text-ink-soft">{{ session.role === 'BUYER' ? item.merchantName : session.role === 'MERCHANT' ? item.buyerName : item.buyerName + ' ↔ ' + item.merchantName }}</td>
                 <td class="font-semibold tabular">{{ money(item.amountMinor, item.currency) }}</td>
                 <td><div class="flex flex-wrap items-center gap-2"><SourceBadge :source="item.sourceType" :capture-id="item.sourceType === 'PAYPAL_SANDBOX' ? 'yes' : null" /><StatusBadge :status="item.status" /></div></td>
                 <td class="whitespace-nowrap text-muted">{{ timeAgo(item.updatedAt) }}</td>
-                <td><RouterLink :to="`/cases/${item.id}`" :aria-label="`Open ${item.reference}`" class="inline-flex rounded p-1 text-muted hover:text-primary"><ArrowRight class="size-4" /></RouterLink></td>
+                <td><span class="inline-flex rounded p-1 text-muted" aria-hidden="true"><ArrowRight class="size-4" /></span></td>
               </tr>
             </tbody>
           </table>
