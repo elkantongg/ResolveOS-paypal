@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { LayoutDashboard, Moon, Settings, ShoppingCart, Sun } from 'lucide-vue-next';
+import { LayoutDashboard, Settings, ShoppingCart } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 
 import AccountSwitcher from '@/components/AccountSwitcher.vue';
 import BlueCursor from '@/components/BlueCursor.vue';
 import Logo from '@/components/Logo.vue';
-import { useThemePreference } from '@/lib/useThemePreference';
 import { useSession } from '@/stores/session';
 
 const route = useRoute();
 const session = useSession();
-const { currentTheme, toggleTheme } = useThemePreference();
 const bare = computed(() => Boolean(route.meta.bare));
 
 onMounted(() => {
@@ -49,7 +47,6 @@ onMounted(() => {
             <span class="size-1.5 rounded-full bg-current" />
             {{ session.status?.adapter === 'mock' ? 'Mock PayPal (automated tests)' : `PayPal sandbox ${session.status?.connected ? 'connected' : 'not connected'}` }}
           </span>
-          <button type="button" class="btn btn-secondary btn-sm" :aria-label="currentTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'" @click="toggleTheme"><Moon v-if="currentTheme === 'light'" class="size-4" /><Sun v-else class="size-4" /></button>
           <AccountSwitcher />
         </div>
       </div>
