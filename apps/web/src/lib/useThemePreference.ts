@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 export type ThemeChoice = 'light' | 'dark';
 const KEY = 'resolveos-theme';
@@ -34,14 +34,73 @@ function setTheme(value: ThemeChoice) {
   commitTheme(value);
 }
 
-/**
- * Switch the semantic theme atomically. A full-document View Transition snapshots
- * the entire page, and its interim composite can wash out the light dashboard.
- * A direct switch preserves contrast and cannot strand an opaque snapshot overlay.
+/** A single continuous wave with a fixed vertex count for every frame.
+ * Sampling intermediate frames avoids the abrupt polygon morph and zig-zag
+ * flashes seen when the browser interpolates only the end shapes.
  */
-function toggleTheme() {
+function revealShape(progress: number, width: number, height: number, phase: number): string {
+  const amplitude = Math.min(24, Math.max(9, width * 0.014));
+  const front = -amplitude - 4 + progress * (width + 2 * amplitude + 8);
+  const points: string[] = [];
+  for (let i = 0; i <= 24; i++) {
+    const y = height * i / 24;
+    const wave = Math.sin((y / Math.max(230, height * 0.55)) * Math.PI * 2 + phase + progress * Math.PI * 0.7);
+    const edge = front + wave * amplitude;
+    points.push(`${edge.toFixed(1)}px ${y.toFixed(1)}px`);
+  }
+  return `polygon(0px 0px, ${points.join(', ')}, 0px ${height}px)`;
+}
+
+async function toggleTheme(event?: MouseEvent) {
   if (isThemeChanging.value) return;
-  commitTheme(currentTheme.value === 'dark' ? 'light' : 'dark');
+  const next: ThemeChoice = currentTheme.value === 'dark' ? 'light' : 'dark';
+  if (typeof document === 'undefined') return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || typeof document.startViewTransition !== 'function') {
+    commitTheme(next);
+    return;
+  }
+
+  isThemeChanging.value = true;
+  document.documentElement.classList.add('theme-wave-active');
+  let committed = false;
+  let activeAnimation: Animation | null = null;
+  try {
+    const transition = document.startViewTransition(async () => {
+      commitTheme(next);
+      committed = true;
+      await nextTick();
+    });
+    await transition.ready;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const target = event?.currentTarget;
+    const bounds = target instanceof Element ? target.getBoundingClientRect() : null;
+    const phase = bounds ? (bounds.top / Math.max(1, height)) * Math.PI : 0;
+
+    // All keyframes share the same polygon structure and advance monotonically,
+    // so the transition cannot freeze or jump backwards between frames.
+    const steps = 32;
+    const frames = Array.from({ length: steps + 1 }, (_, i) => ({
+      clipPath: revealShape(i / steps, width, height, phase),
+      offset: i / steps,
+    }));
+    activeAnimation = document.documentElement.animate(frames, {
+      duration: 1120,
+      easing: 'cubic-bezier(.42,0,.24,1)',
+      fill: 'both',
+      pseudoElement: '::view-transition-new(root)',
+    });
+    await activeAnimation.finished;
+    await transition.finished;
+  } catch {
+    // The browser may cancel a transition during navigation or tab switching.
+    if (!committed) commitTheme(next);
+  } finally {
+    activeAnimation?.cancel();
+    document.documentElement.classList.remove('theme-wave-active');
+    isThemeChanging.value = false;
+  }
 }
 
 export function useThemePreference() {
