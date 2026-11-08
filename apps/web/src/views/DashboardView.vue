@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { Activity, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShoppingCart, Sparkles, Timer, Wallet, Target, Layers, Zap } from 'lucide-vue-next';
+import { Activity, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShoppingCart, Sparkles, Timer, Wallet, Target, Layers, Zap, ChevronDown } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
@@ -131,8 +131,18 @@ async function resetDemo() {
 
 const refundTotal = computed(() => summary.value?.refundedTotals.find((t) => t.currency === 'USD')?.totalMinor ?? 0);
 const chart = computed(() => {
-  const days = summary.value?.activity ?? [];
-  const peak = Math.max(1, ...days.map((d) => Math.max(d.opened, d.resolved)));
+  // The audit API may omit days with no events. Render a complete 14-day axis
+  // without inventing activity: absent days are explicitly zero.
+  const recorded = new Map((summary.value?.activity ?? []).map((day) => [day.day.slice(0, 10), day]));
+  const now = new Date();
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date(now);
+    date.setDate(now.getDate() - (13 - i));
+    const key = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+    const actual = recorded.get(key);
+    return { day: key, opened: actual?.opened ?? 0, resolved: actual?.resolved ?? 0 };
+  });
+  const peak = Math.max(1, ...days.map((day) => Math.max(day.opened, day.resolved)));
   return { days, peak };
 });
 const greeting = computed(() => (session.role === 'MERCHANT' ? session.me?.merchant?.businessName ?? 'Merchant' : session.user?.name.split(' ')[0]));
@@ -293,10 +303,13 @@ const graphPlot = computed(() => {
             <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
             <input v-model="query" class="input !h-9 w-56 pl-9" placeholder="Search title or RA-…" />
           </label>
-          <select v-model="status" class="input !h-9 !w-auto" aria-label="Filter by status">
-            <option value="ALL">All statuses</option>
-            <option v-for="(label, key) in STATUS_LABEL" :key="key" :value="key">{{ label }}</option>
-          </select>
+          <div class="dashboard-status-control">
+            <select v-model="status" class="dashboard-status-select input !h-9" aria-label="Filter by status">
+              <option value="ALL">All statuses</option>
+              <option v-for="(label, key) in STATUS_LABEL" :key="key" :value="key">{{ label }}</option>
+            </select>
+            <ChevronDown class="dashboard-status-chevron size-4" aria-hidden="true" />
+          </div>
         </div>
         <div v-if="cases === null" class="p-5"><Skeleton :lines="5" /></div>
         <div v-else-if="!cases.length" class="px-6 py-16 text-center">
@@ -531,12 +544,13 @@ const graphPlot = computed(() => {
 .resolve-dashboard .dashboard-greeting {padding-block: 18px 14px}
 .resolve-dashboard .dashboard-greeting h1 {font-size:clamp(27px,2.35vw,36px);line-height:1.15;letter-spacing:-.035em}
 .dashboard-ambient--neon{
-  inset:-30px -22px -35px!important;
-  border-radius:22px;
+  /* Fixed to the viewport rather than clipped to the dashboard's rounded container. */
+  position:fixed!important;inset:0!important;
+  width:100vw;height:100vh;border-radius:0!important;
   background:
-    radial-gradient(ellipse 43% 26% at 47% 11%,#1551b150,transparent 94%),
-    radial-gradient(ellipse 43% 36% at 49% 94%,#174dbd4a,transparent 90%),
-    linear-gradient(165deg,#071a37 0%,#08152d 42%,#06172f 74%,#061b41 100%);
+    radial-gradient(ellipse 50% 46% at 52% 17%,#1645a13b,transparent 85%),
+    radial-gradient(ellipse 50% 48% at 50% 90%,#123b9833,transparent 90%);
+  overflow:hidden;
 }
 .dashboard-ambient--neon .dashboard-glow{filter:blur(115px);opacity:.23}
 .dashboard-ambient--neon .dashboard-glow--one{width:590px;height:480px;top:-110px;right:15%;background:radial-gradient(ellipse,#2869e66a,transparent 72%)}
@@ -649,7 +663,7 @@ const graphPlot = computed(() => {
 .dashboard-panel--neon .dashboard-timeline-dot{box-shadow:0 0 0 4px #3784ff26,0 0 13px #529bff}
 .dashboard-panel--neon .dashboard-timeline li:nth-child(3n) .dashboard-timeline-dot{box-shadow:0 0 0 4px #37e2b426,0 0 13px #35e0ba}
 .dashboard-sidebar-card.dashboard-panel--neon .dashboard-history-trigger{border-color:#3d68a3;color:#8fc9ff}
-:global(html[data-theme='light']) .dashboard-ambient--neon{background:linear-gradient(145deg,#f1f6ff,#e9f2ff)}
+:global(html[data-theme='light']) .dashboard-ambient--neon{background:radial-gradient(ellipse at 50% 25%,#649cfb1b,transparent 75%)}
 :global(html[data-theme='light']) .dashboard-stats--neon .dashboard-stat,
 :global(html[data-theme='light']) .dashboard-panel--neon,
 :global(html[data-theme='light']) .dashboard-overview-card--neon{
@@ -659,7 +673,7 @@ const graphPlot = computed(() => {
 @media(max-width:1100px){.dashboard-action-centre--neon{min-height:0}.dashboard-overview-card--neon{min-height:0}}
 @media(max-width:760px){.dashboard-action-centre--neon .dashboard-next-step{flex-wrap:wrap;gap:12px}.dashboard-action-centre--neon .dashboard-review-btn{margin-left:102px}}
 @media(max-width:620px){
- .dashboard-ambient--neon{inset:-15px -10px 0!important}
+ .dashboard-ambient--neon{inset:0!important}
  .dashboard-action-centre--neon .dashboard-next-step{padding:12px 0;gap:12px}
  .dashboard-action-centre--neon .dashboard-next-icon{width:56px;height:56px}
  .dashboard-action-centre--neon .dashboard-review-btn{margin-left:0;width:100%}
@@ -669,4 +683,20 @@ const graphPlot = computed(() => {
  .dashboard-overview-card--neon .dashboard-resolution-ring{width:116px;height:116px}
 }
 
+ 
+/* Stable native-select placement with a predictable centered chevron. */
+.dashboard-status-control{position:relative;display:flex;align-items:center;flex:none;min-width:170px}
+.dashboard-status-select{
+  display:block;width:100%;min-width:170px;min-height:36px;
+  padding:0 39px 0 14px!important;
+  line-height:36px;appearance:none!important;-webkit-appearance:none!important;
+  background-image:none!important;cursor:pointer
+}
+.dashboard-status-chevron{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--color-muted)
+}
+/* The chart must always occupy the available panel width. */
+.dashboard-chart--neon{width:100%;height:150px;max-height:150px}
+@media(max-width:620px){.dashboard-status-control{min-width:150px}.dashboard-status-select{min-width:150px}}
 </style>
