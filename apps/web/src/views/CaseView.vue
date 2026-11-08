@@ -84,7 +84,7 @@ const progressSteps = computed(() => {
     { label: 'Evidence', state: active > 1 ? 'done' : active === 1 ? 'current' : 'upcoming' },
     { label: 'Negotiation', state: active > 2 ? 'done' : active === 2 ? 'current' : 'upcoming' },
     { label: 'Approval', state: active > 3 ? 'done' : active === 3 ? 'current' : 'upcoming' },
-    { label: status === 'PAYMENT_PROCESSING' ? 'Processing' : status === 'NO_AGREEMENT' ? 'No agreement' : status === 'ESCALATED' ? 'Escalated' : 'Resolved', state: active === 4 ? 'current' : 'upcoming' },
+    { label: status === 'PAYMENT_PROCESSING' ? 'Processing' : status === 'NO_AGREEMENT' ? 'No agreement' : status === 'ESCALATED' ? 'Escalated' : 'Resolved', state: status === 'RESOLVED' ? 'done' : active === 4 ? 'current' : 'upcoming' },
   ];
 });
 
@@ -174,7 +174,7 @@ async function saveLimits() {
           <div class="space-y-1">
             <p class="text-xs font-semibold uppercase tracking-wider" :class="isResolved ? 'text-ok' : 'text-primary'">{{ isResolved ? 'Resolution complete' : 'Case at a glance' }}</p>
             <h2 class="text-lg font-semibold leading-snug text-ink">{{ isResolved ? 'Case resolved' : actionContent.title }}</h2>
-            <p class="max-w-xl text-sm leading-6 text-ink-soft">{{ isResolved ? 'The case has reached a final outcome. Review the settlement and verified payment information below.' : actionContent.description }}</p>
+            <p v-if="!isResolved" class="max-w-xl text-sm leading-6 text-ink-soft">{{ actionContent.description }}</p>
           </div>
         </div>
         <RouterLink v-if="isResolved" :to="`/cases/${caseId}/receipt`" class="btn btn-primary shrink-0">
