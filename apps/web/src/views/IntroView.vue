@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Moon, Sun, LockKeyhole, Check } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, LockKeyhole, Check } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import Logo from '@/components/Logo.vue';
-import { useThemePreference } from '@/lib/useThemePreference';
 
-const { currentTheme, toggleTheme } = useThemePreference();
 const chapter = ref(0);
 const reducedMotion = ref(false);
 const transitionPhase = ref<'idle' | 'out' | 'in'>('idle');
@@ -130,9 +128,6 @@ onBeforeUnmount(() => {
     <header class="cinema-header">
       <RouterLink to="/" aria-label="ResolveOS home"><Logo /></RouterLink>
       <div class="cinema-actions">
-        <button type="button" class="cinema-icon" @click="toggleTheme" :aria-label="currentTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'">
-          <Moon v-if="currentTheme === 'light'" :size="17" /><Sun v-else :size="17" />
-        </button>
         <RouterLink to="/signin?welcome=1" class="cinema-enter">Enter ResolveOS <ArrowUpRight :size="15" /></RouterLink>
       </div>
     </header>
