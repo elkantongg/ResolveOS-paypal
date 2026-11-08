@@ -322,3 +322,105 @@ html[data-theme='light'] .negotiation-scene .intelligence-sphere-shell {
 html[data-theme='light'] .negotiation-scene .intelligence-sphere-inner { stroke:#9acaff5c; }
 html[data-theme='light'] .negotiation-scene .intelligence-orbit-stroke { filter:drop-shadow(0 0 3px #0e3f8680); }
 html[data-theme='light'] .negotiation-scene .intelligence-sphere-sheen { stroke:#b5ddffdb; }
+
+/* Dashboard light-mode palette.
+ * Use fully qualified global selectors: component-scoped :global prefixes
+ * can lose their trailing selector, leaving the dark neon palette visible.
+ * Explicit tokens and colors prevent low-contrast white-on-white surfaces.
+ */
+html[data-theme='light'] .resolve-dashboard {
+  color: #142648;
+  --color-ink: #142648;
+  --color-ink-soft: #355072;
+  --color-muted: #536985;
+  --color-faint: #6d7f99;
+  --color-line: #d6e1f1;
+  --color-line-strong: #b6c9e3;
+  --color-surface: #ffffff;
+  --color-sunken: #edf3fd;
+  --color-primary: #2055b4;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-ambient--neon {
+  background:
+    radial-gradient(ellipse 45% 35% at 51% 16%,#c6dbff8f,transparent 85%),
+    radial-gradient(ellipse 43% 42% at 50% 90%,#d9e6ff6c,transparent 90%) !important;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-ambient--neon .dashboard-glow {
+  opacity:.075 !important;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-panel--neon,
+html[data-theme='light'] .resolve-dashboard .dashboard-overview-card--neon,
+html[data-theme='light'] .resolve-dashboard .dashboard-stats--neon .dashboard-stat {
+  background:linear-gradient(145deg,#ffffff,#f2f7ff) !important;
+  border-color:#b8ccea !important;
+  color:#142648 !important;
+  box-shadow:0 2px 16px #3265ae12 !important;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-stats--neon .dashboard-stat-icon {
+  background:#e2efff;
+  color:#245fba;
+  box-shadow:0 0 15px #2e7bdf1b;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-stats--neon .dashboard-stat--violet .dashboard-stat-icon {
+  background:#eee7ff;color:#6849c0;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-stats--neon .dashboard-stat--green .dashboard-stat-icon {
+  background:#ddf7ed;color:#087b61;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-stats--neon .dashboard-stat--cyan .dashboard-stat-icon {
+  background:#ddf6ff;color:#057d9c;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-action-emblem,
+html[data-theme='light'] .resolve-dashboard .dashboard-overview-card--neon .dashboard-overview-icon {
+  background:#e2f3ff;
+  color:#057da9;
+  box-shadow:0 0 20px #378fdc1b;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-agent-label {
+  background:#e3f9f4;color:#087b72;border-color:#9bded2;box-shadow:none;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-next-icon {
+  background:radial-gradient(circle at 35% 30%,#8c83f1,#5555b8);
+  color:#ffffff;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-next-eyebrow {
+  background:#eee8ff;color:#5b3e9f;border-color:#bca5f4;box-shadow:0 0 12px #a58afd26;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-next-step::before,
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-next-glow {opacity:.2}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-next-step::after {opacity:.4}
+html[data-theme='light'] .resolve-dashboard .dashboard-action-centre--neon .dashboard-review-btn {
+  color:#07294b;
+  border-color:#70bfd9;
+  background:linear-gradient(110deg,#74e0ed,#8acbff);
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-overview-card--neon .dashboard-resolution-ring {
+  background:conic-gradient(#4276eb 0%,#6b68dc var(--progress),#d5e0f3 var(--progress) 100%);
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-overview-card--neon .dashboard-resolution-ring > div {
+  background:#ffffff;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-overview-card--neon .dashboard-overview-list > div,
+html[data-theme='light'] .resolve-dashboard .dashboard-cases.dashboard-panel--neon .dashboard-case-table td,
+html[data-theme='light'] .resolve-dashboard .dashboard-cases.dashboard-panel--neon .dashboard-case-table th {
+  border-color:#d7e2f1;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-cases.dashboard-panel--neon .dashboard-case-table th {
+  color:#526987;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-cases.dashboard-panel--neon .dashboard-case-table tbody tr:hover {
+  background:#e5efff;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-status-select,
+html[data-theme='light'] .resolve-dashboard input {
+  color:#142648;
+  background:#ffffff;
+  border-color:#b5c7df;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-status-select option {color:#142648;background:#ffffff}
+html[data-theme='light'] .resolve-dashboard .dashboard-history-trigger {
+  border-color:#aec6e4;color:#225ca9;
+}
+html[data-theme='light'] .resolve-dashboard .dashboard-timeline-dot {
+  box-shadow:0 0 0 4px #3f87f323;
+}
