@@ -65,8 +65,9 @@ async function toggleTheme(event?: MouseEvent) {
   document.documentElement.classList.add('theme-wave-active');
   let committed = false;
   let activeAnimation: Animation | null = null;
+  let transition: ViewTransition | null = null;
   try {
-    const transition = document.startViewTransition(async () => {
+    transition = document.startViewTransition(async () => {
       commitTheme(next);
       committed = true;
       await nextTick();
@@ -88,7 +89,7 @@ async function toggleTheme(event?: MouseEvent) {
     activeAnimation = document.documentElement.animate(frames, {
       duration: 1120,
       easing: 'cubic-bezier(.42,0,.24,1)',
-      fill: 'both',
+      fill: 'none',
       pseudoElement: '::view-transition-new(root)',
     });
     await activeAnimation.finished;
@@ -99,6 +100,8 @@ async function toggleTheme(event?: MouseEvent) {
     // The browser may cancel a transition during navigation or tab switching.
     if (!committed) commitTheme(next);
   } finally {
+    // Always tear down the captured layers, including interrupted transitions.
+    transition?.skipTransition();
     activeAnimation?.cancel();
     document.documentElement.classList.remove('theme-wave-active');
     isThemeChanging.value = false;
