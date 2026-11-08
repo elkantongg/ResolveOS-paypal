@@ -1,4 +1,5 @@
 import './style.css';
+import './lib/useThemePreference';
 
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
