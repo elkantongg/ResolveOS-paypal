@@ -572,8 +572,13 @@ const graphPlot = computed(() => {
   background:#014d4945;box-shadow:0 0 15px #06b9ac22
 }
 .dashboard-action-centre--neon .dashboard-next-step{
-  min-height:136px;gap:22px;
-  padding:10px 4px 15px 16px;
+  min-height:136px;
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) auto;
+  align-items:center;
+  column-gap:13px;
+  padding:15px 4px 14px 0;
+  margin-top:14px;
   isolation:isolate
 }
 .dashboard-action-centre--neon .dashboard-next-step::before{
@@ -588,7 +593,7 @@ const graphPlot = computed(() => {
   pointer-events:none
 }
 .dashboard-action-centre--neon .dashboard-next-icon{
-  width:81px;height:81px;border-color:#aa8cff;
+  width:56px;height:56px;border-color:#aa8cff;
   background:radial-gradient(circle at 40% 36%,#5059e4a3,#162665d6 60%,#091b42 100%);
   box-shadow:0 0 18px #7255ffab,0 0 48px #6b45ff7a,inset 0 0 20px #715aff55;
   color:#b8beff
@@ -699,4 +704,17 @@ const graphPlot = computed(() => {
 /* The chart must always occupy the available panel width. */
 .dashboard-chart--neon{width:100%;height:150px;max-height:150px}
 @media(max-width:620px){.dashboard-status-control{min-width:150px}.dashboard-status-select{min-width:150px}}
+/* Align the priority content with the Action Centre header, not a separate indent. */
+.dashboard-action-centre--neon > .flex:first-child{min-height:56px;align-items:center}
+.dashboard-action-centre--neon .dashboard-next-step > .min-w-0{align-self:center}
+.dashboard-action-centre--neon .dashboard-review-btn{align-self:center;justify-self:end;white-space:nowrap}
+@media(max-width:760px){
+ .dashboard-action-centre--neon .dashboard-next-step{grid-template-columns:56px minmax(0,1fr);row-gap:16px}
+ .dashboard-action-centre--neon .dashboard-review-btn{grid-column:2;justify-self:start;margin-left:0!important}
+}
+@media(max-width:620px){
+ .dashboard-action-centre--neon .dashboard-next-step{grid-template-columns:48px minmax(0,1fr);column-gap:12px;padding:12px 0}
+ .dashboard-action-centre--neon .dashboard-next-icon{width:48px;height:48px}
+ .dashboard-action-centre--neon .dashboard-review-btn{grid-column:1/-1;width:100%}
+}
 </style>
