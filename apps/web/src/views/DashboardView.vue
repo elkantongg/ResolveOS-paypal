@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { Activity, AlertTriangle, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShieldCheck, ShoppingCart, Sparkles, Timer, Wallet, Target, Layers, Zap, ChevronRight } from 'lucide-vue-next';
+import { Activity, ArrowRight, BarChart3, CheckCircle2, X, History, Clock3, FileStack, FolderOpen, Inbox, Plus, RotateCcw, Search, ShoppingCart, Sparkles, Timer, Wallet, Target, Layers, Zap } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
@@ -150,9 +150,6 @@ const rank = (item: CaseSummary) => {
 };
 const activeCases = computed(() => allCases.value.filter((item) => item.status !== 'RESOLVED'));
 const priorityCase = computed(() => [...activeCases.value].sort((a,b) => rank(b) - rank(a) || a.reference.localeCompare(b.reference))[0] ?? null);
-const inNegotiation = computed(() => activeCases.value.filter(item => item.status === 'IN_NEGOTIATION').length);
-const awaitingApproval = computed(() => activeCases.value.filter(item => item.status === 'AWAITING_APPROVAL').length);
-const openCount = computed(() => activeCases.value.filter(item => item.status === 'OPEN').length);
 const priorityHeadline = computed(() => {
   const item = priorityCase.value;
   if (!item) return 'You’re all caught up';
