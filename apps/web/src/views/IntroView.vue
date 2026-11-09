@@ -24,7 +24,6 @@ const stories = [
 const activeIndex = computed(() => chapter.value);
 const position = computed(() => chapter.value);
 const progress = computed(() => chapter.value / (stories.length - 1));
-const story = computed(() => stories[chapter.value]!);
 
 const interpolate = (stops: number[], t: number) => {
   const i = Math.min(stops.length - 2, Math.max(0, Math.floor(t)));

@@ -19,7 +19,8 @@ function enforceDarkTheme() {
 
 enforceDarkTheme();
 
-function setTheme(_value: ThemeChoice) {
+function setTheme(value: ThemeChoice) {
+  void value;
   enforceDarkTheme();
 }
 
