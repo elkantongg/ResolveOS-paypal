@@ -54,6 +54,11 @@ agreement or with escalation, and no payment is made (seeded case RA-1043).
 | A refund is shown as successful **only when PayPal reports `COMPLETED`**. | receipt, settlement screens |
 | Seeded demo data can never be refunded. A database constraint stops seeded rows from holding PayPal IDs. | `db/schema.ts` |
 | Webhooks are **signature-verified** against the raw body. The certificate URL must be a PayPal host. Unverified events are quarantined, and events are deduplicated by ID. | `paypal/webhook-verify.ts`, `payments/webhooks.ts` |
+| Anything short of a **definite PayPal refusal** stays "unknown": a 409, 429, unreadable answer, sign-in failure or bug never reopens the case, because new terms get a new request ID. | `payments/service.ts` |
+| An agent answer that writes its own private limit, cites evidence that does not exist, or takes a position with no evidence is rejected. Rejection reasons in the shared log never contain a limit. | `validateTurn` |
+| Negotiation cannot start until the **merchant has confirmed** its limit for the case. | `Orchestrator.start` |
+| Party-written text cannot close the data tags around it in the prompt. | `prompts.ts` |
+| A public instance **will not start** without `DEMO_ACCESS_CODE` and an https `FRONTEND_URL`. | `config.ts`, `accessGate` |
 | Sessions use HTTP-only `SameSite=Strict` cookies plus a CSRF token. Roles come from the database. The operator can watch but cannot approve. | `auth.ts` |
 
 ## Architecture
@@ -103,7 +108,8 @@ flowchart LR
 
 **AI used:** any OpenAI-compatible chat API, through a small provider interface
 (`apps/server/src/ai/provider.ts`). We use **Groq** with `openai/gpt-oss-120b` in JSON mode. Each
-agent turn is one model call that returns a structured `AgentTurn`, which the server validates.
+agent turn is one model call that returns a structured `AgentTurn` (reasoning, evidence codes,
+uncertainties, the options it weighed, and an offer), which the server validates.
 
 **Demo engine:** for presentations without a key, a clearly labelled deterministic negotiator
 computes its turns from the case's own numbers and evidence. The UI marks every such turn
@@ -114,7 +120,7 @@ computes its turns from the case's own numbers and evidence. The UI marks every 
 Everything here is free: the PayPal sandbox, a free Groq key and local PostgreSQL.
 
 **Prerequisites:**
-- Node 22+ and pnpm 10+
+- Node 22+ and pnpm 12
 - PostgreSQL 15+ running locally, or a free Neon database
 
 ```bash
@@ -131,6 +137,10 @@ Then fill in `.env`:
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | developer.paypal.com → toggle **Sandbox** → Apps & Credentials → Create App (type **Merchant**) → copy the Client ID and **Secret key 1** |
 | `AI_API_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | console.groq.com → API Keys (free). Use `https://api.groq.com/openai/v1` and `openai/gpt-oss-120b` |
 | `PAYPAL_WEBHOOK_ID` | Optional; see *Webhooks* below |
+| `AI_MODE` | `live` (default) or `demo` |
+| `FRONTEND_URL`, `BACKEND_PORT` | Defaults suit local use; see *Deploying* for a public instance |
+| `DEMO_ACCESS_CODE` | Not needed locally. **Required** when `NODE_ENV=production` |
+| `RATE_LIMIT_MAX` | Optional override of the per-minute limits |
 
 Without PayPal keys the app still runs, but payments and refunds are disabled. Without an AI key,
 only the labelled demo engine is available.
@@ -142,7 +152,7 @@ pnpm paypal:check    # proves your sandbox keys: OAuth + creates an unpaid $1 or
 pnpm dev             # API on :5001, web app on http://localhost:5180
 ```
 
-Open **http://localhost:5180** and click **Launch demo**.
+Open **http://localhost:5180** and click **Enter ResolveOS**.
 
 ### Demo walkthrough (about 3 minutes)
 
@@ -151,9 +161,10 @@ Open **http://localhost:5180** and click **Launch demo**.
    Testing Tools → Sandbox Accounts → the *Personal* account → View/Edit for its email and password.
    Then pay. You return to ResolveOS with the capture ID.
 3. **Report a problem with this order** → *Fill in the "missing jacket" scenario* → **Open case**.
-4. Use the header menu to switch to **Jordan Ellis** (merchant). Click **Add evidence** → *Demo
-   tracking record* → Add. Set *Most we would refund* (e.g. 120.00).
-5. **Open Negotiation Room** → **Live AI** → **Start negotiation** → **Run to a result**.
+4. Use the header menu to switch to **Jordan Ellis** (merchant) and open the case. Click **Add
+   evidence** → *Demo tracking record* → Add. Set *Most we would refund* (e.g. 120.00) and click
+   **Save limits**. Negotiation cannot start until the merchant has done this.
+5. **Go to negotiation** → **Live AI** → **Start negotiation** → **Run to a result**.
 6. **Review & approve** as Jordan, switch to Alex, and **Approve**. The refund runs on PayPal.
 7. **View receipt**: PayPal refund ID, capture ID, status `COMPLETED`, and the audit trail.
 
@@ -195,16 +206,57 @@ pnpm db:reset --yes    # deletes everything in this app's database, then re-crea
 In the app, only the **Demo Operator** can reset, and only after confirming. Both are refused when
 `NODE_ENV=production`. PayPal itself is never touched: sandbox payments and refunds stay in PayPal.
 
+## Deploying a public instance
+
+Demo sign-in has no passwords, so a public instance must not be open to everyone. In production the
+server refuses to start without `DEMO_ACCESS_CODE` (16+ characters), and every page and API call
+then needs that code: the browser asks once (HTTP Basic; any username). Only `/api/health`,
+`/api/ready` and PayPal's signature-checked webhook are outside it.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm db:migrate && pnpm db:seed
+pnpm --filter server start   # serves the API and the built web app from one origin
+```
+
+Set these in the host's environment, not in a file in the repo:
+
+| Variable | Value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `FRONTEND_URL` | The public `https://` address. PayPal's return and cancel URLs are built from it |
+| `BACKEND_PORT` | The port your host expects the app to listen on |
+| `DEMO_ACCESS_CODE` | `openssl rand -hex 16`; share it only with people testing the demo |
+| `DATABASE_URL`, `SESSION_SECRET`, `PAYPAL_*`, `AI_*` | As for local use, with sandbox credentials |
+
+Point health checks at `/api/ready`. For live webhooks, register
+`https://<your host>/api/paypal/webhooks` and set `PAYPAL_WEBHOOK_ID`.
+
+## Security
+
+- **Secrets** stay in server-side environment variables. `.env` is git-ignored; the browser build
+  contains none of them.
+- **Access:** per-case checks on every route (a stranger gets 404), roles from the database, CSRF
+  tokens on writes, `SameSite=Strict`, HTTP-only cookies that are `Secure` in production.
+- **Abuse limits:** per-IP rate limits on sign-in, payments, negotiation, webhooks and failed access
+  codes; size limits on request bodies; schema validation on every input.
+- **Webhooks:** signature checked on the raw bytes, certificate fetched only from PayPal's
+  certificate path, events deduplicated by ID so replays change nothing.
+- **Errors:** one error shape; stack traces stay in the server log.
+
+No system can be promised to be unhackable. Known gaps are listed under *Known limitations*.
+
 ## Negotiation evaluation
 
 `createdb resolve_ai_eval && pnpm eval --engines=baseline,ai --reps=3` compares the AI agents with a
-rules-based baseline on 5 scripted scenarios (separate database). Method, results and limits are in
+rules-based baseline on 7 scripted scenarios (separate database). Method, results and limits are in
 [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## Tests
 
 ```bash
-pnpm --filter server test   # 47 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 107 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
@@ -220,14 +272,20 @@ pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses yo
 - CSRF protection, plus cross-user and operator boundaries;
 - webhook verification, deduplication and quarantine;
 - every check on agent output;
-- deadlock, escalation, revision and rejection.
+- deadlock, escalation, revision and rejection;
+- answers from PayPal that prove nothing (bad JSON, 409, 429, 401, crashes part-way);
+- private limits in agent text, in the audit log and in API responses;
+- production start-up rules, the access gate, cookies, rate limits and malformed input.
 
 **End-to-end tests** use the mock PayPal adapter (`PAYPAL_ADAPTER=mock`, which the app refuses in
 production) and the deterministic demo engine. They cover:
 - purchase → report → negotiate → two approvals → refund → receipt, including after a reload;
-- the no-agreement path;
-- the operator's limits;
-- seeded-data labelling.
+- no agreement, rejection, and revision followed by new terms;
+- waiting for the merchant, the merchant's limit binding the result, and each side's privacy;
+- repeated captures and refund requests never paying twice;
+- refund timeouts with reconciliation, pending refunds and PayPal refusals;
+- how API failures and rate limiting are shown;
+- switching person, the operator's limits, and seeded data never refunding.
 
 ## API
 
@@ -254,7 +312,7 @@ apps/server/src
   settlement/   service.ts (approvals), terms.ts (terms hash)
   routes/       cases.ts (cases, evidence, negotiation, settlement, dashboard, demo)
   db/           schema.ts, migrations in ../drizzle, seed.ts
-apps/web/src    views/ (10 screens), components/, api/, lib/
+apps/web/src    views/ (12 screens), components/, api/, lib/
 e2e/            Playwright specs
 ```
 
@@ -263,10 +321,15 @@ e2e/            Playwright specs
 - **Eligibility screen uses text patterns.** Possible unauthorised payments or account takeover are
   sent to PayPal before any agent runs, but a claim worded differently could be missed, and an
   ordinary complaint could be flagged. A false positive only means a person handles it.
-- **Evaluation is small.** 5 scripted scenarios, 3 AI runs each, written by us. See `docs/EVALUATION.md`.
+- **Evaluation is small.** 7 scripted scenarios, 3 AI runs each, written by us. See `docs/EVALUATION.md`.
 - **Sandbox only.** Live PayPal credentials and real money are out of scope.
-- **Authentication is demo-grade:** pick a seeded person, no passwords. The sessions are real,
-  though, and roles are enforced on the server.
+- **Authentication is demo-grade:** pick a seeded person, no passwords. Sessions are real and roles
+  are enforced on the server, but anyone past the access code can act as any demo person. Do not
+  use this for real accounts or real money.
+- **The private-limit check looks for written amounts.** An agent that hinted at its limit in words
+  ("about a hundred and twenty") would not be caught.
+- **Rate limits are per process and per IP**, held in memory. They reset on restart.
+- **Webhook replay** is stopped by event ID, not by the age of the transmission.
 - **Evidence is text,** entered by the parties or seeded; there is no file upload. Shipping data is
   not fetched from carriers.
 - **Replacement** can be agreed, but ResolveOS does not ship anything; it is flagged as a manual
@@ -280,7 +343,7 @@ e2e/            Playwright specs
 ## Submission material
 
 - `docs/DEVPOST.md`: the submission text (problem, solution, measured impact, USP).
-- `docs/EVALUATION.md`: AI vs rules-based baseline on 5 scenarios, with limitations.
+- `docs/EVALUATION.md`: AI vs rules-based baseline on 7 scenarios, with limitations.
 - `docs/VIDEO_SCRIPT.md`: the timed script for the 3-minute demo video.
 
 ## License

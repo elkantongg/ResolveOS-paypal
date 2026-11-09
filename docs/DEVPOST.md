@@ -1,7 +1,7 @@
 # ResolveOS — Devpost submission draft
 
 > Copy into the Devpost form. Every number below is either measured in the app (from its audit log)
-> or from PayPal's own documentation, linked. Before submitting, replace the bracketed items.
+> or from PayPal's own documentation, linked. Before submitting, add the video link at the bottom.
 
 ## Tagline
 
@@ -33,8 +33,8 @@ ResolveOS is a pre-dispute settlement layer on top of PayPal:
 
 1. **Report:** the buyer opens a case on a real PayPal (sandbox) payment. ResolveOS reads the
    capture from PayPal's API and labels it *Verified from PayPal*.
-2. **Evidence:** both sides add evidence. Every item is labelled as verified by PayPal or as a
-   party's claim.
+2. **Evidence:** both sides add evidence, and the merchant confirms its private limit. Every item
+   is labelled as verified by PayPal or as a party's claim.
 3. **Negotiate:** a **buyer agent** and a **merchant agent** negotiate in the Negotiation Room.
    - They cite evidence by code and list what is unproven.
    - Each makes structured offers within its own side's **private** limit (the buyer's floor and
@@ -63,25 +63,27 @@ agreement or with escalation, and no money moves.
 **AI:**
 - Two agents on **Groq (`openai/gpt-oss-120b`)**, behind a provider interface that works with any
   OpenAI-compatible API.
-- Each turn is one JSON-mode call returning a structured `AgentTurn`.
+- Each turn is one JSON-mode call returning a structured `AgentTurn`: reasoning, evidence codes,
+  open questions, the options it weighed, and an offer.
 - A labelled deterministic "demo engine" exists for offline presentations.
 - We also used Claude Code as a coding assistant.
 
 **The guardrails, which are the core of the design:**
 - The model only ever **proposes**.
-- A deterministic server checks every answer: schema; evidence codes that actually exist; currency;
+- A deterministic server checks every answer: schema; evidence codes that actually exist, with at
+  least one behind every position; no private limit written in any text; currency;
   full or partial refund maths; the merchant agent never above the merchant's ceiling; the buyer
   agent never below the buyer's floor; "accept" really matching the other side's offer.
 - An invalid answer is rejected and retried once. Nothing is ever invented in its place.
 - Money moves only in a separate payment service, only after both people approved the same terms
   hash, and only with amounts loaded from the database, never from the model or the browser.
 - A timeout is "unknown, needs reconciling", resolved by re-sending the same request ID, never
-  treated as "failed".
+  treated as "failed". Only a definite PayPal refusal counts as failed.
 
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** 47 API tests, 10 web unit tests and 4 Playwright end-to-end tests.
+**Tests:** 107 API tests, 10 web unit tests and 13 Playwright end-to-end tests.
 
 ## Impact (what we measured, and what we did not)
 
@@ -89,7 +91,7 @@ Server-Sent Events for the live negotiation.
 | --- | --- |
 | **One observed demo run** | In a single demo run (case RA-1102), the time from complaint to PayPal-confirmed refund was **1 min 31 s**: the agents negotiated for 14 s over 5 turns, the two approvals took 30 s, and PayPal confirmed the refund in 2 s. This is one run, driven by us, with both "people" approving straight away. It is **not** evidence of typical speed. Real buyers and merchants take longer to respond. The app records these timings from every case's audit log, so they can be measured on real use. |
 | **PayPal's process, for context only** | PayPal's dispute inquiry stage can last **up to 20 days** before a dispute can be escalated to a claim ([source](https://developer.paypal.com/disputes/disputes-lifecycle)). That is a **maximum window, not an average resolution time**, and we have no data on how long PayPal disputes take on average. We do not claim ResolveOS is faster than PayPal's process. |
-| **Negotiation evaluation** | We compared the AI agents with a simple rules-based negotiator on 5 scripted scenarios. See `docs/EVALUATION.md` for the method, the raw results and the limits. It is a small, scripted set, not a statistical result. |
+| **Negotiation evaluation** | We compared the AI agents with a simple rules-based negotiator on 7 scripted scenarios. See `docs/EVALUATION.md` for the method, the raw results and the limits. It is a small, scripted set, not a statistical result. |
 | **What it could change (hypothesis)** | Before a dispute is opened, both sides get an advocate and a structured, approved settlement, which may avoid an adversarial claim. We have not validated this with real users yet. |
 | **Who it's for** | Small online sellers and their customers on PayPal. |
 
@@ -122,7 +124,7 @@ Server-Sent Events for the live negotiation.
 
 ## Try it
 
-- **Repo:** [https://github.com/elkantongg/resolve-ai] (MIT licensed). The setup steps are in the
+- **Repo:** https://github.com/elkantongg/resolve.os-paypal (MIT licensed). The setup steps are in the
   README.
 - **Video:** [YouTube link]
 
