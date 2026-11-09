@@ -249,3 +249,33 @@ test('switching person changes the real session and what that person may do', as
   expect((await (await page.request.get('/api/auth/me')).json()).user.role).toBe('BUYER');
   expect((await page.request.get(`/api/cases/${id}`)).status()).toBe(404);
 });
+
+test('the investigator and the independent review are shown to the people deciding', async ({ page }) => {
+  await signInAs(page, 'Alex Morgan');
+  const id = await openCase(page, 'RA-1042');
+  await page.route('**/negotiate/history', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    await route.fulfill({
+      response: res,
+      json: { ...body, investigation: { summary: 'PayPal verifies the payment; delivery is only claimed.', findings: [{ claim: 'The parcel was delivered', verdict: 'NOT_VERIFIABLE', evidence: ['EV-2'], note: 'Party record only.' }], missing: ['Proof of delivery'], checks: ['PayPal shipment tracking'], model: 'test-model' } },
+    });
+  });
+  await page.goto(`/cases/${id}/negotiate`);
+  const brief = page.getByLabel('Case investigator');
+  await expect(brief).toContainText('delivery is only claimed');
+  await expect(brief).toContainText('Checked with PayPal: PayPal shipment tracking');
+
+  await page.route('**/api/cases/*/settlement', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    await route.fulfill({
+      response: res,
+      json: { ...body, proposal: { id: 'p', proposalVersion: 1, settlementType: 'PARTIAL_REFUND', refundAmountMinor: 9000, currency: 'USD', summary: 'Refund $90', termsHash: 'h', requiresManualAction: false, currentStatus: 'PENDING_APPROVAL', review: { verdict: 'LEANS_BUYER', rationale: 'A larger share than the evidence supports (EV-2).', evidenceReferences: ['EV-2'], buyerGivesUp: 'Half the price', merchantGivesUp: 'Half the sale', ifRejected: 'Either can use PayPal.', model: 'test-model' } } },
+    });
+  });
+  await page.goto(`/cases/${id}/settlement`);
+  const review = page.getByLabel('Independent review');
+  await expect(review).toContainText('leans buyer');
+  await expect(review).toContainText('A larger share than the evidence supports');
+});

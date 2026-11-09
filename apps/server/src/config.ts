@@ -30,6 +30,12 @@ const schema = z.object({
   AI_API_BASE_URL: optional,
   AI_API_KEY: optional,
   AI_MODEL: optional,
+  /** The neutral analysts (investigator, reviewer). Defaults to AI_MODEL. */
+  AI_MODEL_ANALYST: optional,
+  /** Used when the main model's free allowance runs out. Empty switches fallback off. */
+  AI_MODEL_FALLBACK: z.string().trim().default('openai/gpt-oss-20b'),
+  /** Classifier that flags text written to manipulate an AI. Empty switches the screen off. */
+  AI_MODEL_GUARD: z.string().trim().default('meta-llama/llama-prompt-guard-2-86m'),
   /** `live` calls the configured model; `demo` uses the labelled deterministic negotiator. */
   AI_MODE: z.enum(['live', 'demo']).default('live'),
 

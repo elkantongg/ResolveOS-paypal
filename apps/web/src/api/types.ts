@@ -136,8 +136,27 @@ export interface Proposal {
   summary: string;
   termsHash: string;
   requiresManualAction: boolean;
+  review?: SettlementReview | null;
   currentStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED' | 'SUPERSEDED' | 'EXECUTED';
   createdAt: string;
+}
+
+export interface Investigation {
+  summary: string;
+  findings: { claim: string; verdict: 'SUPPORTED' | 'CONTRADICTED' | 'NOT_VERIFIABLE'; evidence: string[]; note: string }[];
+  missing: string[];
+  checks: string[];
+  model: string;
+}
+
+export interface SettlementReview {
+  verdict: 'FAIR' | 'LEANS_BUYER' | 'LEANS_MERCHANT' | 'NEEDS_HUMAN_REVIEW';
+  rationale: string;
+  evidenceReferences: string[];
+  buyerGivesUp: string;
+  merchantGivesUp: string;
+  ifRejected: string;
+  model: string;
 }
 
 export interface NegotiationState {
@@ -145,6 +164,7 @@ export interface NegotiationState {
   mode: 'live' | 'demo' | null;
   maxTurns: number;
   outcomeSummary: string | null;
+  investigation: Investigation | null;
   turns: Turn[];
   proposal: Proposal | null;
 }

@@ -19,6 +19,7 @@ import { type SettlementType, termsHash } from '../settlement/terms.js';
 import type { AgentInput, SharedFacts } from './context.js';
 import { screenCase } from './eligibility.js';
 import type { TurnEngine } from './engines.js';
+import type { Analysts, CaseSummary, Investigation } from './analysts.js';
 import { type AgentTurn, type AgentTurnBody, agentTurnSchema } from './turn.js';
 
 /**
@@ -30,7 +31,7 @@ import { type AgentTurn, type AgentTurnBody, agentTurnSchema } from './turn.js';
  *     the currency is the payment's, a full refund is exactly the refundable amount, a partial
  *     refund is strictly between 0 and it, the merchant agent never exceeds the merchant's limit,
  *     the buyer agent never goes below the buyer's floor, and "accepting" really matches the other
- *     side's latest offer. A rejected turn is retried once with the reason; then the attempt fails
+ *     side's latest offer. A rejected turn is retried up to twice with the reason; then the attempt fails
  *     with a recoverable error and NOTHING is invented in its place;
  *   - when it stops: agreement (both sides on the same terms) → a settlement proposal for the two
  *     people to approve; an escalation request → handed to a person; the budget used up → no
@@ -52,6 +53,7 @@ export class Orchestrator {
   constructor(
     private readonly database: Db,
     private readonly engines: EngineSet,
+    private readonly analysts: Analysts | null = null,
   ) {}
 
   async start(actor: Actor, caseId: string, mode: 'live' | 'demo') {
@@ -120,7 +122,113 @@ export class Orchestrator {
       ];
     });
     publish(records);
+    if (mode === 'live') await this.investigate(caseId);
     return this.history(actor, caseId);
+  }
+
+  private async caseSummary(kase: CaseRow, txn: { originalAmountMinor: number; amountRefundedMinor: number; currency: string }): Promise<CaseSummary> {
+    const items = await this.database.select().from(evidence).where(eq(evidence.caseId, kase.id)).orderBy(asc(evidence.createdAt));
+    return {
+      reference: kase.reference,
+      title: kase.title,
+      description: kase.description,
+      amount: formatMoney(txn.originalAmountMinor, txn.currency),
+      refundable: formatMoney(txn.originalAmountMinor - txn.amountRefundedMinor, txn.currency),
+      evidence: items,
+    };
+  }
+
+  /**
+   * Screens party text, then lets the investigator check PayPal's records. Runs once per case and
+   * is advice, so a failure here never stops the negotiation. One thing is not advice: a formal
+   * PayPal dispute already open on the payment ends the pre-dispute process.
+   */
+  private async investigate(caseId: string): Promise<void> {
+    if (!this.analysts) return;
+    const kase = await this.database.query.cases.findFirst({ where: eq(cases.id, caseId) });
+    const txn = kase && (await this.database.query.transactions.findFirst({ where: eq(transactions.id, kase.transactionId) }));
+    if (!kase || !txn || kase.currentStatus !== 'IN_NEGOTIATION' || kase.investigation) return;
+    const { guard, investigator } = this.analysts;
+
+    if (guard) {
+      const party = (await this.caseSummary(kase, txn)).evidence as (typeof evidence.$inferSelect)[];
+      for (const item of party.filter((e) => e.sourceParty === 'BUYER' || e.sourceParty === 'MERCHANT')) {
+        const flagged = await guard.looksInjected(item.content).catch(() => false);
+        if (!flagged) continue;
+        await this.database.update(evidence).set({ flagged: true }).where(eq(evidence.id, item.id));
+        publish([await audit(this.database, { caseId, actorType: 'SYSTEM', action: 'firewall.flagged', details: { code: item.code } })]);
+      }
+    }
+
+    const ref = txn.sourceType === 'PAYPAL_SANDBOX' && txn.paypalOrderId && txn.paypalCaptureId ? { orderId: txn.paypalOrderId, captureId: txn.paypalCaptureId } : null;
+    const summary = await this.caseSummary(kase, txn);
+    const result = await investigator.run(summary, ref).catch((error: unknown) => {
+      console.error('[investigator]', error instanceof Error ? error.message : error);
+      return null;
+    });
+    if (!result) {
+      publish([await audit(this.database, { caseId, actorType: 'SYSTEM', action: 'investigator.failed', details: {} })]);
+      return;
+    }
+    const records = await this.database.transaction(async (tx) => {
+      const offset = summary.evidence.length;
+      if (result.newEvidence.length) {
+        await tx.insert(evidence).values(
+          result.newEvidence.map((item, i) => ({
+            ...item,
+            caseId,
+            code: `EV-${offset + i + 1}`,
+            sourceParty: 'PAYPAL' as const,
+            verificationStatus: 'VERIFIED_PAYPAL' as const,
+          })),
+        );
+      }
+      const out: AuditRecord[] = [
+        await audit(tx, {
+          caseId,
+          actorType: 'AGENT',
+          action: result.investigation ? 'investigator.completed' : 'investigator.failed',
+          details: { checks: result.investigation?.checks ?? [], findings: result.investigation?.findings.length ?? 0 },
+        }),
+      ];
+      const reason = 'A formal PayPal dispute is already open on this payment, so a pre-dispute settlement does not apply. Continue in PayPal’s Resolution Center. No negotiation was run and no money moved.';
+      await tx
+        .update(cases)
+        .set({
+          investigation: result.investigation,
+          updatedAt: new Date(),
+          ...(result.openDispute ? { currentStatus: 'ESCALATED' as const, outcomeSummary: reason } : {}),
+        })
+        .where(eq(cases.id, caseId));
+      if (result.openDispute) {
+        out.push(await audit(tx, { caseId, actorType: 'SYSTEM', action: 'negotiation.ineligible', details: { code: 'open_paypal_dispute', reason } }));
+      }
+      return out;
+    });
+    publish(records);
+  }
+
+  /** Attaches the independent review to a new proposal. Advice only: it cannot change the terms. */
+  private async review(caseId: string): Promise<void> {
+    if (!this.analysts) return;
+    const kase = await this.database.query.cases.findFirst({ where: eq(cases.id, caseId) });
+    const txn = kase && (await this.database.query.transactions.findFirst({ where: eq(transactions.id, kase.transactionId) }));
+    if (!kase || !txn || kase.currentStatus !== 'AWAITING_APPROVAL') return;
+    const proposal = await this.database.query.settlementProposals.findFirst({
+      where: eq(settlementProposals.caseId, caseId),
+      orderBy: desc(settlementProposals.proposalVersion),
+    });
+    if (!proposal) return;
+    const review = await this.analysts.reviewer.run(await this.caseSummary(kase, txn), proposal.summary, briefText(kase.investigation)).catch(() => null);
+    if (review) await this.database.update(settlementProposals).set({ review }).where(eq(settlementProposals.id, proposal.id));
+    publish([
+      await audit(this.database, {
+        caseId,
+        actorType: 'AGENT',
+        action: review ? 'reviewer.completed' : 'reviewer.failed',
+        details: { verdict: review?.verdict ?? null, version: proposal.proposalVersion },
+      }),
+    ]);
   }
 
   /** Runs exactly one agent turn (or ends the negotiation). Safe to call concurrently. */
@@ -147,7 +255,7 @@ export class Orchestrator {
     let turn: AgentTurn | null = null;
     let feedback: string | undefined;
     let publicFeedback: string | undefined;
-    for (let attempt = 1; attempt <= 2 && !turn; attempt += 1) {
+    for (let attempt = 1; attempt <= 3 && !turn; attempt += 1) {
       let raw: string;
       try {
         raw = await engine.produce(input, feedback);
@@ -226,6 +334,7 @@ export class Orchestrator {
       return out;
     });
     publish(records);
+    if (engine.kind === 'live') await this.review(caseId);
     return this.history(actor, caseId);
   }
 
@@ -348,11 +457,13 @@ export class Orchestrator {
         evidenceType: e.evidenceType,
         title: e.title,
         content: e.content,
+        flagged: e.flagged,
       })),
       history,
       turnNumber: turns.length + 1,
       maxTurns: kase.maxTurns,
       revisionNotes: kase.revisionNotes,
+      brief: briefText(kase.investigation),
     };
     const agent: 'BUYER' | 'MERCHANT' = turns.length % 2 === 0 ? 'BUYER' : 'MERCHANT';
     const input: AgentInput =
@@ -388,6 +499,7 @@ export class Orchestrator {
       mode: kase.negotiationMode,
       maxTurns: kase.maxTurns,
       outcomeSummary: kase.outcomeSummary,
+      investigation: kase.investigation,
       turns: turns.map((t) => ({
         index: t.turnIndex,
         provider: t.provider,
@@ -403,6 +515,15 @@ export class Orchestrator {
 /** Whether the buyer's own words ask for a replacement (and do not rule one out). */
 function wantsReplacement(goal: string): boolean {
   return /replac|exchange|another one|new one/i.test(goal) && !/\b(?:no|not|without|never|don.?t)\b[^.;]{0,24}(?:replac|exchange)/i.test(goal);
+}
+
+/** Models sometimes write "EV‑2" with a typographic hyphen; the code means the same thing. */
+export const normalizeHyphens = (text: string) => text.replace(/[\u2010-\u2013]/g, '-');
+
+function briefText(investigation: Investigation | null): string | null {
+  if (!investigation) return null;
+  const findings = investigation.findings.map((f) => `${f.verdict}: ${f.claim} (${f.evidence.join(', ') || 'no evidence'})`).join('; ');
+  return `${investigation.summary} Findings: ${findings}.${investigation.missing.length ? ` Missing: ${investigation.missing.join('; ')}.` : ''}`;
 }
 
 /** Written amounts for a limit: "$120", "120.00", "120" and raw cents, as whole tokens only. */
@@ -439,7 +560,7 @@ export function validateTurn(
   const fail = (problem: string, publicProblem = problem) => ({ ok: false as const, problem, publicProblem });
   let json: unknown;
   try {
-    json = JSON.parse(raw);
+    json = JSON.parse(normalizeHyphens(raw));
   } catch {
     return fail('the answer was not valid JSON');
   }
@@ -488,6 +609,10 @@ export function validateTurn(
   }
   if (input.agent === 'BUYER' && body.proposedAction === 'REPLACEMENT' && !wantsReplacement(input.own.desiredOutcome)) {
     return fail('the buyer did not ask for a replacement; pursue the buyer’s stated goal');
+  }
+  const own = [...facts.history].reverse().find((t) => t.agent === input.agent)?.proposedRefundMinorUnits ?? null;
+  if (amount !== null && own !== null && facts.revisionNotes.length === 0) {
+    if (input.agent === 'BUYER' ? amount > own : amount < own) return fail(`you cannot retreat from your last offer of ${own}: repeat it, improve it for the other side, or accept theirs`);
   }
   const privateLimit = input.agent === 'MERCHANT' ? input.own.maxRefundMinor : input.own.floorMinor;
   if (privateLimit !== null && revealsLimit(privateLimit, amount, body, facts, currency)) {

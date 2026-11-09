@@ -209,6 +209,17 @@ const refundCopy = computed(() => {
         </section>
       </div>
 
+      <section v-if="proposal?.review" class="card p-6" aria-label="Independent review">
+        <p class="eyebrow">Independent review · advice only · {{ proposal.review.model }}</p>
+        <p class="mt-2 font-semibold">{{ proposal.review.verdict.replaceAll('_', ' ').toLowerCase() }}</p>
+        <p class="mt-1 text-sm text-ink-soft text-pretty">{{ proposal.review.rationale }}</p>
+        <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <div><dt class="text-xs text-muted">Buyer gives up</dt><dd>{{ proposal.review.buyerGivesUp }}</dd></div>
+          <div><dt class="text-xs text-muted">Merchant gives up</dt><dd>{{ proposal.review.merchantGivesUp }}</dd></div>
+          <div><dt class="text-xs text-muted">If this is rejected</dt><dd>{{ proposal.review.ifRejected }}</dd></div>
+        </dl>
+      </section>
+
       <!-- Payment execution -->
       <section v-if="proposal && movesMoney && isReal" class="card p-6">
         <p class="eyebrow mb-3">PayPal refund</p>

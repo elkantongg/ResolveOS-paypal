@@ -68,13 +68,22 @@ agreement or with escalation, and no money moves.
 - A labelled deterministic "demo engine" exists for offline presentations.
 - We also used Claude Code as a coding assistant.
 
+**A team of AI roles, not a chatbot:**
+- An **injection screen** flags party text written to manipulate an AI.
+- A neutral **case investigator** uses the **PayPal Agent Toolkit** to choose and read PayPal's own
+  records: payment and seller protection, shipment tracking, and dispute history.
+- A **buyer agent** and a **merchant agent** negotiate, each with limits the other never sees.
+- An **independent reviewer**, which knows neither limit, tells both people whether the terms fit
+  the evidence and what each side gives up.
+- Only two people can approve. Server code alone moves money.
+
 **The guardrails, which are the core of the design:**
 - The model only ever **proposes**.
 - A deterministic server checks every answer: schema; evidence codes that actually exist, with at
   least one behind every position; no private limit written in any text; currency;
   full or partial refund maths; the merchant agent never above the merchant's ceiling; the buyer
   agent never below the buyer's floor; "accept" really matching the other side's offer.
-- An invalid answer is rejected and retried once. Nothing is ever invented in its place.
+- An invalid answer is rejected and retried, up to twice. Nothing is ever invented in its place.
 - Money moves only in a separate payment service, only after both people approved the same terms
   hash, and only with amounts loaded from the database, never from the model or the browser.
 - A timeout is "unknown, needs reconciling", resolved by re-sending the same request ID, never
@@ -83,7 +92,7 @@ agreement or with escalation, and no money moves.
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** 107 API tests, 10 web unit tests and 13 Playwright end-to-end tests.
+**Tests:** 140 API tests, 10 web unit tests and 14 Playwright end-to-end tests.
 
 ## Impact (what we measured, and what we did not)
 
@@ -101,6 +110,7 @@ Server-Sent Events for the live negotiation.
 
 - **Two-sided.** Chargeback tools work for the merchant *after* a dispute. ResolveOS gives
   **both** people an advocate *before* one.
+- **AI that checks before it argues.** An investigator reads PayPal's own records first, so the agents negotiate from verified facts, and only a PayPal record can mark a claim as proven.
 - **AI negotiates, people decide, code guards the money.** The agents have no access to payments;
   every amount is enforced by the server; a refund needs two explicit approvals of the same terms.
 - **It actually settles.** It is not a recommendation engine: it ends in a real, idempotent PayPal
@@ -112,7 +122,8 @@ Server-Sent Events for the live negotiation.
 
 - Making "the AI agreed" safe: we moved every money rule out of the prompt and into server code.
 - Payment safety: unknown outcomes, duplicate clicks and webhook spoofing.
-- Free-tier AI rate limits (8,000 tokens a minute): the provider waits and retries automatically.
+- Free-tier AI rate limits (8,000 tokens a minute): the provider waits, retries, and falls back to a second model when a daily allowance runs out.
+- The PayPal Agent Toolkit's tool filter hides tools from a model but does not stop a direct call, so our agents never hold it: they get three fixed, read-only checks.
 
 ## What's next
 

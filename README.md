@@ -40,6 +40,27 @@ with private limits, and a compromise both people approve is settled as a real P
 If the evidence cannot support a fair deal, the agents **do not force one**: the case ends with no
 agreement or with escalation, and no payment is made (seeded case RA-1043).
 
+## The AI team
+
+Five AI roles work on a case. Only two of them negotiate, and none can move money.
+
+| Role | Job | What it can reach |
+| --- | --- | --- |
+| **Injection screen** | Flags party text written to manipulate an AI, using app-specific patterns and Llama Prompt Guard 2 | The text only |
+| **Case investigator** | Chooses which PayPal records to check, then tests each side's claims against them | Three read-only checks through the **PayPal Agent Toolkit** |
+| **Buyer agent** | Negotiates for the buyer, within the buyer's private minimum | Case facts, its own limit |
+| **Merchant agent** | Negotiates for the merchant, within its private limit | Case facts, its own limit |
+| **Independent reviewer** | Tells both people whether the agreed terms fit the evidence, and what each side gives up | Case facts, never either limit |
+
+The server writes the PayPal results itself, so a model cannot invent "verified by PayPal" evidence.
+Only a PayPal record can mark a claim supported or contradicted. If PayPal shows a formal dispute
+already open, the case stops, whether or not the investigator chose to look.
+
+**Why the agents do not hold the toolkit:** in version 1.11.0 its `actions` setting hides tools from
+the model, but `handleToolCall` still runs any tool it is given by name, including `create_refund`.
+The investigator therefore picks from three named checks with no arguments, and
+`paypal/read-tools.ts` calls fixed tool names with IDs from the database.
+
 ## How it keeps money safe
 
 | Rule | Where it's enforced |
@@ -55,7 +76,7 @@ agreement or with escalation, and no payment is made (seeded case RA-1043).
 | Seeded demo data can never be refunded. A database constraint stops seeded rows from holding PayPal IDs. | `db/schema.ts` |
 | Webhooks are **signature-verified** against the raw body. The certificate URL must be a PayPal host. Unverified events are quarantined, and events are deduplicated by ID. | `paypal/webhook-verify.ts`, `payments/webhooks.ts` |
 | Anything short of a **definite PayPal refusal** stays "unknown": a 409, 429, unreadable answer, sign-in failure or bug never reopens the case, because new terms get a new request ID. | `payments/service.ts` |
-| An agent answer that writes its own private limit, cites evidence that does not exist, or takes a position with no evidence is rejected. Rejection reasons in the shared log never contain a limit. | `validateTurn` |
+| An agent answer that writes its own private limit, cites evidence that does not exist, takes a position with no evidence, retreats from its own last offer, or settles a buyer on a replacement they did not ask for is rejected. Rejection reasons in the shared log never contain a limit. | `validateTurn` |
 | Negotiation cannot start until the **merchant has confirmed** its limit for the case. | `Orchestrator.start` |
 | Party-written text cannot close the data tags around it in the prompt. | `prompts.ts` |
 | A public instance **will not start** without `DEMO_ACCESS_CODE` and an https `FRONTEND_URL`. | `config.ts`, `accessGate` |
@@ -138,6 +159,7 @@ Then fill in `.env`:
 | `AI_API_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | console.groq.com → API Keys (free). Use `https://api.groq.com/openai/v1` and `openai/gpt-oss-120b` |
 | `PAYPAL_WEBHOOK_ID` | Optional; see *Webhooks* below |
 | `AI_MODE` | `live` (default) or `demo` |
+| `AI_MODEL_ANALYST`, `AI_MODEL_FALLBACK`, `AI_MODEL_GUARD` | Optional. Models for the investigator and reviewer, for when the main model's free allowance runs out, and for the injection screen |
 | `FRONTEND_URL`, `BACKEND_PORT` | Defaults suit local use; see *Deploying* for a public instance |
 | `DEMO_ACCESS_CODE` | Not needed locally. **Required** when `NODE_ENV=production` |
 | `RATE_LIMIT_MAX` | Optional override of the per-minute limits |
@@ -213,6 +235,9 @@ server refuses to start without `DEMO_ACCESS_CODE` (16+ characters), and every p
 then needs that code: the browser asks once (HTTP Basic; any username). Only `/api/health`,
 `/api/ready` and PayPal's signature-checked webhook are outside it.
 
+`render.yaml` describes the same setup for Render's free web service; a free Neon database works
+with it. It has not been deployed yet.
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
@@ -256,7 +281,7 @@ rules-based baseline on 7 scripted scenarios (separate database). Method, result
 ## Tests
 
 ```bash
-pnpm --filter server test   # 107 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 140 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
@@ -285,7 +310,8 @@ production) and the deterministic demo engine. They cover:
 - repeated captures and refund requests never paying twice;
 - refund timeouts with reconciliation, pending refunds and PayPal refusals;
 - how API failures and rate limiting are shown;
-- switching person, the operator's limits, and seeded data never refunding.
+- switching person, the operator's limits, and seeded data never refunding;
+- the investigator's brief and the independent review being shown.
 
 ## API
 
@@ -326,6 +352,10 @@ e2e/            Playwright specs
 - **Authentication is demo-grade:** pick a seeded person, no passwords. Sessions are real and roles
   are enforced on the server, but anyone past the access code can act as any demo person. Do not
   use this for real accounts or real money.
+- **The injection screen is a filter, not a guarantee.** In testing, Prompt Guard alone missed an
+  injection aimed at this app, so app-specific patterns run first. A reworded attack can still pass;
+  the server's limits and the two human approvals do not depend on the screen.
+- **Tracking is only what the merchant registered.** PayPal records it; it does not prove delivery.
 - **The private-limit check looks for written amounts.** An agent that hinted at its limit in words
   ("about a hundred and twenty") would not be caught.
 - **Rate limits are per process and per IP**, held in memory. They reset on restart.

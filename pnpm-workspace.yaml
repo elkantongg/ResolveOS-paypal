@@ -2,3 +2,12 @@ packages:
   - apps/*
 allowBuilds:
   esbuild: true
+
+# Transitive dependencies of @paypal/agent-toolkit, moved to patched versions. ResolveOS loads only
+# the toolkit's OpenAI adapter, so the LangChain and AI SDK code paths are not used at runtime.
+overrides:
+  "@langchain/core": 0.3.80
+  langsmith: ^0.6.0
+  mathjs: ^15.2.0
+  jsondiffpatch: ^0.7.6
+  uuid: ^11.1.1

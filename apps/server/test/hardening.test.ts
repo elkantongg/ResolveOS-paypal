@@ -233,7 +233,7 @@ describe('merchant confirmation and privacy', () => {
     expect(JSON.stringify(failed.body)).not.toContain('8000');
     const rows = await db().select().from(auditEvents).where(eq(auditEvents.caseId, jacket!.id));
     const rejected = rows.filter((r) => r.action === 'agent.output_rejected');
-    expect(rejected).toHaveLength(2);
+    expect(rejected).toHaveLength(3);
     expect(JSON.stringify(rejected)).not.toContain('8000');
   });
 });

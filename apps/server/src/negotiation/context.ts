@@ -12,6 +12,7 @@ export interface EvidenceItem {
   evidenceType: string;
   title: string;
   content: string;
+  flagged?: boolean;
 }
 
 export interface SharedFacts {
@@ -32,6 +33,8 @@ export interface SharedFacts {
   turnNumber: number; // 1-based number of the turn being produced
   maxTurns: number;
   revisionNotes: string[];
+  /** The neutral investigator's brief, as plain text, when one exists. */
+  brief?: string | null;
 }
 
 export interface BuyerPrivate {
