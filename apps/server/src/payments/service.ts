@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import { type AuditRecord, audit, publish } from '../audit.js';
 import { type Db, type Tx } from '../db/index.js';
@@ -332,6 +332,62 @@ export class PaymentService {
     return this.refundView(caseId);
   }
 
+  /** Confirms a capture with PayPal, for a verified webhook. */
+  captureDetails(captureId: string) {
+    return this.paypal.getCapture(captureId);
+  }
+
+  /**
+   * A verified webhook says something happened to a refund: ask PayPal what is true and apply that,
+   * so the event's own contents decide nothing. Returns false for a refund that is not ours. The
+   * invoice id finds an attempt whose PayPal response never reached us.
+   */
+  async applyRefundEvent(refundId: string, invoiceId: string | undefined): Promise<boolean> {
+    let attemptId = (
+      await this.database.query.refundAttempts.findFirst({ where: eq(refundAttempts.paypalRefundId, refundId) })
+    )?.id;
+    if (!attemptId && invoiceId) {
+      const [match] = await this.database
+        .select({ id: refundAttempts.id })
+        .from(refundAttempts)
+        .innerJoin(settlementProposals, eq(refundAttempts.proposalId, settlementProposals.id))
+        .innerJoin(cases, eq(settlementProposals.caseId, cases.id))
+        .where(
+          and(
+            isNull(refundAttempts.paypalRefundId),
+            sql`${cases.reference} || '-v' || left(${refundAttempts.proposalId}::text, 8) = ${invoiceId}`,
+          ),
+        )
+        .limit(1);
+      attemptId = match?.id;
+    }
+    if (!attemptId) return false;
+    const attempt = await this.database.query.refundAttempts.findFirst({ where: eq(refundAttempts.id, attemptId) });
+    const proposal = attempt
+      ? await this.database.query.settlementProposals.findFirst({ where: eq(settlementProposals.id, attempt.proposalId) })
+      : null;
+    if (!proposal) return false;
+    await this.applyRefundResult(attemptId, proposal.caseId, await this.paypal.getRefund(refundId), 'webhook');
+    return true;
+  }
+
+  /** Read-only safety net for missed webhooks: asks PayPal about refunds still pending. Never sends one. */
+  async sweepPendingRefunds(): Promise<void> {
+    if (!this.paypal.isConfigured()) return;
+    const pending = await this.database
+      .select({ id: refundAttempts.id, refundId: refundAttempts.paypalRefundId, caseId: settlementProposals.caseId })
+      .from(refundAttempts)
+      .innerJoin(settlementProposals, eq(refundAttempts.proposalId, settlementProposals.id))
+      .where(and(eq(refundAttempts.status, 'PENDING'), isNotNull(refundAttempts.paypalRefundId)));
+    for (const { id, refundId, caseId } of pending) {
+      try {
+        await this.applyRefundResult(id, caseId, await this.paypal.getRefund(refundId as string), 'reconciled');
+      } catch {
+        // Stays PENDING; the next sweep or a webhook tries again.
+      }
+    }
+  }
+
   private async sendRefund(attemptId: string, caseId: string): Promise<void> {
     // Move to PROCESSING only from a state that may send; a parallel sender loses this race.
     const [attempt] = await this.database
@@ -367,14 +423,17 @@ export class PaymentService {
     } catch (error) {
       const unknown = !isDefiniteRefusal(error, attempt.attempts);
       const records = await this.database.transaction(async (tx) => {
-        await tx
+        // A webhook may have settled this attempt while the call was failing; PayPal's answer stands.
+        const changed = await tx
           .update(refundAttempts)
           .set({
             status: unknown ? 'UNKNOWN_REQUIRES_RECONCILIATION' : 'FAILED',
             errorMessage: error instanceof Error ? error.message : 'Refund failed',
             updatedAt: new Date(),
           })
-          .where(eq(refundAttempts.id, attempt.id));
+          .where(and(eq(refundAttempts.id, attempt.id), eq(refundAttempts.status, 'PROCESSING')))
+          .returning({ id: refundAttempts.id });
+        if (changed.length === 0) return [];
         const out = [
           await audit(tx, {
             caseId,
@@ -408,7 +467,7 @@ export class PaymentService {
           errorMessage: error instanceof Error ? error.message : 'Refund result could not be applied',
           updatedAt: new Date(),
         })
-        .where(eq(refundAttempts.id, attempt.id));
+        .where(and(eq(refundAttempts.id, attempt.id), sql`${refundAttempts.status} <> 'COMPLETED'`));
       publish([
         await audit(this.database, {
           caseId,
@@ -447,6 +506,8 @@ export class PaymentService {
         .for('update');
       if (!before) return out;
       if (before.status === 'COMPLETED') return out; // final; nothing to apply twice
+      if (before.status === status && before.paypalRefundId === result.refundId) return out; // no change to record
+      if (before.status === 'FAILED' && status !== 'COMPLETED') return out; // a late, older status
       if (result.amountMinor !== null && result.amountMinor !== before.amountMinor) {
         throw new AppError(502, 'refund_amount_mismatch', 'PayPal reported a different refund amount.');
       }

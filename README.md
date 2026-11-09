@@ -74,7 +74,7 @@ The investigator therefore picks from three named checks with no arguments, and
 | A timeout is **"unknown, needs reconciling"**, never "failed". Reconciling re-sends the same request ID, so PayPal returns the original result. | `reconcileRefund` |
 | A refund is shown as successful **only when PayPal reports `COMPLETED`**. | receipt, settlement screens |
 | Seeded demo data can never be refunded. A database constraint stops seeded rows from holding PayPal IDs. | `db/schema.ts` |
-| Webhooks are **signature-verified** against the raw body. The certificate URL must be a PayPal host. Unverified events are quarantined, and events are deduplicated by ID. | `paypal/webhook-verify.ts`, `payments/webhooks.ts` |
+| Webhooks are **signature-verified** against the raw body. The certificate URL must be a PayPal host. Unverified events are quarantined, events are deduplicated by ID, and **the outcome comes from a fresh PayPal lookup**, never from the event. | `paypal/webhook-verify.ts`, `payments/webhooks.ts` |
 | Anything short of a **definite PayPal refusal** stays "unknown": a 409, 429, unreadable answer, sign-in failure or bug never reopens the case, because new terms get a new request ID. | `payments/service.ts` |
 | An agent answer that writes its own private limit, cites evidence that does not exist, takes a position with no evidence, retreats from its own last offer, or settles a buyer on a replacement they did not ask for is rejected. Rejection reasons in the shared log never contain a limit. | `validateTurn` |
 | Negotiation cannot start until the **merchant has confirmed** its limit for the case. | `Orchestrator.start` |
@@ -125,7 +125,7 @@ flowchart LR
 | `GET /v2/payments/captures/{id}` | verified evidence |
 | `POST /v2/payments/captures/{id}/refund` | full or partial refund, with `PayPal-Request-Id` |
 | `GET /v2/payments/refunds/{id}` | reconcile |
-| Webhooks | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.REFUND.PENDING`, `PAYMENT.REFUND.FAILED`, `PAYMENT.CAPTURE.COMPLETED` |
+| Webhooks | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.REFUND.COMPLETED`, `.PENDING`, `.FAILED`, `.DENIED`, `.CANCELLED`, `CUSTOMER.DISPUTE.CREATED` |
 
 **AI used:** any OpenAI-compatible chat API, through a small provider interface
 (`apps/server/src/ai/provider.ts`). We use **Groq** with `openai/gpt-oss-120b` in JSON mode. Each
@@ -207,13 +207,17 @@ PayPal only delivers webhooks to a public HTTPS URL. A free tunnel such as `clou
 cloudflared tunnel --url http://localhost:5001
 ```
 
-1. In the sandbox app's **Webhooks**, add `https://<tunnel>/api/paypal/webhooks` and subscribe to
-   `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.REFUND.PENDING`, `PAYMENT.REFUND.FAILED` and
-   `PAYMENT.CAPTURE.COMPLETED`.
-2. Put the Webhook ID in `PAYPAL_WEBHOOK_ID`.
+1. Run `pnpm paypal:webhook https://<tunnel>`. It registers the webhook and every event above on
+   your sandbox app, or finds the existing one, and prints the ID.
+2. Put the ID in `PAYPAL_WEBHOOK_ID` and restart.
 
-Without webhooks, refunds are still confirmed from PayPal's API responses, and pending ones from
-**Check with PayPal**.
+What an event does: a signed refund event makes the server ask PayPal for that refund and apply
+PayPal's answer, so events can arrive twice or out of order. If PayPal can't be reached the server
+answers 503 and PayPal delivers it again. A new PayPal dispute escalates an unfinished case and
+cancels any settlement not yet paid. Open pages update through Server-Sent Events.
+
+Without webhooks, refunds are still confirmed from PayPal's API responses, and the server checks
+pending ones with PayPal every minute (read-only; it never sends a refund).
 
 ### Resetting demo data (destructive, explicit)
 
@@ -281,7 +285,7 @@ rules-based baseline on 7 scripted scenarios (separate database). Method, result
 ## Tests
 
 ```bash
-pnpm --filter server test   # 141 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 154 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
@@ -370,9 +374,19 @@ e2e/            Playwright specs
   action for the merchant.
 - **AI rate limits:** Groq's free tier allows about 8,000 tokens a minute. The app waits and retries
   automatically, so a long negotiation may pause briefly.
-- **Refund status:** without a webhook URL, a `PENDING` refund is updated only when someone clicks
-  **Check with PayPal**.
+- **A refund started outside ResolveOS** is ignored by the webhook and does not change the recorded
+  refunded total. PayPal still refuses to refund more than remains.
+- **Live webhook delivery has not been exercised.** It needs a public HTTPS URL. Signatures are
+  tested with a local key, and the PayPal lookup against the real sandbox.
 - **Postgres tests:** server tests need a local Postgres test database.
+
+## Sponsor tools
+
+| Tool | What it does here | How to check |
+| --- | --- | --- |
+| **PayPal** REST APIs, webhooks | Payments, refunds and event-driven case updates, sandbox only | See above |
+| **PayPal Agent Toolkit** | The case investigator's read-only PayPal lookups | `paypal/read-tools.ts` |
+| **Postman** | 44-request collection of the full journey and its refusals: authorisation, CSRF, invalid input, duplicates, settlement approval, forged webhooks. No secrets | `postman/README.md` |
 
 ## Submission material
 

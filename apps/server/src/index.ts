@@ -29,7 +29,7 @@ const analysts = analyst
 
 const webDist = fileURLToPath(new URL('../../web/dist', import.meta.url));
 
-const { app } = createApp({
+const { app, payments: paymentService } = createApp({
   database,
   paypal,
   webDist: c.NODE_ENV === 'production' && existsSync(webDist) ? webDist : undefined,
@@ -42,6 +42,9 @@ const { app } = createApp({
       settlements: new SettlementService(database, payments),
     }),
 });
+
+// Webhooks are the fast path; this catches any that never arrive.
+setInterval(() => void paymentService.sweepPendingRefunds().catch(() => undefined), 60_000).unref();
 
 app.listen(c.BACKEND_PORT, () => {
   console.log(`ResolveOS API on http://localhost:${c.BACKEND_PORT}`);

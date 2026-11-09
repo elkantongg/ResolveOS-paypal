@@ -20,6 +20,7 @@
     "db:reset": "pnpm --filter server db:reset",
     "eval": "pnpm --filter server eval",
     "paypal:check": "pnpm --filter server paypal:check",
+    "paypal:webhook": "pnpm --filter server paypal:webhook",
     "paypal:prove": "pnpm --filter server paypal:prove",
     "test:e2e": "playwright test"
   },

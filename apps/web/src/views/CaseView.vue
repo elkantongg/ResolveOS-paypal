@@ -37,7 +37,7 @@ async function load() {
   }
 }
 onMounted(load);
-useCaseEvents(caseId, () => void load());
+useCaseEvents(caseId, () => void load(), () => void load());
 
 const kase = computed(() => detail.value?.case);
 const txn = computed(() => detail.value?.transaction);

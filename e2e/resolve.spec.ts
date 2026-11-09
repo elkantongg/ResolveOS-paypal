@@ -192,6 +192,21 @@ test('a PayPal timeout is shown as unconfirmed, then reconciled without a second
   expect(done.transaction.refundedMinor).toBe(unknown.refund.amountMinor);
 });
 
+test('a refund confirmed elsewhere reaches the open page without a reload', async ({ page }) => {
+  const caseUrl = await purchaseAndPrepareCase(page);
+  const id = caseUrl.split('/').at(-1) as string;
+  await page.goto(caseUrl);
+  await negotiateToEnd(page);
+  await expect(page.getByText(AGREED)).toBeVisible({ timeout: 20_000 });
+  nextRefund('pending');
+  await bothApprove(page, caseUrl);
+  await expect(page.getByRole('button', { name: 'Check with PayPal' })).toBeVisible({ timeout: 20_000 });
+  // Outside the page, as a webhook would be: only the live event can update the screen.
+  const { csrfToken } = await (await page.request.get('/api/auth/me')).json();
+  await page.request.post('/api/paypal/refunds/reconcile', { data: { caseId: id }, headers: { 'X-CSRF-Token': csrfToken } });
+  await expect(page.getByText('Refund completed by PayPal')).toBeVisible({ timeout: 10_000 });
+});
+
 test('a pending refund is never shown as completed', async ({ page }) => {
   const caseUrl = await purchaseAndPrepareCase(page);
   const id = caseUrl.split('/').at(-1) as string;

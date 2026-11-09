@@ -8,11 +8,14 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { resetConfig } from '../src/config.js';
 import { closeDb, db } from '../src/db/index.js';
 import { cases, refundAttempts, transactions, webhookEvents } from '../src/db/schema.js';
+import { subscribe } from '../src/audit.js';
+import { assertCertCurrent } from '../src/paypal/webhook-verify.js';
 import { fromPayPalValue, toPayPalValue } from '../src/money.js';
 import {
   FakePayPal,
   approvedRefundCase,
   makeApp,
+  makeFullApp,
   resetDatabase,
   seedPeople,
   signIn,
@@ -266,6 +269,24 @@ describe('sessions', () => {
   });
 });
 
+const TEST_CERT = `-----BEGIN CERTIFICATE-----
+MIICqjCCAZICCQDFNH/+0hOorzANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQDDAx3
+ZWJob29rLXRlc3QwHhcNMjYxMTA5MTc0ODM1WhcNMzYxMTA2MTc0ODM1WjAXMRUw
+EwYDVQQDDAx3ZWJob29rLXRlc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQDVvf+8aT+GfY6lnlwjcaTZtixS+oztIvTdBIHu+ErAe2tkdhAQiSukM/mc
+4THXVdiBPsbaKXcI4KSabcipcCdmefWgK3CLJT9XCSW8AzmoxjgmhoGYhasrmav9
+0uecskaejsKS2WZWstp1h6+SKVXIF1hFPu8vzdFMPOUcIDX4aUXubClDengm5zJJ
+WCdjHduQP73foe2ngyxwIZirhzvlo8sW6q/KGUQXUq1/RBTB4Y0XgMO93tkwMGGQ
+KJAv1Gsuwruv7mntdEvYBGEgAgo7jbH3XYAa+M+jNHcgZPbZWGjhXViqGcsg6kgQ
+zr7VGHhRqSX/JOSYsV24IrZSWVK1AgMBAAEwDQYJKoZIhvcNAQELBQADggEBAA5L
+OEbvFQllKeFvRJB3Vl7/2oI5+UbKStFFBU/nlYzl27I7eh7pQkYc2k0+JoDNuGbx
+iD+ba6zHyWynHu2SLCKblxqWgCM6nGAvfK3f1RznQZcPfZ4n180fubJGFahNKeXt
+W6ygwg81fBfrWjwy4K/IPxIP1WK86NbZ5fCUIgXkp5ajLyNIMQTZX6IbsPO2oY0D
+RMsYCdkPCNVSgaea9hkqEr5SXx2DG3q+8mn8euXLOyrATMp2H4dSmhLmGFuEv9xy
+Wao3JiMv08+n3H+kzjoTfd3kgw5F7XVi1ExdfbcK+O8+Hgd/qmUwbly2anI0MELH
+bK4yAKJNDRuMgbZ22Y0=
+-----END CERTIFICATE-----`;
+
 describe('webhooks', () => {
   const keys = signingKeys();
   const certUrl = 'https://api.sandbox.paypal.com/v1/notifications/certs/CERT-1';
@@ -359,6 +380,194 @@ describe('webhooks', () => {
     const kaseAfter = await db().query.cases.findFirst({ where: eq(cases.id, kase.id) });
     expect(kaseAfter?.currentStatus).toBe('RESOLVED');
     delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  async function deliver(app: Parameters<typeof request>[0], event: object) {
+    const { raw, headers } = signed(event, 'WH-TEST');
+    return request(app).post('/api/paypal/webhooks').set(headers).send(raw.toString('utf8'));
+  }
+  const statusOf = async (id: string) => (await db().query.cases.findFirst({ where: eq(cases.id, id) }))?.currentStatus;
+  const useWebhook = () => {
+    process.env.PAYPAL_WEBHOOK_ID = 'WH-TEST';
+    resetConfig();
+  };
+
+  it('takes the outcome from PayPal, not from what the event claims', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    paypal.lookupStatus = 'PENDING';
+    const res = await deliver(app, { id: 'WH-CLAIM', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId, status: 'COMPLETED' } });
+    expect(res.body.result).toBe('processed');
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    paypal.lookupStatus = 'COMPLETED';
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('asks for redelivery when PayPal cannot confirm, then applies it', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    const event = { id: 'WH-RETRY', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: refundId } };
+    paypal.lookupFails = true;
+    expect((await deliver(app, event)).status).toBe(503);
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    paypal.lookupFails = false;
+    expect((await deliver(app, event)).body.result).toBe('processed');
+    expect(await statusOf(kase.id)).toBe('RESOLVED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('out-of-order and repeated events never move a refund backwards or pay twice', async () => {
+    useWebhook();
+    const { app, kase, txn, refundId } = await pendingRefund();
+    await deliver(app, { id: 'WH-O1', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: refundId } });
+    paypal.lookupStatus = 'PENDING';
+    await deliver(app, { id: 'WH-O2', event_type: 'PAYMENT.REFUND.PENDING', resource: { id: refundId } });
+    paypal.lookupStatus = 'COMPLETED';
+    await deliver(app, { id: 'WH-O3', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } });
+    expect(await statusOf(kase.id)).toBe('RESOLVED');
+    const after = await db().query.transactions.findFirst({ where: eq(transactions.id, txn.id) });
+    expect(after?.amountRefundedMinor).toBe(9000);
+    expect(paypal.refundCalls).toHaveLength(1);
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('a failed refund reopens the case once and a late pending event changes nothing', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    paypal.lookupStatus = 'FAILED';
+    await deliver(app, { id: 'WH-F1', event_type: 'PAYMENT.REFUND.FAILED', resource: { id: refundId } });
+    const reopened = await statusOf(kase.id);
+    expect(reopened).not.toBe('PAYMENT_PROCESSING');
+    await deliver(app, { id: 'WH-F2', event_type: 'PAYMENT.REFUND.DENIED', resource: { id: refundId } });
+    paypal.lookupStatus = 'PENDING';
+    await deliver(app, { id: 'WH-F3', event_type: 'PAYMENT.REFUND.PENDING', resource: { id: refundId } });
+    paypal.lookupStatus = 'COMPLETED';
+    expect(await statusOf(kase.id)).toBe(reopened);
+    const attempt = await db().query.refundAttempts.findFirst({ where: eq(refundAttempts.paypalRefundId, refundId) });
+    expect(attempt?.status).toBe('FAILED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('settles a refund whose PayPal response never reached the server', async () => {
+    useWebhook();
+    const made = await approvedRefundCase(people);
+    paypal.refundMode = 'timeout';
+    const { app } = makeApp(paypal, { getCert: async () => keys.publicKey });
+    const merchant = await signIn(app, people.merchantUser.id);
+    await merchant.post('/api/paypal/refunds/execute', { caseId: made.kase.id });
+    const attempt = (await db().select().from(refundAttempts))[0]!;
+    expect(attempt.paypalRefundId).toBeNull();
+    const original = await paypal.refundCapture({ captureId: 'x', amountMinor: null, requestId: attempt.paypalRequestId });
+    const invoice = `${made.kase.reference}-v${attempt.proposalId.slice(0, 8)}`;
+    const res = await deliver(app, { id: 'WH-LOST', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: original.refundId, invoice_id: invoice } });
+    expect(res.body.result).toBe('processed');
+    expect(await statusOf(made.kase.id)).toBe('RESOLVED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('ignores a verified refund that ResolveOS did not start', async () => {
+    useWebhook();
+    const { app } = await pendingRefund();
+    const res = await deliver(app, { id: 'WH-OTHER', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: 'NOT-OURS' } });
+    expect(res.body.result).toBe('ignored');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('a PayPal dispute escalates the case and blocks the settlement', async () => {
+    useWebhook();
+    const made = await approvedRefundCase(people);
+    const { app } = makeApp(paypal, { getCert: async () => keys.publicKey });
+    await db().update(cases).set({ currentStatus: 'AWAITING_APPROVAL' }).where(eq(cases.id, made.kase.id));
+    const res = await deliver(app, {
+      id: 'WH-DISPUTE',
+      event_type: 'CUSTOMER.DISPUTE.CREATED',
+      resource: { dispute_id: 'PP-D-1', disputed_transactions: [{ seller_transaction_id: made.txn.paypalCaptureId }] },
+    });
+    expect(res.body.result).toBe('processed');
+    expect(await statusOf(made.kase.id)).toBe('ESCALATED');
+    const merchant = await signIn(app, people.merchantUser.id);
+    await merchant.post('/api/paypal/refunds/execute', { caseId: made.kase.id }).expect(409);
+    expect(paypal.refundCalls).toHaveLength(0);
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('streams a confirmed refund to a connected browser', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    const server = makeFullApp(paypal).app.listen(0);
+    const base = `http://localhost:${(server.address() as { port: number }).port}/api`;
+    const login = await fetch(`${base}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: people.buyer.id }),
+    });
+    const abort = new AbortController();
+    const stream = await fetch(`${base}/cases/${kase.id}/events`, {
+      headers: { cookie: login.headers.get('set-cookie')!.split(';')[0]! },
+      signal: abort.signal,
+    });
+    expect(stream.headers.get('content-type')).toContain('text/event-stream');
+    const reader = stream.body!.pipeThrough(new TextDecoderStream()).getReader();
+    let text = '';
+    const until = async (needle: string) => {
+      while (!text.includes(needle)) text += (await reader.read()).value ?? '';
+    };
+    await until('event: ready');
+    await deliver(app, { id: 'WH-SSE', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } });
+    await until('case.resolved');
+    expect(text).toContain('refund.completed');
+    abort.abort();
+    server.closeAllConnections();
+    server.close();
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('publishes a confirmed refund to live listeners', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    const seen: string[] = [];
+    const stop = subscribe(kase.id, (record) => seen.push(record.action));
+    await deliver(app, { id: 'WH-LIVE', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } });
+    stop();
+    expect(seen).toEqual(expect.arrayContaining(['refund.completed', 'case.resolved']));
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('the sweep settles a pending refund when no webhook arrives, without sending anything', async () => {
+    const { kase, refundId } = await pendingRefund();
+    const { payments } = makeApp(paypal, {});
+    paypal.lookupStatus = 'PENDING';
+    await payments.sweepPendingRefunds();
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    paypal.lookupStatus = 'COMPLETED';
+    await payments.sweepPendingRefunds();
+    expect(await statusOf(kase.id)).toBe('RESOLVED');
+    expect(paypal.refundCalls).toHaveLength(1);
+    expect(refundId).toBeTruthy();
+  });
+
+  it('keeps only identifiers from an unverified delivery', async () => {
+    useWebhook();
+    const { app } = await pendingRefund();
+    const { raw, headers } = signed({ id: 'WH-BIG', event_type: 'X', resource: { id: 'y', filler: 'z'.repeat(5000) } }, 'WH-TEST', signingKeys().privateKey);
+    await request(app).post('/api/paypal/webhooks').set(headers).send(raw.toString('utf8')).expect(400);
+    const row = (await db().select().from(webhookEvents)).find((e) => e.processingStatus === 'QUARANTINED');
+    expect(JSON.stringify(row?.payload).length).toBeLessThan(200);
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('refuses an event id that is not text', async () => {
+    useWebhook();
+    const { app } = await pendingRefund();
+    const res = await deliver(app, { id: { a: 1 }, event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: 'x' } });
+    expect(res.status).toBe(400);
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('refuses a certificate outside its validity dates, or text that is not one', () => {
+    expect(assertCertCurrent(TEST_CERT)).toBe(TEST_CERT);
+    expect(() => assertCertCurrent(TEST_CERT, Date.parse('2100-01-01'))).toThrow();
+    expect(() => assertCertCurrent('not a certificate')).toThrow();
   });
 
   it('a verified event whose processing never finished is processed on redelivery', async () => {
