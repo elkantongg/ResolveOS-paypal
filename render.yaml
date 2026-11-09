@@ -6,7 +6,6 @@ services:
     runtime: node
     plan: free
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: pnpm db:migrate
     startCommand: pnpm --filter server start
     healthCheckPath: /api/ready
     envVars:
@@ -29,6 +28,8 @@ services:
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
         sync: false
       - key: AI_API_BASE_URL
         sync: false

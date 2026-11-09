@@ -60,6 +60,8 @@ export interface RefundResult {
   status: string;
   amountMinor: number | null;
   currency: string | null;
+  /** The capture this refund belongs to, from PayPal's `up` link. */
+  captureId?: string | null;
 }
 
 export interface CaptureDetails {
@@ -337,6 +339,7 @@ interface RawRefund {
   id: string;
   status: string;
   amount?: { value: string; currency_code: string };
+  links?: { rel?: string; href?: string }[];
 }
 
 function refundOut(refund: RawRefund): RefundResult {
@@ -345,5 +348,6 @@ function refundOut(refund: RawRefund): RefundResult {
     status: refund.status,
     amountMinor: refund.amount ? fromPayPalValue(refund.amount.value, refund.amount.currency_code) : null,
     currency: refund.amount?.currency_code ?? null,
+    captureId: /\/captures\/([^/?]+)$/.exec(refund.links?.find((l) => l.rel === 'up')?.href ?? '')?.[1] ?? null,
   };
 }

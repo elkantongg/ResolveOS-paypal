@@ -15,6 +15,7 @@
     "db:reset": "tsx --env-file-if-exists=../../.env src/db/reset.ts",
     "eval": "tsx --env-file-if-exists=../../.env src/eval/run.ts",
     "paypal:check": "tsx --env-file-if-exists=../../.env src/scripts/paypal-check.ts",
+    "paypal:webhook": "tsx --env-file-if-exists=../../.env src/scripts/paypal-webhook.ts",
     "paypal:prove": "tsx --env-file-if-exists=../../.env src/scripts/paypal-prove.ts"
   },
   "dependencies": {

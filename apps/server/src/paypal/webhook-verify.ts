@@ -1,4 +1,4 @@
-import { createVerify } from 'node:crypto';
+import { X509Certificate, createVerify } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 
 /**
@@ -21,12 +21,20 @@ export type CertFetcher = (url: string) => Promise<string>;
 
 const certCache = new Map<string, string>();
 
+/** Refuses a certificate outside its validity dates; throws if the text is not a certificate. */
+export function assertCertCurrent(pem: string, now = Date.now()): string {
+  const cert = new X509Certificate(pem);
+  if (now < Date.parse(cert.validFrom) || now > Date.parse(cert.validTo)) throw new Error('certificate is not current');
+  return pem;
+}
+
 export const fetchCert: CertFetcher = async (url) => {
   const cached = certCache.get(url);
-  if (cached) return cached;
-  const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (cached) return assertCertCurrent(cached);
+  // No redirects: the allowlist below only vouches for the URL we were given.
+  const response = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: 'error' });
   if (!response.ok) throw new Error(`certificate download failed: ${response.status}`);
-  const pem = await response.text();
+  const pem = assertCertCurrent(await response.text());
   certCache.set(url, pem);
   return pem;
 };

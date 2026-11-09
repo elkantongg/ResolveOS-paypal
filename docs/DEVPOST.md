@@ -57,8 +57,10 @@ agreement or with escalation, and no money moves.
 - **Payments v2**: show capture (verified evidence), **refund a captured payment** (full refunds
   with an empty body, partial refunds with an amount), and show refund for reconciliation.
 - **Webhooks**: signature verification against the raw body with PayPal's certificate,
-  deduplicated by event ID. Events: `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.REFUND.PENDING`,
-  `PAYMENT.REFUND.FAILED`, `PAYMENT.CAPTURE.COMPLETED`.
+  deduplicated by event ID. A signed event only prompts a fresh PayPal lookup, and PayPal's answer
+  updates the case and every open screen. A new PayPal dispute escalates an unfinished case and
+  cancels any unpaid settlement. Pending refunds are also checked every minute in case an event
+  never arrives.
 
 **AI:**
 - Two agents on **Groq (`openai/gpt-oss-120b`)**, behind a provider interface that works with any
@@ -92,7 +94,7 @@ agreement or with escalation, and no money moves.
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** 141 API tests, 10 web unit tests and 14 Playwright end-to-end tests.
+**Tests:** 154 API tests, 10 web unit tests and 15 Playwright end-to-end tests, plus a 44-request Postman collection.
 
 ## Impact (what we measured, and what we did not)
 

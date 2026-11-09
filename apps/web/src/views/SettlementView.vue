@@ -41,7 +41,7 @@ async function load() {
 onMounted(load);
 useCaseEvents(caseId, (event) => {
   if (event.action.startsWith('approval') || event.action.startsWith('refund') || event.action.startsWith('settlement') || event.action.startsWith('case.')) void load();
-});
+}, () => void load());
 
 const viewer = computed<Role>(() => detail.value?.viewerRole ?? 'OPERATOR');
 const proposal = computed(() => view.value?.proposal ?? null);

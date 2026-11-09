@@ -79,7 +79,7 @@ useCaseEvents(caseId, (event) => {
     live.value = [...live.value.slice(-30), event];
     scheduleRefresh();
   }
-});
+}, scheduleRefresh);
 
 onMounted(() => {
   void load();
