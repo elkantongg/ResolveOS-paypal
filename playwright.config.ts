@@ -1,3 +1,6 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -10,6 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
 const API_PORT = 5101;
 const WEB_PORT = 5190;
 const WEB = `http://localhost:${WEB_PORT}`;
+export const MOCK_PAYPAL_CONTROL = join(tmpdir(), 'resolve-e2e-paypal-mode');
 
 export default defineConfig({
   testDir: './e2e',
@@ -33,6 +37,7 @@ export default defineConfig({
         FRONTEND_URL: WEB,
         PAYPAL_ADAPTER: 'mock',
         AI_MODE: 'demo',
+        MOCK_PAYPAL_CONTROL,
       },
     },
     {
