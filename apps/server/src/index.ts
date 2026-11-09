@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { liveProviderFromEnv } from './ai/provider.js';
 import { createApp } from './app.js';
 import { aiConfigured, config, paypalConfigured } from './config.js';
@@ -17,9 +20,12 @@ const paypal =
   c.PAYPAL_ADAPTER === 'mock' ? new FakePayPal(`${c.FRONTEND_URL}/checkout/return`) : new HttpPayPalGateway();
 const live = liveProviderFromEnv();
 
+const webDist = fileURLToPath(new URL('../../web/dist', import.meta.url));
+
 const { app } = createApp({
   database,
   paypal,
+  webDist: c.NODE_ENV === 'production' && existsSync(webDist) ? webDist : undefined,
   extend: (application, { payments }) =>
     registerCaseRoutes(application, {
       database,

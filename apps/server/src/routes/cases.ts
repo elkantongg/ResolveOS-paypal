@@ -64,7 +64,7 @@ export function registerCaseRoutes(
   const { database, orchestrator, settlements, payments } = deps;
   const aiLimiter = rateLimit({
     windowMs: 60_000,
-    limit: config().NODE_ENV === 'test' ? 1000 : 30,
+    limit: config().RATE_LIMIT_MAX ?? (config().NODE_ENV === 'test' ? 1000 : 30),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: { code: 'rate_limited', message: 'Too many negotiation requests. Wait a minute.' } },
@@ -211,7 +211,8 @@ export function registerCaseRoutes(
       }
       if (!created) throw new Error('case insert failed');
       publish([created.record]);
-      res.status(201).json({ case: created.kase });
+      // The buyer who opened the case must not learn the merchant's default limit from the response.
+      res.status(201).json({ case: { ...created.kase, merchantMaxRefundMinor: null, merchantPreference: null } });
     }),
   );
 
@@ -304,7 +305,11 @@ export function registerCaseRoutes(
         }),
         req.body,
       );
-      await database.update(cases).set({ merchantMaxRefundMinor: body.maxRefundMinor, merchantPreference: body.preference, updatedAt: new Date() }).where(eq(cases.id, kase.id));
+      const record = await database.transaction(async (tx) => {
+        await tx.update(cases).set({ merchantMaxRefundMinor: body.maxRefundMinor, merchantPreference: body.preference, merchantConfirmedAt: new Date(), updatedAt: new Date() }).where(eq(cases.id, kase.id));
+        return audit(tx, { caseId: kase.id, actorType: 'USER', actorUserId: user.id, action: 'merchant.limits_confirmed', details: {} });
+      });
+      publish([record]);
       res.status(204).end();
     }),
   );

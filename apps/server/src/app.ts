@@ -1,6 +1,6 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { asc, desc, eq, or } from 'drizzle-orm';
+import { asc, desc, eq, or, sql } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import {
   SESSION_COOKIE,
+  accessGate,
   createSession,
   csrfGuard,
   destroySession,
@@ -33,6 +34,8 @@ export interface AppDeps {
   getCert?: CertFetcher;
   /** Extra route registrations (cases, negotiation, settlement) added by later modules. */
   extend?: (app: express.Express, services: { payments: PaymentService }) => void;
+  /** The built web app, served from the same origin in production. */
+  webDist?: string;
 }
 
 /** Wraps an async handler so thrown errors reach the error middleware. */
@@ -59,13 +62,49 @@ export function createApp(deps: AppDeps) {
 
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrcAttr: ["'unsafe-inline'"],
+          fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+          imgSrc: ["'self'", 'data:'],
+          ...(c.NODE_ENV === 'production' && new URL(c.FRONTEND_URL).protocol === 'https:' ? {} : { upgradeInsecureRequests: null }),
+        },
+      },
+    }),
+  );
   app.use(cors({ origin: c.FRONTEND_URL, credentials: true }));
 
+  const limitOf = (normal: number) => c.RATE_LIMIT_MAX ?? (c.NODE_ENV === 'test' ? 1000 : normal);
+  const limiter = (limit: number, message: string) =>
+    rateLimit({
+      windowMs: 60_000,
+      limit: limitOf(limit),
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: { error: { code: 'rate_limited', message } },
+    });
+
+  app.get('/api/health', (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  /** Unlike /api/health, also proves the database answers. */
+  app.get('/api/ready', (_req, res) => {
+    deps.database.execute(sql`select 1`).then(
+      () => res.json({ ok: true }),
+      () => res.status(503).json({ ok: false }),
+    );
+  });
+
   // The webhook needs the exact raw bytes for its signature, so it is registered before JSON parsing.
+  // It stays outside the access gate: PayPal authenticates with its signature.
   app.post(
     '/api/paypal/webhooks',
-    express.raw({ type: '*/*', limit: '1mb' }),
+    limiter(120, 'Too many webhook deliveries.'),
+    express.raw({ type: '*/*', limit: '256kb' }),
     route(async (req, res) => {
       const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
       const outcome = await handleWebhook(
@@ -80,22 +119,19 @@ export function createApp(deps: AppDeps) {
     }),
   );
 
+  if (c.DEMO_ACCESS_CODE) {
+    app.use(
+      rateLimit({ windowMs: 15 * 60_000, limit: limitOf(30), skipSuccessfulRequests: true, standardHeaders: 'draft-8', legacyHeaders: false }),
+      accessGate(c.DEMO_ACCESS_CODE),
+    );
+  }
+
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
   app.use(loadSession(deps.database));
   app.use(csrfGuard);
 
-  const paymentLimiter = rateLimit({
-    windowMs: 60_000,
-    limit: c.NODE_ENV === 'test' ? 1000 : 20,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    message: { error: { code: 'rate_limited', message: 'Too many payment requests. Wait a minute.' } },
-  });
-
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true });
-  });
+  const paymentLimiter = limiter(20, 'Too many payment requests. Wait a minute.');
 
   // ── Auth (seeded demo people; a switch is a real sign-out and sign-in) ─────
 
@@ -112,6 +148,7 @@ export function createApp(deps: AppDeps) {
 
   app.post(
     '/api/auth/login',
+    limiter(30, 'Too many sign-ins. Wait a minute.'),
     route(async (req, res) => {
       const { userId } = parse(z.object({ userId: z.string().uuid() }), req.body);
       const user = await deps.database.query.users.findFirst({ where: eq(users.id, userId) });
@@ -277,9 +314,22 @@ export function createApp(deps: AppDeps) {
 
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'not_found', 'No such endpoint.')));
 
+  if (deps.webDist) {
+    const webDist = deps.webDist;
+    app.use(express.static(webDist, { index: false }));
+    app.get(/.*/, (_req, res) => {
+      res.sendFile('index.html', { root: webDist });
+    });
+  }
+
   // One error shape; internal details stay in the server log, never in the response.
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const appError = toAppError(error);
+    // Errors raised by Express or the body parser (bad JSON, body too large) are the client's.
+    const status = (error as { status?: unknown } | null)?.status;
+    const appError =
+      !(error instanceof AppError) && typeof status === 'number' && status >= 400 && status < 500
+        ? new AppError(status, 'invalid_request', 'The request could not be read.')
+        : toAppError(error);
     if (appError.status >= 500 && !(error instanceof AppError)) {
       console.error('[error]', error instanceof Error ? error.stack : error);
     }

@@ -15,6 +15,13 @@
       "when": 1793687346914,
       "tag": "0001_negotiation_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794207246153,
+      "tag": "0002_merchant_confirmed",
+      "breakpoints": true
     }
   ]
 }

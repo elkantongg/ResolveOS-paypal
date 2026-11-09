@@ -178,6 +178,8 @@ export const cases = pgTable(
     merchantPreference: text('merchant_preference').notNull(),
     /** The merchant's ceiling for this case (≤ the merchant's default limit and the payment). */
     merchantMaxRefundMinor: integer('merchant_max_refund_minor').notNull(),
+    /** When the merchant confirmed its limit for this case; negotiation cannot start before this. */
+    merchantConfirmedAt: timestamp('merchant_confirmed_at', { withTimezone: true }),
     maxTurns: integer('max_turns').notNull().default(6),
     /** Set when negotiation starts: `live` (real model) or `demo` (deterministic negotiator). */
     negotiationMode: text('negotiation_mode'),

@@ -170,6 +170,7 @@ async function insertDemoData(database: Db): Promise<void> {
       buyerFloorMinor: 8000,
       merchantPreference: 'Avoid an unnecessary full refund, but keep the customer',
       merchantMaxRefundMinor: 12000,
+      merchantConfirmedAt: new Date(),
       sourceType: 'DEMO_SEED',
     })
     .returning();
@@ -206,6 +207,7 @@ async function insertDemoData(database: Db): Promise<void> {
       buyerFloorMinor: 9500,
       merchantPreference: 'No refund without photos; a return for exchange is fine',
       merchantMaxRefundMinor: 2000,
+      merchantConfirmedAt: new Date(),
       sourceType: 'DEMO_SEED',
     })
     .returning();

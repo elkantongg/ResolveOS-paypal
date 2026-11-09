@@ -234,7 +234,7 @@ const refundCopy = computed(() => {
             <div><dt class="inline text-muted">Request id </dt><dd class="mono inline">{{ refund.requestId }}</dd></div>
           </dl>
           <div class="mt-4 flex flex-wrap gap-2">
-            <button v-if="refund.status === 'UNKNOWN_REQUIRES_RECONCILIATION' || refund.status === 'PENDING'" type="button" class="btn btn-secondary btn-sm" :disabled="busy !== null" @click="reconcile">
+            <button v-if="['UNKNOWN_REQUIRES_RECONCILIATION', 'PENDING', 'PROCESSING', 'AUTHORIZED'].includes(refund.status)" type="button" class="btn btn-secondary btn-sm" :disabled="busy !== null" @click="reconcile">
               <RefreshCw class="size-3.5" :class="busy === 'reconcile' ? 'animate-spin' : ''" /> Check with PayPal
             </button>
             <RouterLink v-if="refund.status === 'COMPLETED'" :to="`/cases/${caseId}/receipt`" class="btn btn-primary btn-sm">View receipt <ArrowRight class="size-3.5" /></RouterLink>

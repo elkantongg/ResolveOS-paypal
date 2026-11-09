@@ -32,6 +32,11 @@ const schema = z.object({
   AI_MODEL: optional,
   /** `live` calls the configured model; `demo` uses the labelled deterministic negotiator. */
   AI_MODE: z.enum(['live', 'demo']).default('live'),
+
+  /** Shared code in front of a public deployment (demo sign-in has no passwords). Production only. */
+  DEMO_ACCESS_CODE: optional,
+  /** Overrides the per-minute limit on payment, AI and sign-in routes. */
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -47,6 +52,17 @@ export function config(): Config {
   }
   if (parsed.data.NODE_ENV === 'production' && parsed.data.PAYPAL_ADAPTER === 'mock') {
     throw new Error('Invalid configuration: PAYPAL_ADAPTER=mock is for automated tests only.');
+  }
+  if (parsed.data.NODE_ENV === 'production') {
+    if (!parsed.data.DEMO_ACCESS_CODE || parsed.data.DEMO_ACCESS_CODE.length < 16) {
+      throw new Error(
+        'Invalid configuration: production needs DEMO_ACCESS_CODE (16+ characters). Demo sign-in has no passwords, so a public instance must not be open.',
+      );
+    }
+    const frontend = new URL(parsed.data.FRONTEND_URL);
+    if (frontend.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(frontend.hostname)) {
+      throw new Error('Invalid configuration: FRONTEND_URL must use https in production.');
+    }
   }
   cached = parsed.data;
   return cached;

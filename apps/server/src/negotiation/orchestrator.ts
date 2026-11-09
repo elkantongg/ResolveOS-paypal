@@ -13,13 +13,13 @@ import {
   users,
 } from '../db/schema.js';
 import { AppError, conflict, notFound } from '../errors.js';
-import { formatMoney } from '../money.js';
+import { formatMoney, toPayPalValue } from '../money.js';
 import { type Actor, assertParty } from '../payments/service.js';
 import { type SettlementType, termsHash } from '../settlement/terms.js';
 import type { AgentInput, SharedFacts } from './context.js';
 import { screenCase } from './eligibility.js';
 import type { TurnEngine } from './engines.js';
-import { type AgentTurn, agentTurnSchema } from './turn.js';
+import { type AgentTurn, type AgentTurnBody, agentTurnSchema } from './turn.js';
 
 /**
  * The neutral orchestrator. It, not a model, controls the negotiation:
@@ -97,6 +97,14 @@ export class Orchestrator {
           }),
         ];
       }
+      if (!kase.merchantConfirmedAt) {
+        throw conflict(
+          'merchant_not_ready',
+          actor.role === 'MERCHANT'
+            ? 'Save your refund limit for this case first: the agents negotiate within it.'
+            : 'The merchant has not confirmed its position yet. The negotiation can start once it has.',
+        );
+      }
       await tx
         .update(cases)
         .set({ currentStatus: 'IN_NEGOTIATION', negotiationMode: mode, outcomeSummary: null, updatedAt: new Date() })
@@ -138,6 +146,7 @@ export class Orchestrator {
 
     let turn: AgentTurn | null = null;
     let feedback: string | undefined;
+    let publicFeedback: string | undefined;
     for (let attempt = 1; attempt <= 2 && !turn; attempt += 1) {
       let raw: string;
       try {
@@ -158,12 +167,13 @@ export class Orchestrator {
       if (checked.ok) turn = checked.turn;
       else {
         feedback = checked.problem;
+        publicFeedback = checked.publicProblem;
         publish([
           await audit(this.database, {
             caseId,
             actorType: 'SYSTEM',
             action: 'agent.output_rejected',
-            details: { agent: input.agent, attempt, problem: checked.problem },
+            details: { agent: input.agent, attempt, problem: checked.publicProblem },
           }),
         ]);
       }
@@ -172,7 +182,7 @@ export class Orchestrator {
       throw new AppError(
         502,
         'ai_invalid_output',
-        `The ${input.agent.toLowerCase()} agent did not produce a valid turn (${feedback}). Nothing was recorded; you can retry.`,
+        `The ${input.agent.toLowerCase()} agent did not produce a valid turn (${publicFeedback}). Nothing was recorded; you can retry.`,
       );
     }
 
@@ -390,43 +400,77 @@ export class Orchestrator {
   }
 }
 
-/** Schema + server-side checks for one raw agent answer. */
+/** Whether the buyer's own words ask for a replacement (and do not rule one out). */
+function wantsReplacement(goal: string): boolean {
+  return /replac|exchange|another one|new one/i.test(goal) && !/\b(?:no|not|without|never|don.?t)\b[^.;]{0,24}(?:replac|exchange)/i.test(goal);
+}
+
+/** Written amounts for a limit: "$120", "120.00", "120" and raw cents, as whole tokens only. */
+function amountPattern(minor: number, currency: string): RegExp {
+  const value = toPayPalValue(minor, currency);
+  const whole = value.replace(/\.0+$/, '').replace('.', '\\.');
+  const decimals = value.includes('.') ? `(?:${value.slice(value.indexOf('.')).replace('.', '\\.')})?` : '';
+  return new RegExp(`(?<![\\w.,-])(?:${whole}${decimals}|${minor})(?![\\d,]|\\.\\d)`);
+}
+
+/**
+ * True when the agent wrote its own private limit in text the other side will read. A number that
+ * is already public (the payment, an amount offered so far, something in the evidence) is no leak.
+ */
+function revealsLimit(limit: number, amount: number | null, body: AgentTurnBody, facts: SharedFacts, currency: string): boolean {
+  const offered = facts.history.map((t) => t.proposedRefundMinorUnits);
+  if ([amount, facts.amountMinor, facts.refundableMinor, ...offered].includes(limit)) return false;
+  const pattern = amountPattern(limit, currency);
+  const known = [facts.title, facts.description, ...facts.evidence.map((e) => `${e.title} ${e.content}`)].join('\n');
+  if (pattern.test(known)) return false;
+  return pattern.test([body.reasoningSummary, body.publicMessage, ...body.uncertainties, ...body.optionsConsidered].join('\n'));
+}
+
+/**
+ * Schema + server-side checks for one raw agent answer. `problem` goes back to the agent that
+ * produced the answer; `publicProblem` is what the audit log records, and both people read that
+ * log, so it must never contain a private limit.
+ */
 export function validateTurn(
   raw: string,
   input: AgentInput,
   currency: string,
-): { ok: true; turn: AgentTurn } | { ok: false; problem: string } {
+): { ok: true; turn: AgentTurn } | { ok: false; problem: string; publicProblem: string } {
+  const fail = (problem: string, publicProblem = problem) => ({ ok: false as const, problem, publicProblem });
   let json: unknown;
   try {
     json = JSON.parse(raw);
   } catch {
-    return { ok: false, problem: 'the answer was not valid JSON' };
+    return fail('the answer was not valid JSON');
   }
   const parsed = agentTurnSchema.safeParse(json);
   if (!parsed.success) {
-    return {
-      ok: false,
-      problem: parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.') || 'answer'}: ${i.message}`).join('; '),
-    };
+    return fail(parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.') || 'answer'}: ${i.message}`).join('; '));
   }
   const body = parsed.data;
   const { facts } = input;
   const codes = new Set(facts.evidence.map((e) => e.code));
   const unknown = body.evidenceReferences.filter((code) => !codes.has(code));
-  if (unknown.length) return { ok: false, problem: `cites evidence that does not exist: ${unknown.join(', ')}` };
-  if (body.currency !== currency) return { ok: false, problem: `currency must be ${currency}` };
+  if (unknown.length) return fail(`cites evidence that does not exist: ${unknown.join(', ')}`);
+  const written = [body.reasoningSummary, body.publicMessage, ...body.uncertainties, ...body.optionsConsidered].join(' ');
+  const invented = [...new Set(written.match(/\bEV-\d{1,3}\b/g) ?? [])].filter((code) => !codes.has(code));
+  if (invented.length) return fail(`mentions evidence that does not exist: ${invented.join(', ')}`);
+  if (body.proposedAction !== 'ESCALATE' && codes.size > 0 && body.evidenceReferences.length === 0) {
+    return fail('a position must cite at least one evidence code');
+  }
+  if (body.currency !== currency) return fail(`currency must be ${currency}`);
 
   let amount = body.proposedRefundMinorUnits;
   switch (body.proposedAction) {
     case 'FULL_REFUND':
       if (amount !== null && amount !== facts.refundableMinor) {
-        return { ok: false, problem: `a FULL_REFUND is exactly ${facts.refundableMinor}` };
+        return fail(`a FULL_REFUND is exactly ${facts.refundableMinor}`);
       }
       amount = facts.refundableMinor;
       break;
     case 'PARTIAL_REFUND':
       if (amount === null || amount <= 0 || amount >= facts.refundableMinor) {
-        return { ok: false, problem: `a PARTIAL_REFUND needs an amount between 1 and ${facts.refundableMinor - 1}` };
+        return fail(`a PARTIAL_REFUND needs an amount between 1 and ${facts.refundableMinor - 1}`);
       }
       break;
     default:
@@ -434,19 +478,26 @@ export function validateTurn(
   }
 
   if (input.agent === 'MERCHANT' && amount !== null && amount > input.own.maxRefundMinor) {
-    return { ok: false, problem: `the merchant is not authorised to refund more than ${input.own.maxRefundMinor}` };
+    return fail(`the merchant is not authorised to refund more than ${input.own.maxRefundMinor}`, 'the offer was above the merchant’s private limit');
   }
   if (input.agent === 'BUYER' && amount !== null && input.own.floorMinor !== null && amount < input.own.floorMinor) {
-    return { ok: false, problem: `the buyer does not accept less than ${input.own.floorMinor}` };
+    return fail(`the buyer does not accept less than ${input.own.floorMinor}`, 'the offer was below the buyer’s private minimum');
   }
   if (input.agent === 'BUYER' && input.own.floorMinor === null && amount !== null && amount < facts.refundableMinor) {
-    return { ok: false, problem: 'the buyer only accepts a full remedy' };
+    return fail('the buyer only accepts a full remedy', 'the offer did not meet the buyer’s private minimum');
+  }
+  if (input.agent === 'BUYER' && body.proposedAction === 'REPLACEMENT' && !wantsReplacement(input.own.desiredOutcome)) {
+    return fail('the buyer did not ask for a replacement; pursue the buyer’s stated goal');
+  }
+  const privateLimit = input.agent === 'MERCHANT' ? input.own.maxRefundMinor : input.own.floorMinor;
+  if (privateLimit !== null && revealsLimit(privateLimit, amount, body, facts, currency)) {
+    return fail(`your text reveals your private limit (${privateLimit}); remove that number from every field`, 'the answer revealed a private limit');
   }
 
   if (body.acceptsCounterpartOffer) {
     const theirs = [...facts.history].reverse().find((t) => t.agent !== input.agent);
     if (!theirs || theirs.proposedAction !== body.proposedAction || theirs.proposedRefundMinorUnits !== amount) {
-      return { ok: false, problem: 'acceptsCounterpartOffer is true but the action/amount differ from the other side’s latest offer' };
+      return fail('acceptsCounterpartOffer is true but the action/amount differ from the other side’s latest offer');
     }
   }
 

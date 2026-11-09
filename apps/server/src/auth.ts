@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq, gt, lt } from 'drizzle-orm';
 import type { NextFunction, Request, Response } from 'express';
 
 import { type Db } from './db/index.js';
@@ -44,6 +44,7 @@ const hash = (token: string) => createHash('sha256').update(token).digest('hex')
 export async function createSession(database: Db, userId: string) {
   const token = randomBytes(32).toString('base64url');
   const csrfToken = randomBytes(24).toString('base64url');
+  await database.delete(sessions).where(lt(sessions.expiresAt, new Date()));
   await database.insert(sessions).values({
     id: hash(token),
     userId,
@@ -92,6 +93,28 @@ export function loadSession(database: Db) {
     } catch (error) {
       next(error);
     }
+  };
+}
+
+/**
+ * The door in front of a public deployment. Demo sign-in has no passwords, so anything reachable
+ * from the internet sits behind this shared access code (HTTP Basic: the browser asks once, and the
+ * page and its API calls then carry it). Required in production; see config.ts.
+ */
+export function accessGate(code: string) {
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  const expected = digest(code);
+  return (req: Request, res: Response, next: NextFunction) => {
+    const [scheme, value] = (req.get('authorization') ?? '').split(' ');
+    const supplied =
+      scheme?.toLowerCase() === 'basic' && value
+        ? Buffer.from(value, 'base64').toString('utf8').split(':').slice(1).join(':')
+        : '';
+    if (timingSafeEqual(digest(supplied), expected)) return next();
+    res
+      .set('WWW-Authenticate', 'Basic realm="ResolveOS demo", charset="UTF-8"')
+      .status(401)
+      .json({ error: { code: 'access_code_required', message: 'This demo needs an access code.' } });
   };
 }
 

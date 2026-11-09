@@ -65,7 +65,7 @@ export class DemoEngine implements TurnEngine {
     ) =>
       JSON.stringify({
         reasoningSummary: reasoning,
-        evidenceReferences: [...new Set(refs)],
+        evidenceReferences: [...new Set(refs.length ? refs : facts.evidence.slice(0, 1).map((e) => e.code))],
         uncertainties: unverified.slice(0, 3),
         proposedAction: action,
         proposedRefundMinorUnits: amount,

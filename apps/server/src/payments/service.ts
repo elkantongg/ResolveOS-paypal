@@ -28,8 +28,8 @@ import { movesMoney, termsHash } from '../settlement/terms.js';
  *      still refundable and the merchant's limit. Then insert the refund attempt — unique per
  *      proposal, with a fixed PayPal-Request-Id — and mark the case as processing.
  *   2. Call PayPal with that request id. Only a PayPal answer decides the outcome:
- *        COMPLETED → refunded; PENDING → pending; FAILED/CANCELLED or a 4xx → failed;
- *        a timeout / network loss / 5xx → UNKNOWN_REQUIRES_RECONCILIATION (never "failed").
+ *        COMPLETED → refunded; PENDING → pending; FAILED/CANCELLED or a definite 4xx refusal → failed;
+ *        a timeout / network loss / 5xx / unreadable answer / 409 / 429 → UNKNOWN_REQUIRES_RECONCILIATION.
  *   3. `reconcileRefund` re-sends the SAME request id: PayPal answers with the original result
  *      instead of refunding twice (developer.paypal.com/api/rest/reference/idempotency).
  *
@@ -322,7 +322,11 @@ export class PaymentService {
         throw toAppError(e);
       });
       await this.applyRefundResult(attempt.id, caseId, result, 'reconciled');
-    } else if (attempt.status === 'UNKNOWN_REQUIRES_RECONCILIATION' || attempt.status === 'AUTHORIZED') {
+    } else if (
+      attempt.status === 'UNKNOWN_REQUIRES_RECONCILIATION' ||
+      attempt.status === 'AUTHORIZED' ||
+      attempt.status === 'PROCESSING' // sendRefund only takes this over once it is stale
+    ) {
       await this.sendRefund(attempt.id, caseId);
     }
     return this.refundView(caseId);
@@ -340,7 +344,7 @@ export class PaymentService {
       .where(
         and(
           eq(refundAttempts.id, attemptId),
-          sql`${refundAttempts.status} IN ('AUTHORIZED', 'UNKNOWN_REQUIRES_RECONCILIATION')`,
+          sql`(${refundAttempts.status} IN ('AUTHORIZED', 'UNKNOWN_REQUIRES_RECONCILIATION') OR (${refundAttempts.status} = 'PROCESSING' AND ${refundAttempts.updatedAt} < ${new Date(Date.now() - STALE_PROCESSING_MS).toISOString()}::timestamptz))`,
         ),
       )
       .returning();
@@ -361,8 +365,7 @@ export class PaymentService {
         noteToPayer: `ResolveOS settlement for case ${kase.reference}`,
       });
     } catch (error) {
-      const unknown =
-        error instanceof PayPalError && (error.kind === 'outcome_unknown' || error.kind === 'server_error');
+      const unknown = !isDefiniteRefusal(error, attempt.attempts);
       const records = await this.database.transaction(async (tx) => {
         await tx
           .update(refundAttempts)
@@ -392,7 +395,29 @@ export class PaymentService {
       publish(records);
       return;
     }
-    await this.applyRefundResult(attempt.id, caseId, result, 'response');
+    try {
+      await this.applyRefundResult(attempt.id, caseId, result, 'response');
+    } catch (error) {
+      // PayPal answered, but with something we will not record as done (e.g. a different amount).
+      await this.database
+        .update(refundAttempts)
+        .set({
+          status: 'UNKNOWN_REQUIRES_RECONCILIATION',
+          paypalRefundId: result.refundId,
+          paypalStatus: result.status,
+          errorMessage: error instanceof Error ? error.message : 'Refund result could not be applied',
+          updatedAt: new Date(),
+        })
+        .where(eq(refundAttempts.id, attempt.id));
+      publish([
+        await audit(this.database, {
+          caseId,
+          actorType: 'SYSTEM',
+          action: 'refund.outcome_unknown',
+          details: { message: error instanceof Error ? error.message : 'Refund result could not be applied' },
+        }),
+      ]);
+    }
   }
 
   /**
@@ -518,6 +543,28 @@ export class PaymentService {
       updatedAt: attempt.updatedAt.toISOString(),
     };
   }
+}
+
+/**
+ * A send that crashed part-way leaves its attempt in PROCESSING. Longer than the slowest possible
+ * call (two token fetches and two POSTs at 20 s each), so a live send is never taken over.
+ */
+const STALE_PROCESSING_MS = 120_000;
+
+/** Answers that do not prove the request was refused, however they are worded. */
+const INCONCLUSIVE_STATUSES = new Set([408, 409, 425, 429]);
+/** On a resend, these can mean our own earlier send succeeded (e.g. its idempotency record expired). */
+const ALREADY_APPLIED_ISSUES = new Set(['CAPTURE_FULLY_REFUNDED', 'REFUND_AMOUNT_EXCEEDED', 'TOTAL_REFUND_AMOUNT_EXCEEDED']);
+
+/**
+ * True only when PayPal itself clearly refused this refund. Marking a refund FAILED reopens the
+ * case, and new terms get a new request id, so a wrong FAILED could pay the buyer twice. Anything
+ * short of a definite refusal therefore stays "unknown" and is reconciled with the same request id.
+ */
+function isDefiniteRefusal(error: unknown, sends: number): boolean {
+  if (!(error instanceof PayPalError) || error.kind !== 'rejected') return false;
+  if (error.status === undefined || INCONCLUSIVE_STATUSES.has(error.status)) return false;
+  return !(sends > 1 && error.issue !== undefined && ALREADY_APPLIED_ISSUES.has(error.issue));
 }
 
 /**

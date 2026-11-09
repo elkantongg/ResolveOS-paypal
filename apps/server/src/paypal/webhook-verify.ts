@@ -34,7 +34,7 @@ export const fetchCert: CertFetcher = async (url) => {
 export function isAllowedCertUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && ALLOWED_CERT_HOSTS.has(url.hostname);
+    return url.protocol === 'https:' && ALLOWED_CERT_HOSTS.has(url.hostname) && url.pathname.startsWith('/v1/notifications/certs/');
   } catch {
     return false;
   }

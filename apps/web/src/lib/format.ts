@@ -118,6 +118,8 @@ export function describeEvent(event: Pick<AuditEvent, 'action' | 'details'>): st
       return d.seeded ? 'Case opened (seeded demo case)' : 'Case opened';
     case 'evidence.added':
       return `Evidence ${d.code ?? ''} added: ${d.title ?? ''}`;
+    case 'merchant.limits_confirmed':
+      return 'Merchant confirmed its position for this case';
     case 'negotiation.started':
       return `Negotiation started (${d.mode === 'demo' ? 'deterministic demo negotiator' : `live AI · ${d.model}`})`;
     case 'agent.thinking':
