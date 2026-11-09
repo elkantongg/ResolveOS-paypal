@@ -52,10 +52,12 @@ export async function handleWebhook(
   } catch {
     return { status: 400, result: 'malformed' };
   }
-  if (!event.id || !event.event_type) return { status: 400, result: 'malformed' };
+  if (!event?.id || !event.event_type) return { status: 400, result: 'malformed' };
 
   const verdict = await verifyWebhook(rawBody, headers, webhookId, getCert);
   if (!verdict.ok) {
+    // With no webhook configured nothing can be verified, so there is nothing worth keeping.
+    if (verdict.reason === 'not_configured') return { status: 400, result: 'unverified' };
     // Kept for inspection under its own id. An unverified request must never occupy (squat) the
     // event id it claims, or the genuine delivery with that id would later be dropped as a duplicate.
     await database.insert(webhookEvents).values({

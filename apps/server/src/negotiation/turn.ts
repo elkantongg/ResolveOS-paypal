@@ -14,6 +14,8 @@ export const agentTurnSchema = z
     evidenceReferences: z.array(z.string().trim().regex(/^EV-\d{1,3}$/)).max(12),
     /** Facts the agent could not establish, stated plainly instead of guessed. */
     uncertainties: z.array(z.string().trim().min(3).max(240)).max(6).default([]),
+    /** The remedies the agent weighed before choosing, one short reason each. */
+    optionsConsidered: z.array(z.string().trim().min(3).max(200)).max(5).default([]),
     proposedAction: z.enum(PROPOSED_ACTIONS),
     proposedRefundMinorUnits: z.number().int().min(0).nullable(),
     currency: z.string().trim().length(3).transform((c) => c.toUpperCase()),
@@ -33,6 +35,7 @@ export const TURN_FORMAT = `Return ONLY a JSON object with exactly these keys:
   "reasoningSummary": string,            // 1-4 sentences: why, citing evidence codes
   "evidenceReferences": string[],        // codes like "EV-2" that you actually relied on; [] if none
   "uncertainties": string[],             // facts that are missing, unverified or contradictory
+  "optionsConsidered": string[],         // 2-4 remedies you weighed, each with one short reason it fits or does not
   "proposedAction": "FULL_REFUND" | "PARTIAL_REFUND" | "REPLACEMENT" | "NO_REFUND" | "ESCALATE",
   "proposedRefundMinorUnits": integer | null,   // cents; null unless FULL_REFUND or PARTIAL_REFUND
   "currency": string,                    // the payment currency, e.g. "USD"

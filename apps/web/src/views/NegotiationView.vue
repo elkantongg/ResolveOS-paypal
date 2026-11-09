@@ -159,6 +159,19 @@ async function act(kind: 'start' | 'advance' | 'run') {
 
     <div class="card px-5 py-4"><StageTracker :status="status" /></div>
 
+    <section v-if="state.investigation" class="card p-5" aria-label="Case investigator">
+      <p class="eyebrow">Case investigator · neutral · {{ state.investigation.model }}</p>
+      <p class="mt-2 text-sm text-ink-soft text-pretty">{{ state.investigation.summary }}</p>
+      <p v-if="state.investigation.checks.length" class="mt-2 text-xs text-muted">Checked with PayPal: {{ state.investigation.checks.join(' · ') }}</p>
+      <ul class="mt-3 space-y-1.5 text-sm">
+        <li v-for="finding in state.investigation.findings" :key="finding.claim">
+          <span class="font-medium" :class="{ 'text-ok': finding.verdict === 'SUPPORTED', 'text-danger': finding.verdict === 'CONTRADICTED', 'text-warn': finding.verdict === 'NOT_VERIFIABLE' }">{{ finding.verdict.replace('_', ' ').toLowerCase() }}</span>
+          <span class="text-ink-soft"> · {{ finding.claim }}</span>
+          <span v-if="finding.evidence.length" class="mono text-xs text-muted"> {{ finding.evidence.join(', ') }}</span>
+        </li>
+      </ul>
+    </section>
+
     <div class="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)_300px]">
       <AgentPanel
         agent="BUYER"

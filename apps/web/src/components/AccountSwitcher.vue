@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, LogOut, ShoppingBag, Shield, Store } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 
 import { errorMessage } from '@/api/client';
 import WelcomeCinematic from '@/components/WelcomeCinematic.vue';
@@ -13,7 +13,6 @@ import { useSession } from '@/stores/session';
  */
 const session = useSession();
 const router = useRouter();
-const route = useRoute();
 const open = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);

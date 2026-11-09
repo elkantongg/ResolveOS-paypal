@@ -18,6 +18,7 @@
     "paypal:prove": "tsx --env-file-if-exists=../../.env src/scripts/paypal-prove.ts"
   },
   "dependencies": {
+    "@paypal/agent-toolkit": "^1.11.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "drizzle-orm": "^0.45.4",

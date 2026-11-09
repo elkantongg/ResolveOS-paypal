@@ -13,6 +13,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import type { Investigation, Review } from '../negotiation/analysts.js';
+
 /**
  * ResolveOS's schema. Money columns are integers of minor units (`*_minor`). Every table that can
  * hold seeded demonstration data has a `source_type`, so a seeded record is never mistaken for a
@@ -178,6 +180,10 @@ export const cases = pgTable(
     merchantPreference: text('merchant_preference').notNull(),
     /** The merchant's ceiling for this case (≤ the merchant's default limit and the payment). */
     merchantMaxRefundMinor: integer('merchant_max_refund_minor').notNull(),
+    /** When the merchant confirmed its limit for this case; negotiation cannot start before this. */
+    merchantConfirmedAt: timestamp('merchant_confirmed_at', { withTimezone: true }),
+    /** The neutral investigator's brief, once it has run. */
+    investigation: jsonb('investigation').$type<Investigation>(),
     maxTurns: integer('max_turns').notNull().default(6),
     /** Set when negotiation starts: `live` (real model) or `demo` (deterministic negotiator). */
     negotiationMode: text('negotiation_mode'),
@@ -209,6 +215,8 @@ export const evidence = pgTable(
     evidenceType: text('evidence_type').notNull(),
     title: text('title').notNull(),
     content: text('content').notNull(),
+    /** Set when the injection screen thought this text was written to manipulate an AI. */
+    flagged: boolean('flagged').notNull().default(false),
     verificationStatus: verificationStatus('verification_status').notNull(),
     createdAt: created(),
   },
@@ -248,6 +256,8 @@ export const settlementProposals = pgTable(
     /** SHA-256 of the material terms; an approval is only valid for the hash it approved. */
     termsHash: text('terms_hash').notNull(),
     requiresManualAction: boolean('requires_manual_action').notNull().default(false),
+    /** Advice for the two people. Not part of the terms hash, and never needed to approve. */
+    review: jsonb('review').$type<Review>(),
     currentStatus: proposalStatus('current_status').notNull().default('PENDING_APPROVAL'),
     createdAt: created(),
   },

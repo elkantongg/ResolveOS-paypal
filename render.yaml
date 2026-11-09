@@ -1,0 +1,38 @@
+# One free web service on Render. Create the database elsewhere (Neon's free tier works) and enter
+# the values marked sync: false in Render's dashboard; none of them belong in this file.
+services:
+  - type: web
+    name: resolveos
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm --filter server start
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BACKEND_PORT
+        value: 10000
+      - key: PAYPAL_ADAPTER
+        value: http
+      - key: AI_MODE
+        value: live
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DEMO_ACCESS_CODE
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: AI_API_BASE_URL
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false

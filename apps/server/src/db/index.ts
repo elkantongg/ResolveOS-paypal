@@ -14,6 +14,8 @@ let database: Db | null = null;
 export function db(): Db {
   if (!database) {
     pool = new pg.Pool({ connectionString: config().DATABASE_URL, max: 10 });
+    // An idle client losing its connection must not crash the server; the pool reconnects.
+    pool.on('error', (error) => console.error('[db] idle client error:', error.message));
     database = drizzle(pool, { schema });
   }
   return database;

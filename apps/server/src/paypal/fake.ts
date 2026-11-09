@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+
 import {
   type CaptureDetails,
   type CaptureResult,
@@ -65,6 +67,7 @@ export class FakePayPal implements PayPalGateway {
     this.refundCalls.push({ captureId: input.captureId, amountMinor: input.amountMinor, requestId: input.requestId });
     const previous = this.refundsByRequest.get(input.requestId);
     if (previous) return previous;
+    this.readControlFile();
     const mode = this.refundMode;
     this.refundMode = 'ok';
     if (mode === 'rejected') throw new PayPalError('rejected', 'PayPal 422 REFUND_AMOUNT_EXCEEDED', 422, 'REFUND_AMOUNT_EXCEEDED');
@@ -82,6 +85,14 @@ export class FakePayPal implements PayPalGateway {
     this.refundsByRequest.set(input.requestId, result);
     return result;
   }
+  /** Lets the browser tests choose how the next refund behaves: the file holds one mode, used once. */
+  private readControlFile(): void {
+    const file = process.env.MOCK_PAYPAL_CONTROL;
+    if (!file || !existsSync(file)) return;
+    this.refundMode = readFileSync(file, 'utf8').trim() as typeof this.refundMode;
+    rmSync(file);
+  }
+
   async getRefund(refundId: string): Promise<RefundResult> {
     for (const refund of this.refundsByRequest.values()) {
       if (refund.refundId === refundId) return { ...refund, status: 'COMPLETED' };

@@ -205,14 +205,24 @@ export class HttpPayPalGateway implements PayPalGateway {
       await this.accessToken(true);
       return this.call<T>(method, path, { ...options, retryAuth: false });
     }
-    const text = await response.text();
-    const parsed = text ? (JSON.parse(text) as unknown) : {};
+    // A body that cannot be read or parsed is not an answer: the request may still have taken effect.
+    let parsed: unknown;
+    try {
+      const text = await response.text();
+      parsed = text ? (JSON.parse(text) as unknown) : {};
+    } catch {
+      throw new PayPalError(
+        'outcome_unknown',
+        `Unreadable answer from PayPal for ${method} ${path} (HTTP ${response.status}). The result is unknown and must be reconciled.`,
+        response.status,
+      );
+    }
     if (!response.ok) {
       const error = parsed as PayPalErrorBody;
       const issue = error.details?.[0]?.issue;
       const description = error.details?.[0]?.description ?? error.message ?? error.name;
       throw new PayPalError(
-        response.status >= 500 ? 'server_error' : 'rejected',
+        response.status >= 500 ? 'server_error' : response.status === 401 ? 'auth_failed' : 'rejected',
         `PayPal ${response.status}${issue ? ` ${issue}` : ''}: ${description ?? 'request failed'}`,
         response.status,
         issue,

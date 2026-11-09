@@ -78,7 +78,7 @@ const actionContent = computed(() => {
 const visibleTimeline = computed(() => showAllActivity.value ? timeline.value : timeline.value.slice(0, 3));
 const progressSteps = computed(() => {
   const status = kase.value?.currentStatus;
-  const active = status === 'OPEN' ? 0 : status === 'IN_NEGOTIATION' ? 2 : status === 'AWAITING_APPROVAL' ? 3 : status === 'PAYMENT_PROCESSING' ? 3 : 4;
+  const active: number = status === 'OPEN' ? 0 : status === 'IN_NEGOTIATION' ? 2 : status === 'AWAITING_APPROVAL' ? 3 : status === 'PAYMENT_PROCESSING' ? 3 : 4;
   return [
     { label: 'Opened', state: 'done' },
     { label: 'Evidence', state: active > 1 ? 'done' : active === 1 ? 'current' : 'upcoming' },

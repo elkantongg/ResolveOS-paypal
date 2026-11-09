@@ -118,6 +118,18 @@ export function describeEvent(event: Pick<AuditEvent, 'action' | 'details'>): st
       return d.seeded ? 'Case opened (seeded demo case)' : 'Case opened';
     case 'evidence.added':
       return `Evidence ${d.code ?? ''} added: ${d.title ?? ''}`;
+    case 'firewall.flagged':
+      return `Evidence ${d.code ?? ''} looks written to manipulate an AI; agents were warned`;
+    case 'investigator.completed':
+      return 'Case investigator finished checking the records';
+    case 'investigator.failed':
+      return 'Case investigator could not finish; negotiation continued without it';
+    case 'reviewer.completed':
+      return 'Independent review added for both people';
+    case 'reviewer.failed':
+      return 'Independent review was not available for these terms';
+    case 'merchant.limits_confirmed':
+      return 'Merchant confirmed its position for this case';
     case 'negotiation.started':
       return `Negotiation started (${d.mode === 'demo' ? 'deterministic demo negotiator' : `live AI · ${d.model}`})`;
     case 'agent.thinking':

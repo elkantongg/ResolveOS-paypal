@@ -154,14 +154,14 @@ describe('eligibility screen (before any agent runs)', () => {
 });
 
 describe('the orchestrator’s gates on model output', () => {
-  it('rejects bad output twice, records nothing, and reports a recoverable error', async () => {
+  it('rejects bad output three times, records nothing, and reports a recoverable error', async () => {
     const engine = new ScriptedEngine(['not json', turnJson({ evidenceReferences: ['EV-99'] })]);
     const { app } = makeFullApp(paypal, engine);
     const alex = await signIn(app, ids.alex);
     await alex.post(`/api/cases/${ids.jacket}/negotiate/start`, { mode: 'live' }).expect(200);
     const res = await alex.post(`/api/cases/${ids.jacket}/negotiate/advance`).expect(502);
     expect(res.body.error.code).toBe('ai_invalid_output');
-    expect(engine.calls).toBe(2);
+    expect(engine.calls).toBe(3);
     const turns = await db().select().from(negotiationTurns).where(eq(negotiationTurns.caseId, ids.jacket));
     expect(turns).toHaveLength(0);
     const kase = await db().query.cases.findFirst({ where: eq(cases.id, ids.jacket) });

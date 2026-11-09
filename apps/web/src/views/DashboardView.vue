@@ -361,7 +361,7 @@ const graphPlot = computed(() => {
               </g>
             </svg>
             <div class="dashboard-chart-labels flex justify-between gap-1 text-[10px] text-muted">
-              <span v-for="(day, i) in chart.days.filter((_, i) => i % Math.max(1, Math.ceil(chart.days.length / 6)) === 0 || i === chart.days.length - 1)" :key="day.day">{{ day.day.slice(5) }}</span>
+              <span v-for="day in chart.days.filter((_, i) => i % Math.max(1, Math.ceil(chart.days.length / 6)) === 0 || i === chart.days.length - 1)" :key="day.day">{{ day.day.slice(5) }}</span>
             </div>
           </div>
           <p v-else class="py-8 text-center text-sm text-muted">No activity yet.</p>
