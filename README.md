@@ -125,7 +125,7 @@ flowchart LR
 | `GET /v2/payments/captures/{id}` | verified evidence |
 | `POST /v2/payments/captures/{id}/refund` | full or partial refund, with `PayPal-Request-Id` |
 | `GET /v2/payments/refunds/{id}` | reconcile |
-| Webhooks | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.REFUND.COMPLETED`, `.PENDING`, `.FAILED`, `.DENIED`, `.CANCELLED`, `CUSTOMER.DISPUTE.CREATED` |
+| Webhooks | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.REFUND.PENDING`, `.FAILED`, `.DENIED`, `.CANCELLED`, `CUSTOMER.DISPUTE.CREATED` |
 
 **AI used:** any OpenAI-compatible chat API, through a small provider interface
 (`apps/server/src/ai/provider.ts`). We use **Groq** with `openai/gpt-oss-120b` in JSON mode. Each

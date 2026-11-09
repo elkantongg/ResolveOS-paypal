@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import { type AuditRecord, audit, publish } from '../audit.js';
 import { type Db, type Tx } from '../db/index.js';
@@ -339,16 +339,22 @@ export class PaymentService {
 
   /**
    * A verified webhook says something happened to a refund: ask PayPal what is true and apply that,
-   * so the event's own contents decide nothing. Returns false for a refund that is not ours. The
-   * invoice id finds an attempt whose PayPal response never reached us.
+   * so the event's own contents decide nothing. Only refunds of ResolveOS attempts are looked up,
+   * and this path can only read: it never sends a refund. PayPal publishes no sample for the
+   * `PAYMENT.REFUND.*` payloads, so an event is matched by refund id, then by invoice id (for an
+   * attempt whose PayPal response never reached us), then by its capture. Returns false if not ours.
    */
-  async applyRefundEvent(refundId: string, invoiceId: string | undefined): Promise<boolean> {
-    let attemptId = (
-      await this.database.query.refundAttempts.findFirst({ where: eq(refundAttempts.paypalRefundId, refundId) })
-    )?.id;
-    if (!attemptId && invoiceId) {
-      const [match] = await this.database
-        .select({ id: refundAttempts.id })
+  async applyRefundEvent(resourceId: string, invoiceId: string | undefined, captureIds: string[]): Promise<boolean> {
+    const known = await this.database.query.refundAttempts.findFirst({
+      where: eq(refundAttempts.paypalRefundId, resourceId),
+    });
+    if (known) {
+      await this.confirmRefund(known.id, known.proposalId, resourceId);
+      return true;
+    }
+    if (invoiceId) {
+      const [lost] = await this.database
+        .select({ id: refundAttempts.id, proposalId: refundAttempts.proposalId })
         .from(refundAttempts)
         .innerJoin(settlementProposals, eq(refundAttempts.proposalId, settlementProposals.id))
         .innerJoin(cases, eq(settlementProposals.caseId, cases.id))
@@ -359,16 +365,42 @@ export class PaymentService {
           ),
         )
         .limit(1);
-      attemptId = match?.id;
+      if (lost) {
+        try {
+          await this.confirmRefund(lost.id, lost.proposalId, resourceId);
+          return true;
+        } catch (error) {
+          // The id in the event is not a refund, so PayPal has told us nothing about this attempt.
+          if (!(error instanceof PayPalError && error.status === 404)) throw error;
+        }
+      }
     }
-    if (!attemptId) return false;
-    const attempt = await this.database.query.refundAttempts.findFirst({ where: eq(refundAttempts.id, attemptId) });
-    const proposal = attempt
-      ? await this.database.query.settlementProposals.findFirst({ where: eq(settlementProposals.id, attempt.proposalId) })
-      : null;
-    if (!proposal) return false;
-    await this.applyRefundResult(attemptId, proposal.caseId, await this.paypal.getRefund(refundId), 'webhook');
-    return true;
+    if (captureIds.length === 0) return false;
+    const open = await this.database
+      .select({ id: refundAttempts.id, proposalId: refundAttempts.proposalId, refundId: refundAttempts.paypalRefundId })
+      .from(refundAttempts)
+      .innerJoin(transactions, eq(refundAttempts.transactionId, transactions.id))
+      .where(
+        and(
+          inArray(transactions.paypalCaptureId, captureIds),
+          isNotNull(refundAttempts.paypalRefundId),
+          inArray(refundAttempts.status, ['PROCESSING', 'PENDING', 'UNKNOWN_REQUIRES_RECONCILIATION']),
+        ),
+      );
+    for (const attempt of open) await this.confirmRefund(attempt.id, attempt.proposalId, attempt.refundId as string);
+    return open.length > 0;
+  }
+
+  private async confirmRefund(attemptId: string, proposalId: string, refundId: string): Promise<void> {
+    const proposal = await this.database.query.settlementProposals.findFirst({
+      where: eq(settlementProposals.id, proposalId),
+    });
+    if (!proposal) throw new Error('refund attempt without a proposal');
+    const result = await this.paypal.getRefund(refundId);
+    if (result.refundId !== refundId) {
+      throw new AppError(502, 'refund_mismatch', 'PayPal answered about a different refund.');
+    }
+    await this.applyRefundResult(attemptId, proposal.caseId, result, 'webhook');
   }
 
   /** Read-only safety net for missed webhooks: asks PayPal about refunds still pending. Never sends one. */
@@ -509,7 +541,19 @@ export class PaymentService {
       if (before.status === status && before.paypalRefundId === result.refundId) return out; // no change to record
       if (before.status === 'FAILED' && status !== 'COMPLETED') return out; // a late, older status
       if (result.amountMinor !== null && result.amountMinor !== before.amountMinor) {
-        throw new AppError(502, 'refund_amount_mismatch', 'PayPal reported a different refund amount.');
+        throw new AppError(502, 'refund_mismatch', 'PayPal reported a different refund amount.');
+      }
+      if (result.currency !== null && result.currency !== before.currency) {
+        throw new AppError(502, 'refund_mismatch', 'PayPal reported a different refund currency.');
+      }
+      if (status === 'COMPLETED') {
+        if (result.amountMinor === null || result.currency === null) {
+          throw new AppError(502, 'refund_mismatch', 'PayPal did not report the refund amount.');
+        }
+        const [paid] = await tx.select().from(transactions).where(eq(transactions.id, before.transactionId));
+        if (result.captureId && paid?.paypalCaptureId && result.captureId !== paid.paypalCaptureId) {
+          throw new AppError(502, 'refund_mismatch', 'PayPal reported this refund against a different payment.');
+        }
       }
       await tx
         .update(refundAttempts)

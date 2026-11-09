@@ -30,6 +30,8 @@ export class FakePayPal implements PayPalGateway {
   /** What a refund lookup reports; a webhook's own claim must not matter. */
   lookupStatus = 'COMPLETED';
   lookupFails = false;
+  /** Overrides fields of a refund lookup, to stand in for an answer that doesn't match. */
+  lookupPatch: Partial<RefundResult> = {};
   private orders = new Map<string, { amountMinor: number; currency: string; captured?: CaptureResult }>();
   private refundsByRequest = new Map<string, RefundResult>();
   private counter = 0;
@@ -99,7 +101,7 @@ export class FakePayPal implements PayPalGateway {
   async getRefund(refundId: string): Promise<RefundResult> {
     if (this.lookupFails) throw new PayPalError('server_error', 'PayPal 503', 503);
     for (const refund of this.refundsByRequest.values()) {
-      if (refund.refundId === refundId) return { ...refund, status: this.lookupStatus };
+      if (refund.refundId === refundId) return { ...refund, status: this.lookupStatus, ...this.lookupPatch };
     }
     throw new PayPalError('rejected', 'not found', 404);
   }

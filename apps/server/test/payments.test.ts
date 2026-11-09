@@ -406,7 +406,7 @@ describe('webhooks', () => {
   it('asks for redelivery when PayPal cannot confirm, then applies it', async () => {
     useWebhook();
     const { app, kase, refundId } = await pendingRefund();
-    const event = { id: 'WH-RETRY', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: refundId } };
+    const event = { id: 'WH-RETRY', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } };
     paypal.lookupFails = true;
     expect((await deliver(app, event)).status).toBe(503);
     expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
@@ -419,7 +419,7 @@ describe('webhooks', () => {
   it('out-of-order and repeated events never move a refund backwards or pay twice', async () => {
     useWebhook();
     const { app, kase, txn, refundId } = await pendingRefund();
-    await deliver(app, { id: 'WH-O1', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: refundId } });
+    await deliver(app, { id: 'WH-O1', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } });
     paypal.lookupStatus = 'PENDING';
     await deliver(app, { id: 'WH-O2', event_type: 'PAYMENT.REFUND.PENDING', resource: { id: refundId } });
     paypal.lookupStatus = 'COMPLETED';
@@ -459,9 +459,113 @@ describe('webhooks', () => {
     expect(attempt.paypalRefundId).toBeNull();
     const original = await paypal.refundCapture({ captureId: 'x', amountMinor: null, requestId: attempt.paypalRequestId });
     const invoice = `${made.kase.reference}-v${attempt.proposalId.slice(0, 8)}`;
-    const res = await deliver(app, { id: 'WH-LOST', event_type: 'PAYMENT.REFUND.COMPLETED', resource: { id: original.refundId, invoice_id: invoice } });
+    const res = await deliver(app, { id: 'WH-LOST', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: original.refundId, invoice_id: invoice } });
     expect(res.body.result).toBe('processed');
     expect(await statusOf(made.kase.id)).toBe('RESOLVED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  const v2Refund = (id: string, captureId: string, overrides: object = {}) => ({
+    id,
+    status: 'COMPLETED',
+    invoice_id: 'RA-1-v12345678',
+    amount: { value: '90.00', currency_code: 'USD' },
+    links: [
+      { rel: 'self', method: 'GET', href: `https://api.sandbox.paypal.com/v2/payments/refunds/${id}` },
+      { rel: 'up', method: 'GET', href: `https://api.sandbox.paypal.com/v2/payments/captures/${captureId}` },
+    ],
+    ...overrides,
+  });
+
+  it.each(['PAYMENT.CAPTURE.REFUNDED', 'PAYMENT.REFUND.PENDING', 'PAYMENT.REFUND.FAILED', 'PAYMENT.REFUND.DENIED', 'PAYMENT.REFUND.CANCELLED'])(
+    '%s with a refund resource resolves from the PayPal lookup and sends nothing',
+    async (eventType) => {
+      useWebhook();
+      const { app, kase, txn, refundId } = await pendingRefund();
+      const res = await deliver(app, { id: `WH-${eventType}`, event_type: eventType, resource: v2Refund(refundId, txn.paypalCaptureId as string) });
+      expect(res.body.result).toBe('processed');
+      expect(await statusOf(kase.id)).toBe('RESOLVED');
+      expect(paypal.refundCalls).toHaveLength(1);
+      delete process.env.PAYPAL_WEBHOOK_ID;
+    },
+  );
+
+  it('PAYMENT.REFUND.COMPLETED, a non-referenced credit, changes nothing', async () => {
+    useWebhook();
+    const { app, kase, txn, refundId } = await pendingRefund();
+    const res = await deliver(app, { id: 'WH-CREDIT', event_type: 'PAYMENT.REFUND.COMPLETED', resource: v2Refund(refundId, txn.paypalCaptureId as string) });
+    expect(res.body.result).toBe('ignored');
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('an event naming the capture looks up our own refund, in either payload shape', async () => {
+    useWebhook();
+    const first = await pendingRefund();
+    const capture = first.txn.paypalCaptureId as string;
+    paypal.lookupStatus = 'PENDING';
+    await deliver(first.app, { id: 'WH-CAP-V1', event_type: 'PAYMENT.REFUND.PENDING', resource: { id: 'V1REFUND', state: 'pending', sale_id: capture } });
+    expect(await statusOf(first.kase.id)).toBe('PAYMENT_PROCESSING');
+    paypal.lookupStatus = 'COMPLETED';
+    const res = await deliver(first.app, { id: 'WH-CAP', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: capture, status: 'REFUNDED' } });
+    expect(res.body.result).toBe('processed');
+    expect(await statusOf(first.kase.id)).toBe('RESOLVED');
+    expect(paypal.refundCalls).toHaveLength(1);
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it.each([
+    ['amount', { amountMinor: 1 }],
+    ['currency', { currency: 'EUR' }],
+    ['missing amount', { amountMinor: null }],
+    ['payment', { captureId: 'SOMEONEELSE' }],
+    ['refund id', { refundId: 'OTHERREFUND' }],
+  ])('never completes a refund when PayPal reports a different %s', async (_name, patch) => {
+    useWebhook();
+    const { app, kase, txn, refundId } = await pendingRefund();
+    paypal.lookupPatch = patch;
+    const res = await deliver(app, { id: 'WH-BAD', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: v2Refund(refundId, txn.paypalCaptureId as string) });
+    paypal.lookupPatch = {};
+    expect(res.status).toBe(200);
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    const after = await db().query.transactions.findFirst({ where: eq(transactions.id, txn.id) });
+    expect(after?.amountRefundedMinor).toBe(0);
+    const row = await db().query.webhookEvents.findFirst({ where: eq(webhookEvents.paypalEventId, 'WH-BAD') });
+    expect(row?.processingStatus).toBe('REJECTED_MISMATCH');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('a completed refund cannot be moved back by a later lookup', async () => {
+    useWebhook();
+    const { app, kase, refundId } = await pendingRefund();
+    await deliver(app, { id: 'WH-D1', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refundId } });
+    paypal.lookupStatus = 'FAILED';
+    await deliver(app, { id: 'WH-D2', event_type: 'PAYMENT.REFUND.FAILED', resource: { id: refundId } });
+    paypal.lookupStatus = 'COMPLETED';
+    expect(await statusOf(kase.id)).toBe('RESOLVED');
+    expect((await db().query.refundAttempts.findFirst({ where: eq(refundAttempts.paypalRefundId, refundId) }))?.status).toBe('COMPLETED');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it.each([
+    ['no resource', {}],
+    ['a numeric id', { resource: { id: 12345 } }],
+    ['an object id', { resource: { id: { a: 1 }, links: 'nope' } }],
+    ['no id', { resource: { status: 'COMPLETED' } }],
+  ])('a signed refund event with %s changes nothing', async (name, fields) => {
+    useWebhook();
+    const { app, kase } = await pendingRefund();
+    const res = await deliver(app, { id: `WH-M-${name}`, event_type: 'PAYMENT.CAPTURE.REFUNDED', ...fields });
+    expect(res.status).toBe(200);
+    expect(await statusOf(kase.id)).toBe('PAYMENT_PROCESSING');
+    delete process.env.PAYPAL_WEBHOOK_ID;
+  });
+
+  it('malformed link and dispute fields do not break a signed event', async () => {
+    useWebhook();
+    const { app } = await pendingRefund();
+    expect((await deliver(app, { id: 'WH-M5', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: 'NOTOURS', links: [null, 5], invoice_id: 7 } })).body.result).toBe('ignored');
+    expect((await deliver(app, { id: 'WH-M6', event_type: 'CUSTOMER.DISPUTE.CREATED', resource: { disputed_transactions: 'x' } })).body.result).toBe('ignored');
     delete process.env.PAYPAL_WEBHOOK_ID;
   });
 
