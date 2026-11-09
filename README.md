@@ -281,7 +281,7 @@ rules-based baseline on 7 scripted scenarios (separate database). Method, result
 ## Tests
 
 ```bash
-pnpm --filter server test   # 140 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 141 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
@@ -347,7 +347,11 @@ e2e/            Playwright specs
 - **Eligibility screen uses text patterns.** Possible unauthorised payments or account takeover are
   sent to PayPal before any agent runs, but a claim worded differently could be missed, and an
   ordinary complaint could be flagged. A false positive only means a person handles it.
-- **Evaluation is small.** 7 scripted scenarios, 3 AI runs each, written by us. See `docs/EVALUATION.md`.
+- **Evaluation is small.** 7 scripted scenarios, 3 AI runs each, written by us, recorded before the
+  final agent changes. Only a 3-run spot check covers the final code. See `docs/EVALUATION.md`.
+- **Dependency advisories remain in the PayPal Agent Toolkit's own packages:** one high (`zod` 3, memory
+  use on oversized collections) and two low. The app gives the toolkit only fixed tool names and
+  server-held ids, so party text does not reach that validation; the patch needs a toolkit update.
 - **Sandbox only.** Live PayPal credentials and real money are out of scope.
 - **Authentication is demo-grade:** pick a seeded person, no passwords. Sessions are real and roles
   are enforced on the server, but anyone past the access code can act as any demo person. Do not

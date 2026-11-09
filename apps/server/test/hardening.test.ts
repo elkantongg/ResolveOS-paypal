@@ -302,6 +302,22 @@ describe('agent answers: server checks', () => {
     expect(check({ publicMessage: 'Tracking TRK-120 shows $1,200 of parcels and 12 items.' }).ok).toBe(true);
   });
 
+  it('stops an agent going past the other side, and lets it accept a better offer', () => {
+    const step = (agent: 'BUYER' | 'MERCHANT', amount: number) =>
+      ({ agent, proposedAction: 'PARTIAL_REFUND', proposedRefundMinorUnits: amount }) as (typeof input.facts.history)[number];
+    const merchant: AgentInput = { ...input, facts: { ...input.facts, history: [step('BUYER', 8000)] } };
+    expect(validateTurn(answer({ proposedRefundMinorUnits: 10000 }), merchant, 'USD').ok).toBe(false);
+    expect(validateTurn(answer({ proposedRefundMinorUnits: 8000, acceptsCounterpartOffer: true }), merchant, 'USD').ok).toBe(true);
+
+    const buyer: AgentInput = {
+      agent: 'BUYER',
+      own: { desiredOutcome: 'A fair partial refund', floorMinor: 6000 },
+      facts: { ...input.facts, history: [step('BUYER', 8000), step('MERCHANT', 10000)] },
+    };
+    expect(validateTurn(answer({ proposedRefundMinorUnits: 10000, acceptsCounterpartOffer: true }), buyer, 'USD').ok).toBe(true);
+    expect(validateTurn(answer({ proposedRefundMinorUnits: 9000 }), buyer, 'USD').ok).toBe(false);
+  });
+
   it('rejects evidence that does not exist, even if only mentioned in the text', () => {
     expect(check({ evidenceReferences: ['EV-9'] }).ok).toBe(false);
     expect(check({ reasoningSummary: 'The signed receipt (EV-7) settles this.' }).ok).toBe(false);

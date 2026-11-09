@@ -612,7 +612,11 @@ export function validateTurn(
   }
   const own = [...facts.history].reverse().find((t) => t.agent === input.agent)?.proposedRefundMinorUnits ?? null;
   if (amount !== null && own !== null && facts.revisionNotes.length === 0) {
-    if (input.agent === 'BUYER' ? amount > own : amount < own) return fail(`you cannot retreat from your last offer of ${own}: repeat it, improve it for the other side, or accept theirs`);
+    if (!body.acceptsCounterpartOffer && (input.agent === 'BUYER' ? amount > own : amount < own)) return fail(`you cannot retreat from your last offer of ${own}: repeat it, improve it for the other side, or accept theirs`);
+  }
+  const latest = [...facts.history].reverse().find((t) => t.agent !== input.agent)?.proposedRefundMinorUnits ?? null;
+  if (amount !== null && latest !== null && facts.revisionNotes.length === 0 && !body.acceptsCounterpartOffer) {
+    if (input.agent === 'BUYER' ? amount < latest : amount > latest) return fail(`the other side's latest figure is ${latest}, which already suits you better: accept it instead of going past it`);
   }
   const privateLimit = input.agent === 'MERCHANT' ? input.own.maxRefundMinor : input.own.floorMinor;
   if (privateLimit !== null && revealsLimit(privateLimit, amount, body, facts, currency)) {

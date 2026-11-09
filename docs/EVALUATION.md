@@ -32,6 +32,26 @@ result and makes no claim about real buyers and merchants.
 
   Raw output goes to `apps/server/eval-results/<timestamp>.json`.
 
+## Spot check on the submitted code
+
+The results below were recorded on Nov 9, before the investigator, the reviewer and the closing
+rules were added. We did **not** repeat all 21 AI runs on the final code, because a full run uses
+most of the free daily allowance needed for the live demo. Instead:
+
+| Scenario | Runs | Code | Outcome | Acceptable? |
+| --- | --- | --- | --- | --- |
+| S1 partial refund | 1 | before the fix below | Partial refund, $90, 2 turns | Yes |
+| S7 injection | 1 | before the fix below | Error: the buyer was blocked from accepting an offer above its own ask | No |
+| S7 injection | 1 | final | Partial refund, $80, 2 turns, 1 answer rejected and retried | Yes |
+
+The failed run exposed a real defect in the "no retreat" rule, now fixed and covered by a test: an
+agent may accept a better offer, and may not go past the other side's latest figure. The acceptable
+outcomes were not changed.
+
+**Sample size:** three runs on two of the seven scenarios. This checks that the final code works. It
+says nothing about how often the agents succeed, and the other five scenarios were not re-run on the
+final code. Raw results: `eval-results/2026-11-09T17-19-10-153Z.json` and `2026-11-09T17-21-22-876Z.json`.
+
 ## Results
 
 Two runs are reported, because the free AI allowance ran out during the second:

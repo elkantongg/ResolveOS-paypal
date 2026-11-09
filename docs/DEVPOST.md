@@ -92,7 +92,7 @@ agreement or with escalation, and no money moves.
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** 140 API tests, 10 web unit tests and 14 Playwright end-to-end tests.
+**Tests:** 141 API tests, 10 web unit tests and 14 Playwright end-to-end tests.
 
 ## Impact (what we measured, and what we did not)
 
