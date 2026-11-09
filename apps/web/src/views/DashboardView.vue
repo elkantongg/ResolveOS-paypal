@@ -165,7 +165,7 @@ const priorityHeadline = computed(() => {
   if (!item) return 'You’re all caught up';
   if (item.status === 'AWAITING_APPROVAL') return `Review ${item.reference} now`;
   if (item.status === 'ESCALATED') return `Review escalated case ${item.reference}`;
-  if (item.status === 'NO_AGREEMENT') return `Review next steps for ${item.reference}`;
+  if (item.status === 'NO_AGREEMENT') return `Review unresolved case ${item.reference}`;
   if (item.status === 'PAYMENT_PROCESSING') return `Check payment status · ${item.reference}`;
   if (item.status === 'IN_NEGOTIATION') return `Track negotiation · ${item.reference}`;
   return `Review new case ${item.reference}`;
@@ -251,15 +251,27 @@ const graphPlot = computed(() => {
           </div>
           <span class="dashboard-agent-label"><Sparkles class="size-3.5" /> Smart priority</span>
         </div>
-        <div v-if="summary" class="dashboard-next-step mt-5">
-          <span class="dashboard-next-icon"><Layers class="size-7" /></span>
+        <RouterLink
+          v-if="summary && priorityCase"
+          :to="`/cases/${priorityCase.id}`"
+          class="dashboard-next-step dashboard-next-step--interactive mt-4"
+          :aria-label="`${priorityHeadline}. Open case ${priorityCase.reference}`"
+        >
+          <span class="dashboard-next-icon" aria-hidden="true"><Layers class="size-7" /></span>
           <div class="min-w-0 flex-1">
-            <p class="dashboard-next-eyebrow"><Sparkles class="size-3.5" /> Best next step · Ranked #1</p>
+            <p class="dashboard-next-eyebrow"><Sparkles class="size-3.5" /> Recommended next step</p>
             <h3 class="mt-1 text-[22px] font-bold leading-tight tracking-tight">{{ priorityHeadline }}</h3>
             <p class="mt-1 text-sm text-ink-soft">{{ priorityDescription }}</p>
             <p class="mt-2 text-xs italic text-muted">{{ priorityRationale }}</p>
           </div>
-          <RouterLink v-if="priorityCase" :to="`/cases/${priorityCase.id}`" class="btn dashboard-review-btn">Review case <ArrowRight class="size-4" /></RouterLink>
+          <span class="btn dashboard-review-btn" aria-hidden="true">Review case <ArrowRight class="size-4" /></span>
+        </RouterLink>
+        <div v-else-if="summary" class="dashboard-next-step dashboard-next-step--empty mt-4">
+          <span class="dashboard-next-icon" aria-hidden="true"><CheckCircle2 class="size-7" /></span>
+          <div class="min-w-0 flex-1">
+            <h3 class="mt-1 text-[22px] font-bold leading-tight tracking-tight">{{ priorityHeadline }}</h3>
+            <p class="mt-1 text-sm text-ink-soft">{{ priorityDescription }}</p>
+          </div>
         </div>
         <div v-else class="mt-5"><Skeleton :lines="3" /></div>
         <div class="dashboard-next-glow" aria-hidden="true" />
@@ -716,5 +728,29 @@ const graphPlot = computed(() => {
  .dashboard-action-centre--neon .dashboard-next-step{grid-template-columns:48px minmax(0,1fr);column-gap:12px;padding:12px 0}
  .dashboard-action-centre--neon .dashboard-next-icon{width:48px;height:48px}
  .dashboard-action-centre--neon .dashboard-review-btn{grid-column:1/-1;width:100%}
+}
+
+/* The recommendation is one semantic link, not an inert row with a tiny target. */
+.dashboard-action-centre--neon .dashboard-next-step--interactive {
+  color:inherit;text-decoration:none;cursor:pointer;border:1px solid transparent;
+  border-radius:15px;padding:12px 10px 12px 6px;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.dashboard-action-centre--neon .dashboard-next-step--interactive:hover {
+  background:#557dff0d;border-color:#7b93e746;box-shadow:inset 0 0 18px #557dff0d;
+}
+.dashboard-action-centre--neon .dashboard-next-step--interactive:focus-visible {
+  outline:2px solid #76e8ff;outline-offset:3px;background:#557dff12;
+}
+.dashboard-action-centre--neon .dashboard-next-step--interactive:hover .dashboard-review-btn,
+.dashboard-action-centre--neon .dashboard-next-step--interactive:focus-visible .dashboard-review-btn {
+  background:#a1f5ff;box-shadow:0 0 28px #25e8ff85;
+}
+.dashboard-action-centre--neon .dashboard-next-step--empty .dashboard-next-icon {
+  color:#40d9b2;border-color:#31ba9a;background:#123a39;
+  box-shadow:0 0 20px #20ad8b38;animation:none;
+}
+@media(prefers-reduced-motion:reduce){
+  .dashboard-action-centre--neon .dashboard-next-step--interactive{transition:none}
 }
 </style>
