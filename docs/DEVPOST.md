@@ -10,11 +10,11 @@ people approve, and PayPal settles it.
 
 ## Inspiration — the problem with PayPal today
 
-When a PayPal payment goes wrong, the main path is a formal dispute. Take "item not received":
+When a PayPal payment goes wrong, one formal route is a dispute in PayPal's Resolution Center. Take "item not received":
 
 - The buyer opens a dispute in the Resolution Center.
-- The two sides then have an inquiry stage of up to **20 days** to sort it out themselves.
-- After that, it can be escalated to a claim that PayPal decides.
+- Eligible disputes have an inquiry window of up to **20 days** unless escalated earlier.
+- If unresolved, either party may escalate to a claim within that window, after which PayPal may decide the outcome.
   ([PayPal: dispute lifecycle](https://developer.paypal.com/disputes/disputes-lifecycle))
 
 The hardest cases are the ones where **both sides are acting in good faith**. The carrier says
@@ -43,7 +43,7 @@ ResolveOS is a pre-dispute settlement layer on top of PayPal:
 4. **Approve:** if they agree, the buyer and the merchant each approve the *exact* terms from their
    own session, or ask for a revision.
 5. **Settle:** ResolveOS executes the refund through **PayPal's Payments API** against the original
-   capture, with a fixed `PayPal-Request-Id` so it can never refund twice.
+   capture, with a fixed `PayPal-Request-Id` to guard against duplicate refund execution.
 6. **Receipt:** a verified receipt shows PayPal's refund ID, the capture ID and the full audit trail.
 
 If the evidence cannot support a fair deal, the agents **do not force one**: the case ends with no
@@ -85,7 +85,7 @@ agreement or with escalation, and no money moves.
   least one behind every position; no private limit written in any text; currency;
   full or partial refund maths; the merchant agent never above the merchant's ceiling; the buyer
   agent never below the buyer's floor; "accept" really matching the other side's offer.
-- An invalid answer is rejected and retried, up to twice. Nothing is ever invented in its place.
+- An invalid answer is rejected and retried once. If it still fails validation, an error is surfaced rather than inventing an answer.
 - Money moves only in a separate payment service, only after both people approved the same terms
   hash, and only with amounts loaded from the database, never from the model or the browser.
 - A timeout is "unknown, needs reconciling", resolved by re-sending the same request ID, never
@@ -94,13 +94,13 @@ agreement or with escalation, and no money moves.
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** 154 API tests, 10 web unit tests and 15 Playwright end-to-end tests, plus a 44-request Postman collection.
+**Tests:** Repository includes API, frontend unit and Playwright end-to-end test suites, plus a Postman collection. Verify current passing counts using fresh test results before quoting totals.
 
 ## Impact (what we measured, and what we did not)
 
 | | |
 | --- | --- |
-| **One observed demo run** | In a single demo run (case RA-1102), the time from complaint to PayPal-confirmed refund was **1 min 31 s**: the agents negotiated for 14 s over 5 turns, the two approvals took 30 s, and PayPal confirmed the refund in 2 s. This is one run, driven by us, with both "people" approving straight away. It is **not** evidence of typical speed. Real buyers and merchants take longer to respond. The app records these timings from every case's audit log, so they can be measured on real use. |
+| **One observed demo run** | In one verified hosted Sandbox run (case RA-1100), time from complaint to PayPal-confirmed refund was **8 min 2 s**: live AI agents negotiated for **9 s over 2 turns**, the two approvals took **2 min 40 s**, and PayPal confirmed the **$30.00** refund in **2 s**. Both "people" were operated by us during the test. It is **not** evidence of typical speed. Real buyers and merchants take longer to respond. The app records these timings from every case's audit log, so they can be measured on real use. |
 | **PayPal's process, for context only** | PayPal's dispute inquiry stage can last **up to 20 days** before a dispute can be escalated to a claim ([source](https://developer.paypal.com/disputes/disputes-lifecycle)). That is a **maximum window, not an average resolution time**, and we have no data on how long PayPal disputes take on average. We do not claim ResolveOS is faster than PayPal's process. |
 | **Negotiation evaluation** | We compared the AI agents with a simple rules-based negotiator on 7 scripted scenarios. See `docs/EVALUATION.md` for the method, the raw results and the limits. It is a small, scripted set, not a statistical result. |
 | **What it could change (hypothesis)** | Before a dispute is opened, both sides get an advocate and a structured, approved settlement, which may avoid an adversarial claim. We have not validated this with real users yet. |
@@ -124,7 +124,7 @@ Server-Sent Events for the live negotiation.
 
 - Making "the AI agreed" safe: we moved every money rule out of the prompt and into server code.
 - Payment safety: unknown outcomes, duplicate clicks and webhook spoofing.
-- Free-tier AI rate limits (8,000 tokens a minute): the provider waits, retries, and falls back to a second model when a daily allowance runs out.
+- Free-tier AI rate limits can slow or interrupt live negotiations; model quotas and fallback behavior depend on the deployment configuration.
 - The PayPal Agent Toolkit's tool filter hides tools from a model but does not stop a direct call, so our agents never hold it: they get three fixed, read-only checks.
 
 ## What's next
@@ -137,9 +137,9 @@ Server-Sent Events for the live negotiation.
 
 ## Try it
 
-- **Repo:** https://github.com/elkantongg/resolve.os-paypal (MIT licensed). The setup steps are in the
-  README.
-- **Video:** [YouTube link]
+- **Hosted Sandbox demo:** https://resolveos-paypal.onrender.com (demo access code required; Render Free may take time to wake).
+- **Repo:** https://github.com/elkantongg/ResolveOS-paypal (MIT licensed). Setup steps are in the README.
+- **Video:** ADD PUBLIC YOUTUBE LINK BEFORE SUBMISSION.
 
 > Independent hackathon project. Not affiliated with or endorsed by PayPal. Sandbox only. ResolveOS
 > does not replace PayPal's Resolution Center.
