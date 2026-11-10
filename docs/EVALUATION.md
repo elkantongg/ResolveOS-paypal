@@ -90,11 +90,8 @@ Two runs are reported, because the free AI allowance ran out during the second:
 - **A defect this evaluation caught:** in the earlier run, buyer agents settled S1 for a replacement
   in 2 of 3 runs, although the buyer asked for money back. The server now refuses a replacement from
   a buyer agent unless the buyer asked for one. S1 then gave $100, no agreement, and $80.
-- **Agreement rate:** the AI's rate (12/21 across both runs) is not far from the baseline's (3/7).
-  Agreeing is not the goal in S3, S4 and S5.
-- **Policy compliance:** no limit violations and no rejected answers for either negotiator.
-  Compliance is **enforced by the server**, not by the AI, so we do not count it as an AI
-  advantage.
+- **Agreement rate:** the AI reached agreements in 12 of 21 recorded runs across code versions, and the simple deterministic baseline agreed in 3 of 7 scenarios. Different denominators, tiny samples, and mixed code versions make a head-to-head rate comparison unreliable. Agreement is not necessarily desirable in S3, S4, or S5.
+- **Policy compliance:** no final terms outside either side's limits were observed in the tabulated runs. However, the server rejected some agent answers (1 in the S1–S5 results and 2 in the earlier-code S6–S7 results). Compliance is **enforced by the server**, not credited as an AI advantage.
 - **Negotiation time:** the AI needed fewer *turns* to agree (median 2.5 vs 5), but more
   *wall-clock* time (seconds, not under one). Neither number says anything about how long real
   people would take.
@@ -114,7 +111,7 @@ Two runs are reported, because the free AI allowance ran out during the second:
 
 - **Scenarios:** only 7, written by us. There may be bias toward cases the prompts handle well.
 - **Repetitions:** the AI was run only 3 times per scenario, and is not deterministic.
-- **S6 and S7 have not been run on the final code** (see Results).
+- **S6 and S7 were not fully rerun on final code.** A limited S7 spot check on final code is reported above; the three-repetition S6–S7 data were captured on earlier code. Do not present the mixed-version totals as final-version performance.
 - **Baseline:** a single, simple baseline we built ourselves. A stronger rule set (for example one
   that offers replacements) would narrow the S2 gap.
 - **Fairness:** no human judged fairness. "Acceptable" means "inside the pre-registered set", not
