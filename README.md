@@ -1,5 +1,4 @@
-
-| A **deterministic eligibility screen** runs before any agent: possible unauthorised payments or account takeover, and fully refunded payments, are escalated to PayPal without negotiating. | `negotiation/eligibility.ts` |# ResolveOS
+# ResolveOS
 
 **Two sides. One resolution.**
 
@@ -29,7 +28,7 @@ with private limits, and a compromise both people approve is settled as a real P
 
 1. **Buyer reports a problem** on a real PayPal sandbox payment. ResolveOS reads the capture from
    PayPal and marks it *Verified from PayPal*.
-2. **The merchant adds evidence**, such as a tracking record or a refund policy, and sets a private
+2. **The merchant may add evidence**, such as a tracking record or a refund policy, and sets a private
    refund ceiling.
 3. **Two AI agents negotiate** in the Negotiation Room. They cite evidence by code, list what is
    unproven, and make structured offers. A *gap meter* shows the two positions closing in.
@@ -178,6 +177,9 @@ Open **http://localhost:5180** and click **Enter ResolveOS**.
 
 ### Demo walkthrough (about 3 minutes)
 
+For a hosted recording, use **https://resolveos-paypal.onrender.com**, not `pnpm dev`. Make a fresh Sandbox purchase and case. Live AI outcomes vary: do not substitute an earlier case's refund receipt for a new case. Render Free may require a cold start after inactivity.
+
+
 1. Sign in as **Alex Morgan** (buyer). Go to **Sandbox purchase** → **Pay with PayPal sandbox**.
 2. On PayPal's sandbox page, log in with your **sandbox personal account**: developer.paypal.com →
    Testing Tools → Sandbox Accounts → the *Personal* account → View/Edit for its email and password.
@@ -221,6 +223,9 @@ pending ones with PayPal every minute (read-only; it never sends a refund).
 
 ### Resetting demo data (destructive, explicit)
 
+**For the hosted hackathon recording, DO NOT reset Neon or run `pnpm db:reset --yes`.** Create a new Sandbox transaction and case instead. Keep completed settlements and audit trails. The reset command below is only for a disposable *local test* database.
+
+
 `pnpm db:seed` never deletes anything: if the database already has data, it changes nothing.
 To wipe this app's records (cases, payments, refunds) and start again:
 
@@ -240,7 +245,7 @@ then needs that code: the browser asks once (HTTP Basic; any username). Only `/a
 `/api/ready` and PayPal's signature-checked webhook are outside it.
 
 `render.yaml` describes the same setup for Render's free web service; a free Neon database works
-with it. It has not been deployed yet.
+with it. It is deployed at https://resolveos-paypal.onrender.com (PayPal Sandbox only). The hosted demo has completed a two-party-approved refund and verified capture/refund webhook deliveries.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -372,12 +377,10 @@ e2e/            Playwright specs
   not fetched from carriers.
 - **Replacement** can be agreed, but ResolveOS does not ship anything; it is flagged as a manual
   action for the merchant.
-- **AI rate limits:** Groq's free tier allows about 8,000 tokens a minute. The app waits and retries
-  automatically, so a long negotiation may pause briefly.
+- **AI rate limits:** Groq free-tier quotas can change or be exhausted. Live negotiation may pause or fail; the distinct, labelled demo engine can be used for offline presentations.
 - **A refund started outside ResolveOS** is ignored by the webhook and does not change the recorded
   refunded total. PayPal still refuses to refund more than remains.
-- **Live webhook delivery has not been exercised.** It needs a public HTTPS URL. Signatures are
-  tested with a local key, and the PayPal lookup against the real sandbox.
+- **Live webhook delivery:** verified on the hosted Sandbox instance. PayPal's event history shows **Success** for the capture-completed and capture-refunded notifications from case RA-1100. Other subscribed event types and failure/retry paths were not individually tested.
 - **Postgres tests:** server tests need a local Postgres test database.
 
 ## Sponsor tools
