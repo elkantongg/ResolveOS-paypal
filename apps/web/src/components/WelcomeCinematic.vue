@@ -33,7 +33,6 @@ const subtitle = computed(() => props.mode === 'welcome' ? 'A better way to find
       <p class="welcome-cinematic__subtitle">{{ subtitle }}</p>
       <div class="welcome-cinematic__progress"><span /></div>
     </div>
-    <p class="welcome-cinematic__foot">RESOLVE <span>OS</span> &nbsp;·&nbsp; HUMAN FIRST, AI ASSISTED</p>
   </div>
 </template>
 
@@ -58,8 +57,6 @@ const subtitle = computed(() => props.mode === 'welcome' ? 'A better way to find
 .welcome-cinematic__subtitle{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(20px,2.5vw,31px);font-style:italic;color:#b9cce9;margin:9px 0 0}
 .welcome-cinematic__progress{width:156px;height:2px;border-radius:10px;background:#85b5f32a;margin-top:31px;overflow:hidden}
 .welcome-cinematic__progress span{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4a8aff,#b8ddff,#48d8b0);transform-origin:left;animation:welcome-progress 1.65s cubic-bezier(.17,.73,.2,1) both}
-.welcome-cinematic__foot{position:absolute;bottom:max(29px,5vh);font-family:'Geist',sans-serif;font-size:9px;letter-spacing:.22em;color:#7591ba;text-align:center;padding:0 18px}
-.welcome-cinematic__foot span{color:#87baff}
 .welcome-cinematic--leaving{animation:welcome-depart .43s cubic-bezier(.4,0,1,1) both;pointer-events:none}
 .welcome-cinematic--leaving .welcome-cinematic__content{animation:welcome-content-depart .43s cubic-bezier(.4,0,1,1) both}
 @keyframes welcome-depart{from{opacity:1}to{opacity:0}}
