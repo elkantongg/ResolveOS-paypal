@@ -331,15 +331,19 @@ const graphPlot = computed(() => {
         </div>
         <div v-else class="overflow-x-auto">
           <table class="dashboard-case-table w-full min-w-[700px] text-left">
-            <thead><tr>
-              <th>Case ID</th><th>Dispute title</th><th>Counterparty</th><th>Amount</th><th>Status</th><th>Last update</th><th><span class="sr-only">Open</span></th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>Case ID</th><th>Dispute title</th><th>Counterparty</th><th>Amount</th><th>Status</th><th>Last update</th><th><span class="sr-only">Open</span></th>
+              </tr>
+            </thead>
             <tbody>
-              <tr v-for="item in cases" :key="item.id" tabindex="0" role="link" :aria-label="`Open case ${item.reference}: ${item.title}`"
+              <tr
+                v-for="item in cases" :key="item.id" tabindex="0" role="link" :aria-label="`Open case ${item.reference}: ${item.title}`"
                 class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                 @click="router.push(`/cases/${item.id}`)"
                 @keydown.enter.prevent="router.push(`/cases/${item.id}`)"
-                @keydown.space.prevent="router.push(`/cases/${item.id}`)">
+                @keydown.space.prevent="router.push(`/cases/${item.id}`)"
+              >
                 <td><span class="font-semibold text-primary">{{ item.reference }}</span></td>
                 <td><span class="font-medium">{{ item.title }}</span><div class="mt-1 sm:hidden"><SourceBadge :source="item.sourceType" :capture-id="item.sourceType === 'PAYPAL_SANDBOX' ? 'yes' : null" /></div></td>
                 <td class="text-ink-soft">{{ session.role === 'BUYER' ? item.merchantName : session.role === 'MERCHANT' ? item.buyerName : item.buyerName + ' ↔ ' + item.merchantName }}</td>
@@ -359,7 +363,7 @@ const graphPlot = computed(() => {
           <p class="mt-1 text-xs text-muted">Cases opened and resolved, from the audit log</p>
           <div v-if="chart.days.length" class="mt-4">
             <svg class="dashboard-chart dashboard-chart--neon w-full" preserveAspectRatio="xMidYMid meet" viewBox="0 0 560 138" role="img" :aria-label="`Cases opened and resolved across ${chart.days.length} days`">
-              <defs><linearGradient id="resolveos-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#23e6c3" stop-opacity=".26"/><stop offset="100%" stop-color="#23e6c3" stop-opacity="0"/></linearGradient><filter id="resolveos-chart-glow" x="-25%" y="-50%" width="150%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+              <defs><linearGradient id="resolveos-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#23e6c3" stop-opacity=".26" /><stop offset="100%" stop-color="#23e6c3" stop-opacity="0" /></linearGradient><filter id="resolveos-chart-glow" x="-25%" y="-50%" width="150%" height="200%"><feGaussianBlur stdDeviation="2.2" /></filter></defs>
               <g v-for="tick in graphPlot.ticks" :key="tick.y">
                 <line x1="26" :y1="tick.y" x2="534" :y2="tick.y" stroke="var(--color-line)" stroke-width="1" />
               </g>

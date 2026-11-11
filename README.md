@@ -77,6 +77,7 @@ The investigator therefore picks from three named checks with no arguments, and
 | Anything short of a **definite PayPal refusal** stays "unknown": a 409, 429, unreadable answer, sign-in failure or bug never reopens the case, because new terms get a new request ID. | `payments/service.ts` |
 | An agent answer that writes its own private limit, cites evidence that does not exist, takes a position with no evidence, retreats from its own last offer, or settles a buyer on a replacement they did not ask for is rejected. Rejection reasons in the shared log never contain a limit. | `validateTurn` |
 | Negotiation cannot start until the **merchant has confirmed** its limit for the case. | `Orchestrator.start` |
+| A **deterministic eligibility screen** runs before any agent: possible unauthorised payments or account takeover, and fully refunded payments, are escalated to PayPal without negotiating. | `negotiation/eligibility.ts` |
 | Party-written text cannot close the data tags around it in the prompt. | `prompts.ts` |
 | A public instance **will not start** without `DEMO_ACCESS_CODE` and an https `FRONTEND_URL`. | `config.ts`, `accessGate` |
 | Sessions use HTTP-only `SameSite=Strict` cookies plus a CSRF token. Roles come from the database. The operator can watch but cannot approve. | `auth.ts` |
@@ -290,7 +291,7 @@ rules-based baseline on 7 scripted scenarios (separate database). Method, result
 ## Tests
 
 ```bash
-pnpm --filter server test   # 154 API tests on a real Postgres test DB (createdb resolve_ai_test)
+pnpm --filter server test   # 172 API tests on a real Postgres test DB (createdb resolve_ai_test)
 pnpm --filter web test      # unit tests for money parsing, stages and wording
 pnpm test:e2e               # Playwright: createdb resolve_ai_e2e first; uses your installed Chrome
 ```
