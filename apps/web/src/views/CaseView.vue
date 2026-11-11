@@ -244,7 +244,7 @@ async function saveLimits() {
             <div><h2 class="text-base font-semibold">Evidence <span class="ml-1 text-sm font-normal text-muted">({{ detail.evidence.length }})</span></h2><p class="mt-1 text-xs text-muted">Expand an item to read the full record</p></div>
             <button v-if="editable && role !== 'OPERATOR'" type="button" class="btn btn-sm btn-secondary" @click="adding = !adding"><Plus class="size-3.5" /> Add evidence</button>
           </div>
-                    <form v-if="adding" class="space-y-3 border-b border-line bg-sunken/50 px-6 py-5" @submit.prevent="addEvidence">
+          <form v-if="adding" class="space-y-3 border-b border-line bg-sunken/50 px-6 py-5" @submit.prevent="addEvidence">
             <div v-if="role === 'MERCHANT'" class="flex flex-wrap gap-2">
               <button type="button" class="btn btn-sm btn-secondary" @click="demoTracking"><Sparkles class="size-3.5" /> Demo tracking record</button>
               <button type="button" class="btn btn-sm btn-secondary" @click="demoPolicy"><Sparkles class="size-3.5" /> Demo refund policy</button>
@@ -302,7 +302,7 @@ async function saveLimits() {
           </dl>
         </section>
 
-                <section v-if="role === 'MERCHANT' || role === 'OPERATOR'" class="card p-6">
+        <section v-if="role === 'MERCHANT' || role === 'OPERATOR'" class="card p-6">
           <p class="font-semibold">Merchant limits for this case</p>
           <p class="mb-4 text-xs text-muted">Private to {{ detail.merchant?.businessName }}. The merchant agent may never offer more; the server enforces it.</p>
           <form class="space-y-3" @submit.prevent="saveLimits">

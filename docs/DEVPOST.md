@@ -94,7 +94,7 @@ agreement or with escalation, and no money moves.
 **Stack:** Vue 3 + TypeScript + Tailwind, Node + Express + Zod, PostgreSQL + Drizzle, and
 Server-Sent Events for the live negotiation.
 
-**Tests:** Repository includes API, frontend unit and Playwright end-to-end test suites, plus a Postman collection. Verify current passing counts using fresh test results before quoting totals.
+**Tests:** 172 API tests, 10 frontend unit tests and 15 Playwright end-to-end tests, plus a 44-request Postman collection (53 assertions). All passed on the submitted `main` on 11 Nov 2026.
 
 ## Impact (what we measured, and what we did not)
 

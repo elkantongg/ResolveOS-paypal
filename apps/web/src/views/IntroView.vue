@@ -292,12 +292,10 @@ onBeforeUnmount(() => {
             <div class="cinema-progress" role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100" aria-label="Introduction progress">
               <div :style="{ width: (progress * 100) + '%' }" />
             </div>
-            <button class="cinema-next" type="button" @click="jumpTo(activeIndex === 3 ? 0 : activeIndex + 1)" :aria-label="activeIndex === 3 ? 'Replay introduction' : 'Go to next section'"><ChevronDown :size="19" :class="{ 'rotate-180': activeIndex === 3 }" /></button>
+            <button class="cinema-next" type="button" :aria-label="activeIndex === 3 ? 'Replay introduction' : 'Go to next section'" @click="jumpTo(activeIndex === 3 ? 0 : activeIndex + 1)"><ChevronDown :size="19" :class="{ 'rotate-180': activeIndex === 3 }" /></button>
           </div>
         </section>
       </div>
-
-
     </main>
   </div>
 </template>
